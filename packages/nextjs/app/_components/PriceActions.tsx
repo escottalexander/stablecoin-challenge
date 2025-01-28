@@ -10,8 +10,7 @@ const PriceActions = () => {
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "StableCoinEngine" });
 
-  const renderPrice =
-    price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : formatEther(price);
+  const renderPrice = price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : formatEther(price);
 
   const handleClick = async (isIncrease: boolean) => {
     if (price === undefined) {
@@ -34,7 +33,7 @@ const PriceActions = () => {
     <div className="card bg-base-100 w-96 shadow-xl">
       <div className="card-body">
         <h2 className="card-title">Adjust the price</h2>
-        <div className="flex justify-center my-1">Stablecoin price: {renderPrice}</div>
+        <div className="flex justify-center my-1">ETH price: {renderPrice}</div>
         <div className="card-actions justify-between">
           <button className="btn btn-primary" onClick={() => handleClick(false)}>
             Decrease by 10%
