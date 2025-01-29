@@ -1,5 +1,5 @@
 import React from "react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatEther, zeroAddress } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -85,8 +85,19 @@ const CollateralGraph = () => {
         <h2 className="card-title">System Collateral Ratio</h2>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart width={500} height={300} data={ratioData}>
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={value => `${(value * 100).toFixed(0)}%`} />
+            <XAxis
+              domain={["auto", "auto"]}
+              dataKey="name"
+              stroke="#ffffff"
+              tick={false}
+              label={{ value: "Time", position: "insideBottom", fill: "#ffffff" }}
+            />
+            <YAxis
+              domain={[0, 6]}
+              tickFormatter={value => `${(value * 100).toFixed(0)}%`}
+              stroke="#ffffff"
+              tick={{ fill: "#ffffff" }}
+            />
             <Tooltip />
             <Line type="monotone" dataKey="ratio" stroke="#82ca9d" dot={false} />
           </LineChart>
