@@ -46,43 +46,53 @@ const CollateralGraph = () => {
     receiptData: true,
   });
 
-  const combinedEvents = [...(addEvents || []), ...(withdrawEvents || []), ...(transferEvents || [])];
+  const { data: priceEvents } = useScaffoldEventHistory({
+    contractName: "StableCoinEngine",
+    eventName: "PriceUpdated",
+    fromBlock: 0n,
+    watch: true,
+    blockData: true,
+    transactionData: true,
+    receiptData: true,
+  });
+  const combinedEvents = [
+    ...(addEvents || []),
+    ...(withdrawEvents || []),
+    ...(transferEvents || []),
+    ...(priceEvents || []),
+  ];
   const sortedEvents = combinedEvents.sort((a, b) => Number(a.blockData?.timestamp - b.blockData?.timestamp));
 
   const ratioData = sortedEvents.reduce((acc, event, idx) => {
-    try {
-      const collateralAdded = event.eventName === "CollateralAdded" ? BigInt(event.args.amount || 0) : 0n;
-      const collateralWithdrawn = event.eventName === "CollateralWithdrawn" ? BigInt(event.args.amount || 0) : 0n;
-      const price = event.args.price ? BigInt(event.args.price) : 0n;
-      const debtAdded = event.eventName === "Transfer" ? getDebtFromTransferEvent(event) : 0n;
+    const collateralAdded = event.eventName === "CollateralAdded" ? event.args.amount : 0n;
+    const collateralWithdrawn = event.eventName === "CollateralWithdrawn" ? event.args.amount : 0n;
+    const price = event.args.price || 3333000000000000000000n;
+    const debtAdded = event.eventName === "Transfer" ? getDebtFromTransferEvent(event) : 0n;
 
-      const prevCollateral = acc[idx - 1]?.collateral || 0n;
-      const prevDebt = acc[idx - 1]?.debt || 0n;
+    const prevCollateral = acc[idx - 1]?.collateral || 0n;
+    const prevDebt = acc[idx - 1]?.debt || 0n;
 
-      const collateral =
-        prevCollateral + (collateralAdded - collateralWithdrawn) * (price ? BigInt(formatEther(price)) : 0n);
-      const debt = prevDebt + debtAdded;
-      const ratio = Number(collateral || 1) / Number(debt || collateral || 1);
+    const collateralInEth = prevCollateral + collateralAdded - collateralWithdrawn;
+    const ethPriceInStable = BigInt(Math.round(Number(formatEther(price))));
+    const collateralInStable = collateralInEth * ethPriceInStable;
+    const debt = prevDebt + debtAdded;
+    const ratio = Number(collateralInStable || 1) / Number(debt || collateralInStable || 1);
 
-      return [
-        ...acc,
-        {
-          name: event.blockData?.number || 0,
-          ratio: Number.isFinite(ratio) ? ratio : 1,
-          collateral: collateral,
-          debt: debt,
-        },
-      ];
-    } catch (error) {
-      console.error("Error processing event:", error);
-      return acc;
-    }
+    return [
+      ...acc,
+      {
+        name: event.blockData?.number || 0,
+        ratio: Number.isFinite(ratio) ? ratio : 1,
+        collateral: collateralInEth,
+        debt: debt,
+      },
+    ];
   }, []);
 
   return (
     <div className="card bg-base-100 w-96 shadow-xl">
       <div className="card-body h-96 w-96">
-        <h2 className="card-title">System Collateral Ratio</h2>
+        <h2 className="card-title">Total Collateral/Debt Ratio</h2>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart width={500} height={300} data={ratioData}>
             <XAxis
