@@ -59,11 +59,10 @@ const CollateralGraph = () => {
       const prevCollateral = acc[idx - 1]?.collateral || 0n;
       const prevDebt = acc[idx - 1]?.debt || 0n;
 
-      const collateral = prevCollateral + (collateralAdded - collateralWithdrawn) * (price ? price : 0n);
+      const collateral =
+        prevCollateral + (collateralAdded - collateralWithdrawn) * (price ? BigInt(formatEther(price)) : 0n);
       const debt = prevDebt + debtAdded;
-
-      // Avoid division by zero and ensure proper number conversion
-      const ratio = debt === 0n ? (collateral === 0n ? 1 : Number(collateral)) : Number(collateral) / Number(debt);
+      const ratio = Number(collateral || 1) / Number(debt || collateral || 1);
 
       return [
         ...acc,
