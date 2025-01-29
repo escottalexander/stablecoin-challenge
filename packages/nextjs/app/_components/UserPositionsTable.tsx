@@ -1,26 +1,47 @@
-import React from "react";
-import { Address as AddressBlock } from "~~/components/scaffold-eth";
-import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+import React, { useEffect, useState } from "react";
+import UserPosition from "./UserPosition";
+import { formatEther } from "viem";
+import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const UserPositionsTable = () => {
+  const [users, setUsers] = useState<string[]>([]);
   const { data: events, isLoading } = useScaffoldEventHistory({
     contractName: "StableCoinEngine",
     eventName: "CollateralAdded",
     fromBlock: 0n, // should be the block number where the contract was deployed
     watch: true,
-    blockData: true,
-    transactionData: true,
-    receiptData: true,
+    blockData: false,
+    transactionData: false,
+    receiptData: false,
+  });
+  const { data: ethPrice } = useScaffoldReadContract({
+    contractName: "StableCoinEngine",
+    functionName: "s_pricePoint",
   });
 
+  useEffect(() => {
+    if (!events) return;
+
+    setUsers(prevUsers => {
+      const uniqueUsers = new Set([...prevUsers]);
+      events
+        .map(event => event.args.user)
+        .filter((user): user is string => !!user)
+        .forEach(user => uniqueUsers.add(user));
+      return uniqueUsers.size > prevUsers.length ? Array.from(uniqueUsers) : prevUsers;
+    });
+  }, [events, users]);
+
   return (
-    <div className="card bg-base-100 w-96 shadow-xl">
+    <div className="card bg-base-100 w-max shadow-xl">
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
             <tr>
               <th>Address</th>
-              <th>userCollateral</th>
+              <th>Collateral</th>
+              <th>Debt</th>
+              <th>Ratio</th>
             </tr>
           </thead>
           <tbody>
@@ -34,15 +55,7 @@ const UserPositionsTable = () => {
                 </td>
               </tr>
             ) : (
-              events &&
-              events.map(event => (
-                <tr key={event.args.user}>
-                  <td>
-                    <AddressBlock address={event.args.user} disableAddressLink size="sm" />
-                  </td>
-                  <td>{event.args.amount?.toString()}</td>
-                </tr>
-              ))
+              users.map(user => <UserPosition key={user} user={user} ethPrice={Number(formatEther(ethPrice || 0n))} />)
             )}
           </tbody>
         </table>

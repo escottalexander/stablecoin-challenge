@@ -61,7 +61,7 @@ const CollateralGraph = () => {
     ...(transferEvents || []),
     ...(priceEvents || []),
   ];
-  const sortedEvents = combinedEvents.sort((a, b) => Number(a.blockData?.timestamp - b.blockData?.timestamp));
+  const sortedEvents = combinedEvents.sort((a, b) => Number(a.blockNumber - b.blockNumber));
 
   const ratioData = sortedEvents.reduce((acc, event, idx) => {
     const collateralAdded = event.eventName === "CollateralAdded" ? event.args.amount : 0n;
