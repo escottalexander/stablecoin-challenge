@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./StableCoin.sol";
 
 error Engine__InvalidAmount();
@@ -10,12 +11,12 @@ error Engine__MintingFailed();
 error Engine__PositionSafe();
 error Engine__NotLiquidatable();
 
-contract StableCoinEngine {
+contract StableCoinEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required (one and a half times the amount of stablecoin minted)
     uint256 private constant LIQUIDATOR_REWARD = 10; // 10% reward for liquidators
     uint256 private constant SAFE_POSITION_THRESHOLD = 1e18; // 1 * 1e18 (pegged to the price of ETH)
 
-    StableCoin private immutable i_stableCoin;
+    StableCoin private i_stableCoin;
 
     // ETH/USD price with 18 decimals
     uint256 public s_pricePoint;
@@ -23,12 +24,15 @@ contract StableCoinEngine {
     mapping(address => uint256) public s_userCollateral; // User's collateral balance
     mapping(address => uint256) public s_userMinted; // User's minted stablecoin balance
 
-    event CollateralAdded(address indexed user, uint256 indexed amount);
-    event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount);
+    event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
+    event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
 
-    constructor(address stableCoinAddress) {
-        i_stableCoin = StableCoin(stableCoinAddress);
+    constructor() Ownable(msg.sender) {
         s_pricePoint = 3333e18; // Starting ETH price of $3333
+    }
+
+    function setStableCoin(address stableCoinAddress) external onlyOwner {
+        i_stableCoin = StableCoin(stableCoinAddress);
     }
 
     // Allows users to add collateral to their account
@@ -37,7 +41,7 @@ contract StableCoinEngine {
             revert Engine__InvalidAmount(); // Revert if no collateral is sent
         }
         s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
-        emit CollateralAdded(msg.sender, msg.value); // Emit event for collateral addition
+        emit CollateralAdded(msg.sender, msg.value, s_pricePoint); // Emit event for collateral addition
     }
 
     // Allows users to withdraw collateral as long as it doesn't make them liquidatable
@@ -56,7 +60,7 @@ contract StableCoinEngine {
         // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
 
-        emit CollateralWithdrawn(msg.sender, msg.sender, amount); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(msg.sender, msg.sender, amount, s_pricePoint); // Emit event for collateral withdrawal
     }
 
     // Allows users to mint stablecoins based on their collateral
@@ -76,6 +80,7 @@ contract StableCoinEngine {
     function _getUserPosition(address user) private view returns (uint256 mintedAmount, uint256 collateralValue) {
         mintedAmount = s_userMinted[user]; // Get user's minted amount
         collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
+        return (mintedAmount, collateralValue); // Return user's position
     }
 
     // Calculates the total collateral value for a user based on their collateral balance and price point
@@ -134,7 +139,7 @@ contract StableCoinEngine {
         payable(msg.sender).transfer(liquidatorReward); // Transfer reward to liquidator
         payable(user).transfer(collateralValue - liquidatorReward); // Transfer remaining collateral to user
 
-        emit CollateralWithdrawn(user, msg.sender, liquidatorReward); // Emit event for collateral withdrawal
-        emit CollateralWithdrawn(user, user, collateralValue - liquidatorReward); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(user, msg.sender, liquidatorReward, s_pricePoint); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(user, user, collateralValue - liquidatorReward, s_pricePoint); // Emit event for collateral withdrawal
     }
 }
