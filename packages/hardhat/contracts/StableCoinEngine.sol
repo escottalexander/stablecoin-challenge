@@ -26,6 +26,7 @@ contract StableCoinEngine is Ownable {
 
     event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
     event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
+    event PriceUpdated(uint256 indexed price);
 
     constructor() Ownable(msg.sender) {
         s_pricePoint = 3333e18; // Starting ETH price of $3333
@@ -108,6 +109,7 @@ contract StableCoinEngine is Ownable {
     // Simulates an oracle function to update the ETH price; in production, use a real price feed
     function updatePrice(uint256 newPrice) external {
         s_pricePoint = newPrice; // Update the stored price point
+        emit PriceUpdated(newPrice);
     }
 
     // Checks if a user's position can be liquidated
