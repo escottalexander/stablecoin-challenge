@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 const LiquidateOperations = () => {

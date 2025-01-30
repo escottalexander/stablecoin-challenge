@@ -1,6 +1,6 @@
 import React from "react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatEther, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
 const getDebtFromTransferEvent = (event: any) => {
