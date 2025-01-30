@@ -42,6 +42,7 @@ const UserPositionsTable = () => {
               <th>Collateral</th>
               <th>Debt</th>
               <th>Ratio</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
