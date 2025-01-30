@@ -33,7 +33,7 @@ const UserPositionsTable = () => {
   }, [events, users]);
 
   return (
-    <div className="card bg-base-100 w-max shadow-xl">
+    <div className="card bg-base-100 w-full shadow-xl">
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
