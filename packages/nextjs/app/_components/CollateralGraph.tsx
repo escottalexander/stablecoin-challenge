@@ -47,38 +47,44 @@ const CollateralGraph = () => {
   });
 
   const combinedEvents = [...(addEvents || []), ...(withdrawEvents || []), ...(transferEvents || [])];
-  const sortedEvents = combinedEvents.sort((a, b) => Number(a.blockData?.timestamp - b.blockData?.timestamp));
+  const sortedEvents = combinedEvents.sort((a, b) => Number((a as any).blockNumber - (b as any).blockNumber));
 
-  const ratioData = sortedEvents.reduce((acc, event, idx) => {
-    try {
-      const collateralAdded = event.eventName === "CollateralAdded" ? BigInt(event.args.amount || 0) : 0n;
-      const collateralWithdrawn = event.eventName === "CollateralWithdrawn" ? BigInt(event.args.amount || 0) : 0n;
-      const price = event.args.price ? BigInt(event.args.price) : 0n;
-      const debtAdded = event.eventName === "Transfer" ? getDebtFromTransferEvent(event) : 0n;
+  const ratioData = sortedEvents.reduce<Array<{ name: number; ratio: number; collateral: bigint; debt: bigint }>>(
+    (acc, event) => {
+      try {
+        const collateralAdded = event.eventName === "CollateralAdded" ? BigInt(event.args.amount || 0) : 0n;
+        const collateralWithdrawn = event.eventName === "CollateralWithdrawn" ? BigInt(event.args.amount || 0) : 0n;
+        const price =
+          event.eventName === "CollateralAdded" || event.eventName === "CollateralWithdrawn"
+            ? BigInt(event.args.price || 0)
+            : 0n;
+        const debtAdded = event.eventName === "Transfer" ? getDebtFromTransferEvent(event) : 0n;
 
-      const prevCollateral = acc[idx - 1]?.collateral || 0n;
-      const prevDebt = acc[idx - 1]?.debt || 0n;
+        const prevCollateral = acc[acc.length - 1]?.collateral || 0n;
+        const prevDebt = acc[acc.length - 1]?.debt || 0n;
 
-      const collateral = prevCollateral + (collateralAdded - collateralWithdrawn) * (price ? price : 0n);
-      const debt = prevDebt + debtAdded;
+        const collateral = prevCollateral + (collateralAdded - collateralWithdrawn) * (price ? price : 0n);
+        const debt = prevDebt + debtAdded;
 
-      // Avoid division by zero and ensure proper number conversion
-      const ratio = debt === 0n ? (collateral === 0n ? 1 : Number(collateral)) : Number(collateral) / Number(debt);
+        // Avoid division by zero and ensure proper number conversion
+        const ratio = debt === 0n ? (collateral === 0n ? 1 : Number(collateral)) : Number(collateral) / Number(debt);
 
-      return [
-        ...acc,
-        {
-          name: event.blockData?.number || 0,
-          ratio: Number.isFinite(ratio) ? ratio : 1,
-          collateral: collateral,
-          debt: debt,
-        },
-      ];
-    } catch (error) {
-      console.error("Error processing event:", error);
-      return acc;
-    }
-  }, []);
+        return [
+          ...acc,
+          {
+            name: (event as any).blockNumber || 0,
+            ratio: Number.isFinite(ratio) ? ratio : 1,
+            collateral: collateral,
+            debt: debt,
+          },
+        ];
+      } catch (error) {
+        console.error("Error processing event:", error);
+        return acc;
+      }
+    },
+    [],
+  );
 
   return (
     <div className="card bg-base-100 w-96 shadow-xl">
