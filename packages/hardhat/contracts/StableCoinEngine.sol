@@ -14,7 +14,6 @@ error Engine__NotLiquidatable();
 contract StableCoinEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required (one and a half times the amount of stablecoin minted)
     uint256 private constant LIQUIDATOR_REWARD = 10; // 10% reward for liquidators
-    uint256 private constant SAFE_POSITION_THRESHOLD = 1e18; // 1 * 1e18 (pegged to the price of ETH)
 
     StableCoin private i_stableCoin;
 
@@ -94,14 +93,13 @@ contract StableCoinEngine is Ownable {
     function _calculatePositionRatio(address user) private view returns (uint256) {
         (uint256 mintedAmount, uint256 collateralValue) = _getUserPosition(user); // Get user's position
         if (mintedAmount == 0) return type(uint256).max; // Return max if no stablecoins are minted
-        uint256 adjustedCollateral = (collateralValue * COLLATERAL_RATIO) / 100; // Adjust collateral based on ratio
-        return (adjustedCollateral * 1e18) / mintedAmount; // Calculate position ratio
+        return (collateralValue * 1e18) / mintedAmount; // Calculate position ratio
     }
 
     // Validates the user's position to ensure it meets safety requirements
     function _validatePosition(address user) internal view {
         uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        if (positionRatio < SAFE_POSITION_THRESHOLD) {
+        if ((positionRatio * 100) < COLLATERAL_RATIO * 1e18) {
             revert Engine__UnsafePositionRatio(); // Revert if position is unsafe
         }
     }
@@ -115,7 +113,7 @@ contract StableCoinEngine is Ownable {
     // Checks if a user's position can be liquidated
     function isLiquidatable(address user) public view returns (bool) {
         uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        return positionRatio < SAFE_POSITION_THRESHOLD; // Check if position is unsafe
+        return (positionRatio * 100) < COLLATERAL_RATIO * 1e18; // Check if position is unsafe
     }
 
     // Allows liquidators to liquidate unsafe positions
@@ -125,23 +123,39 @@ contract StableCoinEngine is Ownable {
         }
 
         uint256 userDebt = s_userMinted[user]; // Get user's minted amount
+        uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
         uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
 
-        // Calculate liquidator's reward
-        uint256 liquidatorReward = (collateralValue * LIQUIDATOR_REWARD) / 100; // Calculate liquidator's reward
+        // check that liquidator has enough funds to pay back the debt
+        if (i_stableCoin.balanceOf(msg.sender) < userDebt) {
+            revert StableCoin__InsufficientBalance();
+        }
 
-        // Burn the user's minted stablecoins
-        i_stableCoin.burnFrom(user, userDebt); // Burn user's minted stablecoins
+        // check that liquidator has approved the engine to transfer the debt
+        if (i_stableCoin.allowance(msg.sender, address(this)) < userDebt) {
+            revert StableCoin__InsufficientAllowance();
+        }
 
-        // Clear user's debt and collateral
-        s_userMinted[user] = 0; // Clear user's minted amount
-        s_userCollateral[user] = 0; // Clear user's collateral balance
+        // tranfer value of debt to the contract
+        i_stableCoin.transferFrom(msg.sender, address(this), userDebt);
 
-        // Transfer reward to liquidator and remaining collateral to user
-        payable(msg.sender).transfer(liquidatorReward); // Transfer reward to liquidator
-        payable(user).transfer(collateralValue - liquidatorReward); // Transfer remaining collateral to user
+        // burn the transfered stablecoins
+        i_stableCoin.burnFrom(address(this), userDebt);
 
-        emit CollateralWithdrawn(user, msg.sender, liquidatorReward, s_pricePoint); // Emit event for collateral withdrawal
-        emit CollateralWithdrawn(user, user, collateralValue - liquidatorReward, s_pricePoint); // Emit event for collateral withdrawal
+        // Clear user's debt
+        s_userMinted[user] = 0;
+
+        // calculate 110% of the debt in eth
+        uint256 collateralPurchased = (userDebt / collateralValue) * userCollateral;
+        uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
+        uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
+
+        // transfer 110% of the debt to the liquidator
+        (bool sent, bytes memory data) = payable(msg.sender).call{value: amountForLiquidator}("");
+        require(sent, "Failed to send Ether");
+
+        s_userCollateral[user] = userCollateral - amountForLiquidator;
+
+        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, s_pricePoint); // Emit event for collateral withdrawal
     }
 }

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 error StableCoin__InvalidAmount();
 error StableCoin__InsufficientBalance();
+error StableCoin__InsufficientAllowance();
 error StableCoin__InvalidAddress();
 
 contract StableCoin is ERC20, Ownable {
