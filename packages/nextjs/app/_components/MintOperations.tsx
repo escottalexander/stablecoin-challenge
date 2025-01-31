@@ -63,7 +63,7 @@ const MintOperations = () => {
 
         <div className="form-control">
           <label className="label">
-            <span className="label-text">Burn MyUSD</span>
+            <span className="label-text">Repay Debt</span>
           </label>
           <div className="flex gap-2">
             <input
@@ -74,7 +74,7 @@ const MintOperations = () => {
               onChange={e => setBurnAmount(e.target.value)}
             />
             <button className="btn btn-primary" onClick={handleBurn} disabled={!burnAmount}>
-              Burn
+              Repay
             </button>
           </div>
         </div>

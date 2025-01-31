@@ -90,8 +90,8 @@ const CollateralGraph = () => {
   }, []);
 
   return (
-    <div className="card bg-base-100 w-96 shadow-xl">
-      <div className="card-body h-96 w-96">
+    <div className="card bg-base-100 w-full shadow-xl">
+      <div className="card-body h-96 w-full">
         <h2 className="card-title">Total Collateral/Debt Ratio</h2>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart width={500} height={300} data={ratioData}>
