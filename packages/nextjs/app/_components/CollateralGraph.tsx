@@ -47,7 +47,7 @@ const CollateralGraph = () => {
   });
 
   const { data: priceEvents } = useScaffoldEventHistory({
-    contractName: "StableCoinEngine",
+    contractName: "EthPriceOracle",
     eventName: "PriceUpdated",
     fromBlock: 0n,
     watch: true,
