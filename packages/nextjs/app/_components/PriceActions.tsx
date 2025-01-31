@@ -11,7 +11,8 @@ const PriceActions = () => {
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "StableCoinEngine" });
 
-  const renderPrice = price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : formatEther(price);
+  const renderPrice =
+    price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : Number(formatEther(price)).toFixed(2);
 
   const handleClick = async (isIncrease: boolean) => {
     if (price === undefined) {
@@ -44,7 +45,7 @@ const PriceActions = () => {
             <EyeIcon className="h-4 w-4 text-white" />
           </div>
           <span className="text-sm">ETH Price:</span>
-          <span className="font-bold">${renderPrice}</span>
+          <span className="font-bold flex items-center">${renderPrice}</span>
         </div>
         <button onClick={() => handleClick(true)} className="btn btn-circle btn-ghost btn-xs">
           <PlusIcon className="h-3 w-3" />
