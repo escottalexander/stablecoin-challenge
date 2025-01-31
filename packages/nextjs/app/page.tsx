@@ -2,7 +2,7 @@
 
 import CollateralGraph from "./_components/CollateralGraph";
 import CollateralOperations from "./_components/CollateralOperations";
-import LiquidateOperations from "./_components/LiquidateOperations";
+import MintOperations from "./_components/MintOperations";
 import UserPositionsTable from "./_components/UserPositionsTable";
 import type { NextPage } from "next";
 
@@ -17,7 +17,7 @@ const Home: NextPage = () => {
           <div className="flex flex-wrap gap-8 justify-center">
             <div className="flex flex-col gap-8">
               <CollateralOperations />
-              <LiquidateOperations />
+              <MintOperations />
             </div>
             <div className="flex flex-col gap-8">
               <CollateralGraph />
