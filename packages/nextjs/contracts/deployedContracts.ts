@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     StableCoin: {
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      address: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
       abi: [
         {
           inputs: [
@@ -293,7 +293,13 @@ const deployedContracts = {
             },
           ],
           name: "burnFrom",
-          outputs: [],
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
           stateMutability: "nonpayable",
           type: "function",
         },
@@ -476,12 +482,17 @@ const deployedContracts = {
       },
     },
     StableCoinEngine: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0x9A676e781A523b5d0C0e43731313A708CB607508",
       abi: [
         {
           inputs: [],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          inputs: [],
+          name: "Engine__BurningFailed",
+          type: "error",
         },
         {
           inputs: [],
@@ -628,6 +639,19 @@ const deployedContracts = {
           name: "addCollateral",
           outputs: [],
           stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "burnAmount",
+              type: "uint256",
+            },
+          ],
+          name: "burnStableCoin",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {

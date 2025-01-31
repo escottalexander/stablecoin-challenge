@@ -158,8 +158,8 @@ contract StableCoinEngine is Ownable {
         // Clear user's debt
         s_userMinted[user] = 0;
 
-        // calculate 110% of the debt in eth
-        uint256 collateralPurchased = (userDebt / collateralValue) * userCollateral;
+        // calculate collateral to purchase (maintain the ratio of debt to collateral value)
+        uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
         uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
         uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
 
