@@ -1,10 +1,24 @@
 import React, { useState } from "react";
-import { parseEther } from "viem";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { formatEther, parseEther } from "viem";
+import { useAccount } from "wagmi";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 const MintOperations = () => {
   const [mintAmount, setMintAmount] = useState("");
   const [burnAmount, setBurnAmount] = useState("");
+  const { address } = useAccount();
+
+  const { data: stableCoinBalance } = useScaffoldReadContract({
+    contractName: "StableCoin",
+    functionName: "balanceOf",
+    args: [address],
+  });
+
+  const { data: userMinted } = useScaffoldReadContract({
+    contractName: "StableCoinEngine",
+    functionName: "s_userMinted",
+    args: [address],
+  });
 
   const { writeContractAsync: mintStableCoin } = useScaffoldWriteContract({
     contractName: "StableCoinEngine",
@@ -77,6 +91,13 @@ const MintOperations = () => {
               Repay
             </button>
           </div>
+        </div>
+        <div className="divider"></div>
+        <div className="w-full">
+          <div className="stat-title">
+            MyUSD Balance: <span className="font-bold">{formatEther(stableCoinBalance || 0n).slice(0, 8)}</span>
+          </div>
+          <div className="stat-title">Outstanding Debt: {formatEther(userMinted || 0n).slice(0, 8)}</div>
         </div>
       </div>
     </div>
