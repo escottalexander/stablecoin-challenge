@@ -48,7 +48,7 @@ const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
   const { writeContractAsync: writeEngineContract, isPending: isLiquidating } = useScaffoldWriteContract({
     contractName: "StableCoinEngine",
   });
-  const { writeContractAsync: writeStableContract, isPending: isApproving } = useScaffoldWriteContract({
+  const { writeContractAsync: writeStableContract } = useScaffoldWriteContract({
     contractName: "StableCoin",
   });
 

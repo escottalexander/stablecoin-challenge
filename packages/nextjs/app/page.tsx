@@ -13,7 +13,7 @@ const Home: NextPage = () => {
       <div className="flex items-center flex-col flex-grow pt-10 pb-16">
         <div className="px-5 w-full">
           <div className="relative flex justify-center items-center mb-8">
-            <h1 className="text-2xl">Stablecoin challenge</h1>
+            <h1 className="text-2xl">Stablecoin Challenge</h1>
             <PriceActions />
           </div>
           <div className="flex flex-wrap gap-8 justify-center">
