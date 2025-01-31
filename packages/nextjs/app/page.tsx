@@ -22,8 +22,8 @@ const Home: NextPage = () => {
               <MintOperations />
             </div>
             <div className="flex flex-col gap-8">
-              <CollateralGraph />
               <UserPositionsTable />
+              <CollateralGraph />
             </div>
           </div>
         </div>

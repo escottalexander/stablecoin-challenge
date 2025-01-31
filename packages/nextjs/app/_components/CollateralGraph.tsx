@@ -1,5 +1,5 @@
 import React from "react";
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatEther, zeroAddress } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -109,7 +109,8 @@ const CollateralGraph = () => {
               tick={{ fill: "#ffffff" }}
             />
             <Tooltip />
-            <Line type="monotone" dataKey="ratio" stroke="#82ca9d" dot={false} />
+            <ReferenceLine y={1.5} stroke="#ff4d4d" strokeDasharray="3 3" />
+            <Line type="monotone" dataKey="ratio" stroke="#82ca9d" dot={false} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>

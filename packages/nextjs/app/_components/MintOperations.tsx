@@ -97,7 +97,9 @@ const MintOperations = () => {
           <div className="stat-title">
             MyUSD Balance: <span className="font-bold">{formatEther(stableCoinBalance || 0n).slice(0, 8)}</span>
           </div>
-          <div className="stat-title">Outstanding Debt: {formatEther(userMinted || 0n).slice(0, 8)}</div>
+          <div className="stat-title">
+            Outstanding Debt: <span className="font-bold">{formatEther(userMinted || 0n).slice(0, 8)}</span>
+          </div>
         </div>
       </div>
     </div>

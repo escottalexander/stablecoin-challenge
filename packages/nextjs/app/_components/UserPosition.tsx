@@ -3,9 +3,10 @@ import { formatEther } from "viem";
 import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
-function getRatioColorClass(ratio: number): string {
-  if (ratio < 150) return "text-red-600";
-  if (ratio < 200) return "text-yellow-600";
+function getRatioColorClass(ratio: number | string): string {
+  if (ratio === "N/A") return "text-white";
+  if (Number(ratio) < 150) return "text-red-600";
+  if (Number(ratio) < 200) return "text-yellow-600";
   return "text-green-600";
 }
 
@@ -51,13 +52,13 @@ const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
     contractName: "StableCoin",
   });
 
-  const ratio = calculatePositionRatio(
-    Number(formatEther(userCollateral || 0n)),
-    Number(formatEther(userMinted || 0n)),
-    ethPrice,
-  );
+  const mintedAmount = Number(formatEther(userMinted || 0n));
+  const ratio =
+    mintedAmount === 0
+      ? "N/A"
+      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice).toFixed(1);
 
-  const isPositionSafe = ratio >= 150;
+  const isPositionSafe = ratio == "N/A" || Number(ratio) >= 150;
   const liquidatePosition = async () => {
     if (allowance === undefined || userMinted === undefined || engineContract === undefined) return;
     try {
@@ -83,7 +84,7 @@ const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
       </td>
       <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)} ETH</td>
       <td>{Number(formatEther(userMinted || 0n)).toFixed(2)} MyUSD</td>
-      <td className={getRatioColorClass(ratio)}>{ratio.toFixed(1)}%</td>
+      <td className={getRatioColorClass(ratio)}>{ratio === "N/A" ? "N/A" : `${ratio}%`}</td>
       <td className="flex justify-center">
         <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-ghost">
           {isLiquidating ? <span className="loading loading-spinner loading-sm"></span> : "Liquidate"}
