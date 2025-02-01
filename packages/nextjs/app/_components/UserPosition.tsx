@@ -43,7 +43,6 @@ const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
     functionName: "allowance",
     args: [user, engineContract?.address],
   });
-  console.log({ allowance });
 
   const { writeContractAsync: writeEngineContract, isPending: isLiquidating } = useScaffoldWriteContract({
     contractName: "StableCoinEngine",
@@ -86,7 +85,7 @@ const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
       <td>{Number(formatEther(userMinted || 0n)).toFixed(2)} MyUSD</td>
       <td className={getRatioColorClass(ratio)}>{ratio === "N/A" ? "N/A" : `${ratio}%`}</td>
       <td className="flex justify-center">
-        <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-ghost">
+        <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-sm btn-ghost">
           {isLiquidating ? <span className="loading loading-spinner loading-sm"></span> : "Liquidate"}
         </button>
       </td>

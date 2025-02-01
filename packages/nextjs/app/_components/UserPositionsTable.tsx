@@ -46,13 +46,28 @@ const UserPositionsTable = () => {
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
+            {isLoading || events === undefined ? (
               <tr key={"skeleton"}>
                 <td>
-                  <div className="skeleton w-24 h-6"></div>
+                  <div className="skeleton w-36 h-6"></div>
                 </td>
                 <td>
                   <div className="skeleton w-16 h-6"></div>
+                </td>
+                <td>
+                  <div className="skeleton w-16 h-6"></div>
+                </td>
+                <td>
+                  <div className="skeleton w-16 h-6"></div>
+                </td>
+                <td>
+                  <div className="skeleton w-24 h-6"></div>
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center">
+                  No user positions available.
                 </td>
               </tr>
             ) : (
