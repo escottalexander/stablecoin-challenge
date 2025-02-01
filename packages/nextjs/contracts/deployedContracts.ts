@@ -293,7 +293,13 @@ const deployedContracts = {
             },
           ],
           name: "burnFrom",
-          outputs: [],
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
           stateMutability: "nonpayable",
           type: "function",
         },
@@ -485,6 +491,11 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "Engine__BurningFailed",
+          type: "error",
+        },
+        {
+          inputs: [],
           name: "Engine__InvalidAmount",
           type: "error",
         },
@@ -523,6 +534,16 @@ const deployedContracts = {
             },
           ],
           name: "OwnableUnauthorizedAccount",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StableCoin__InsufficientAllowance",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StableCoin__InsufficientBalance",
           type: "error",
         },
         {
@@ -601,10 +622,36 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "price",
+              type: "uint256",
+            },
+          ],
+          name: "PriceUpdated",
+          type: "event",
+        },
+        {
           inputs: [],
           name: "addCollateral",
           outputs: [],
           stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "burnAmount",
+              type: "uint256",
+            },
+          ],
+          name: "burnStableCoin",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {

@@ -1,5 +1,5 @@
 import React from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatEther, zeroAddress } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -90,8 +90,8 @@ const CollateralGraph = () => {
   }, []);
 
   return (
-    <div className="card bg-base-100 w-96 shadow-xl">
-      <div className="card-body h-96 w-96">
+    <div className="card bg-base-100 w-full shadow-xl">
+      <div className="card-body h-96 w-full">
         <h2 className="card-title">Total Collateral/Debt Ratio</h2>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart width={500} height={300} data={ratioData}>
@@ -109,7 +109,8 @@ const CollateralGraph = () => {
               tick={{ fill: "#ffffff" }}
             />
             <Tooltip />
-            <Line type="monotone" dataKey="ratio" stroke="#82ca9d" dot={false} />
+            <ReferenceLine y={1.5} stroke="#ff4d4d" strokeDasharray="3 3" />
+            <Line type="monotone" dataKey="ratio" stroke="#82ca9d" dot={false} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { formatEther } from "viem";
+import { EyeIcon, MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 const PriceActions = () => {
@@ -10,7 +11,8 @@ const PriceActions = () => {
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "StableCoinEngine" });
 
-  const renderPrice = price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : formatEther(price);
+  const renderPrice =
+    price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : Number(formatEther(price)).toFixed(2);
 
   const handleClick = async (isIncrease: boolean) => {
     if (price === undefined) {
@@ -30,18 +32,24 @@ const PriceActions = () => {
   };
 
   return (
-    <div className="card bg-base-100 w-96 shadow-xl">
-      <div className="card-body">
-        <h2 className="card-title">Adjust the price</h2>
-        <div className="flex justify-center my-1">ETH price: {renderPrice}</div>
-        <div className="card-actions justify-between">
-          <button className="btn btn-primary" onClick={() => handleClick(false)}>
-            Decrease by 10%
-          </button>
-          <button className="btn btn-primary" onClick={() => handleClick(true)}>
-            Increase by 10%
-          </button>
+    <div className="absolute right-0 bg-base-100 w-fit border-base-300 border shadow-md rounded-3xl">
+      <div className="p-2 py-3 flex items-center gap-3">
+        <button onClick={() => handleClick(false)} className="btn btn-circle btn-ghost btn-xs">
+          <MinusIcon className="h-3 w-3" />
+        </button>
+        <div className="flex items-center gap-1">
+          <div
+            className="tooltip tooltip-info tooltip-bottom text-white"
+            data-tip="Use these controls to simulate 10% price changes reported by the oracle"
+          >
+            <EyeIcon className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-sm">ETH Price:</span>
+          <span className="font-bold flex items-center">${renderPrice}</span>
         </div>
+        <button onClick={() => handleClick(true)} className="btn btn-circle btn-ghost btn-xs">
+          <PlusIcon className="h-3 w-3" />
+        </button>
       </div>
     </div>
   );

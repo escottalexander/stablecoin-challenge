@@ -8,6 +8,7 @@ error Engine__InvalidAmount();
 error Engine__TransferFailed();
 error Engine__UnsafePositionRatio();
 error Engine__MintingFailed();
+error Engine__BurningFailed();
 error Engine__PositionSafe();
 error Engine__NotLiquidatable();
 
@@ -73,6 +74,18 @@ contract StableCoinEngine is Ownable {
         bool success = i_stableCoin.mintTo(msg.sender, mintAmount); // Mint stablecoins to user
         if (!success) {
             revert Engine__MintingFailed(); // Revert if minting fails
+        }
+    }
+
+    // Allows users to burn stablecoins and reduce their debt
+    function burnStableCoin(uint256 burnAmount) public {
+        if (burnAmount == 0 || burnAmount > s_userMinted[msg.sender]) {
+            revert Engine__InvalidAmount(); // Revert if burn amount is invalid
+        }
+        s_userMinted[msg.sender] -= burnAmount; // Reduce user's minted balance
+        bool success = i_stableCoin.burnFrom(msg.sender, burnAmount); // Burn stablecoins from user
+        if (!success) {
+            revert Engine__BurningFailed(); // Revert if burning fails
         }
     }
 
@@ -145,8 +158,8 @@ contract StableCoinEngine is Ownable {
         // Clear user's debt
         s_userMinted[user] = 0;
 
-        // calculate 110% of the debt in eth
-        uint256 collateralPurchased = (userDebt / collateralValue) * userCollateral;
+        // calculate collateral to purchase (maintain the ratio of debt to collateral value)
+        uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
         uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
         uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
 

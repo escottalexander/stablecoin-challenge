@@ -12,7 +12,7 @@ error StableCoin__InvalidAddress();
 contract StableCoin is ERC20, Ownable {
     constructor(address _owner) ERC20("MyUSD", "mUSDC") Ownable(_owner) {}
 
-    function burnFrom(address account, uint256 amount) external onlyOwner {
+    function burnFrom(address account, uint256 amount) external onlyOwner returns (bool) {
         uint256 balance = balanceOf(account);
         if (amount == 0) {
             revert StableCoin__InvalidAmount();
@@ -21,6 +21,7 @@ contract StableCoin is ERC20, Ownable {
             revert StableCoin__InsufficientBalance();
         }
         _burn(account, amount);
+        return true;
     }
 
     function mintTo(address to, uint256 amount) external onlyOwner returns (bool) {
