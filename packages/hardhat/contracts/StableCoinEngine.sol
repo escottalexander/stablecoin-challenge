@@ -54,7 +54,9 @@ contract StableCoinEngine is Ownable {
         s_userCollateral[msg.sender] = newCollateral;
 
         // Validate the user's position after withdrawal
-        _validatePosition(msg.sender);
+        if (s_userMinted[msg.sender] > 0) {
+            _validatePosition(msg.sender);
+        }
 
         // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
@@ -156,7 +158,7 @@ contract StableCoinEngine is Ownable {
         uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
 
         // transfer 110% of the debt to the liquidator
-        (bool sent, bytes memory data) = payable(msg.sender).call{value: amountForLiquidator}("");
+        (bool sent, bytes memory data) = payable(msg.sender).call{ value: amountForLiquidator }("");
         require(sent, "Failed to send Ether");
 
         s_userCollateral[user] = userCollateral - amountForLiquidator;
