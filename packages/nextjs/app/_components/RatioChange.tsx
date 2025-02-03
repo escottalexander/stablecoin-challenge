@@ -10,9 +10,6 @@ type UserPositionProps = {
 };
 
 const RatioChange = ({ user, ethPrice, inputMintAmount }: UserPositionProps) => {
-  if (inputMintAmount <= 0) {
-    return null;
-  }
   const { data: userCollateral } = useScaffoldReadContract({
     contractName: "StableCoinEngine",
     functionName: "s_userCollateral",
@@ -36,6 +33,10 @@ const RatioChange = ({ user, ethPrice, inputMintAmount }: UserPositionProps) => 
     mintedAmount + inputMintAmount,
     ethPrice,
   ).toFixed(1);
+
+  if (inputMintAmount <= 0) {
+    return null;
+  }
 
   return (
     <div className="text-sm">

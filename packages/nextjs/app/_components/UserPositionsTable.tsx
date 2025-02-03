@@ -73,7 +73,14 @@ const UserPositionsTable = () => {
                 </td>
               </tr>
             ) : (
-              users.map(user => <UserPosition key={user} user={user} connectedAddress={connectedAddress || ""} ethPrice={Number(formatEther(ethPrice || 0n))} />)
+              users.map(user => (
+                <UserPosition
+                  key={user}
+                  user={user}
+                  connectedAddress={connectedAddress || ""}
+                  ethPrice={Number(formatEther(ethPrice || 0n))}
+                />
+              ))
             )}
           </tbody>
         </table>
