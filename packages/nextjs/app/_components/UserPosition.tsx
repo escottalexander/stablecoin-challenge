@@ -7,9 +7,10 @@ import { calculatePositionRatio, getRatioColorClass } from "~~/utils/helpers";
 type UserPositionProps = {
   user: string;
   ethPrice: number;
+  connectedAddress: string;
 };
 
-const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
+const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
     contractName: "StableCoinEngine",
     functionName: "s_userCollateral",
@@ -65,7 +66,7 @@ const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
   };
 
   return (
-    <tr key={user}>
+    <tr key={user} className={`${connectedAddress === user ? "bg-blue-100 dark:bg-blue-900" : ""}`}>
       <td>
         <AddressBlock address={user} disableAddressLink format="short" size="sm" />
       </td>

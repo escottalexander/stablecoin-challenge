@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import UserPosition from "./UserPosition";
 import { formatEther } from "viem";
+import { useAccount } from "wagmi";
 import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const UserPositionsTable = () => {
+  const { address: connectedAddress } = useAccount();
   const [users, setUsers] = useState<string[]>([]);
   const { data: events, isLoading } = useScaffoldEventHistory({
     contractName: "StableCoinEngine",
@@ -71,7 +73,7 @@ const UserPositionsTable = () => {
                 </td>
               </tr>
             ) : (
-              users.map(user => <UserPosition key={user} user={user} ethPrice={Number(formatEther(ethPrice || 0n))} />)
+              users.map(user => <UserPosition key={user} user={user} connectedAddress={connectedAddress || ""} ethPrice={Number(formatEther(ethPrice || 0n))} />)
             )}
           </tbody>
         </table>

@@ -1,5 +1,5 @@
 export function getRatioColorClass(ratio: number | string): string {
-  if (ratio === "N/A") return "text-white";
+  if (ratio === "N/A") return "";
   if (Number(ratio) < 150) return "text-red-600";
   if (Number(ratio) < 200) return "text-yellow-600";
   return "text-green-600";
