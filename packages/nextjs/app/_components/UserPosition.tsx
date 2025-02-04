@@ -2,26 +2,15 @@ import React from "react";
 import { formatEther } from "viem";
 import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
-
-function getRatioColorClass(ratio: number | string): string {
-  if (ratio === "N/A") return "text-white";
-  if (Number(ratio) < 150) return "text-red-600";
-  if (Number(ratio) < 200) return "text-yellow-600";
-  return "text-green-600";
-}
-
-function calculatePositionRatio(userCollateral: number, mintedAmount: number, ethPrice: number): number {
-  const collateralValue = userCollateral * ethPrice;
-  if (mintedAmount === 0) return Number.MAX_SAFE_INTEGER; // Return max if no stablecoins are minted
-  return (collateralValue / mintedAmount) * 100; // Calculate position ratio
-}
+import { calculatePositionRatio, getRatioColorClass } from "~~/utils/helpers";
 
 type UserPositionProps = {
   user: string;
   ethPrice: number;
+  connectedAddress: string;
 };
 
-const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
+const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
     contractName: "StableCoinEngine",
     functionName: "s_userCollateral",
@@ -77,7 +66,7 @@ const UserPosition = ({ user, ethPrice }: UserPositionProps) => {
   };
 
   return (
-    <tr key={user}>
+    <tr key={user} className={`${connectedAddress === user ? "bg-blue-100 dark:bg-blue-900" : ""}`}>
       <td>
         <AddressBlock address={user} disableAddressLink format="short" size="sm" />
       </td>
