@@ -33,7 +33,7 @@ const PriceActions = () => {
 
   return (
     <div className="absolute mt-10 right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
-      <div className="px-4 py-5 flex flex-col items-center gap-2 indicator">
+      <div className="w-[150px] py-5 flex flex-col items-center gap-2 indicator">
         <span className="top-3 right-3 indicator-item">
           <div
             className="tooltip tooltip-info tooltip-left"
