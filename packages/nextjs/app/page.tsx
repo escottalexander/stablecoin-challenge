@@ -4,6 +4,7 @@ import CollateralGraph from "./_components/CollateralGraph";
 import CollateralOperations from "./_components/CollateralOperations";
 import MintOperations from "./_components/MintOperations";
 import PriceActions from "./_components/PriceActions";
+import TokenActions from "./_components/TokenActions";
 import UserPositionsTable from "./_components/UserPositionsTable";
 import type { NextPage } from "next";
 
@@ -15,6 +16,7 @@ const Home: NextPage = () => {
           <div className="relative flex justify-center items-center mb-8">
             <h1 className="text-2xl">Stablecoin Challenge</h1>
             <PriceActions />
+            <TokenActions />
           </div>
           <div className="flex flex-wrap gap-8 justify-center">
             <div className="flex flex-col gap-8">

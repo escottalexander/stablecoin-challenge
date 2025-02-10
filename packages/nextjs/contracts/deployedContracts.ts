@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     EthPriceOracle: {
-      address: "0x09635F643e140090A9A8Dcd712eD6285858ceBef",
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       abi: [
         {
           inputs: [
@@ -63,7 +63,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     StableCoin: {
-      address: "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
       abi: [
         {
           inputs: [
@@ -538,7 +538,7 @@ const deployedContracts = {
       },
     },
     StableCoinEngine: {
-      address: "0xc5a5C42992dECbae36851359345FE25997F5C42d",
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       abi: [
         {
           inputs: [
