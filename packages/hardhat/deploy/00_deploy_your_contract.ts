@@ -22,36 +22,36 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const ethPriceOracle = await deploy("EthPriceOracle", {
+  const memePriceOracle = await deploy("MemePriceOracle", {
     from: deployer,
-    args: [3333000000000000000000n],
+    args: [1000000000000000000000n],
     log: true,
     autoMine: true,
   });
 
-  await deploy("StableCoinEngine", {
+  await deploy("BasicLending", {
     from: deployer,
-    args: [ethPriceOracle.address],
+    args: [memePriceOracle.address],
     log: true,
     autoMine: true,
   });
 
   // Get the deployed contract
-  const engineContract = await hre.ethers.getContract<Contract>("StableCoinEngine", deployer);
+  const basicLending = await hre.ethers.getContract<Contract>("BasicLending", deployer);
 
-  await deploy("StableCoin", {
+  await deploy("MemeCoin", {
     from: deployer,
     // Contract constructor arguments
-    args: [engineContract.target],
+    args: [basicLending.target],
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.
     autoMine: true,
   });
 
-  const coinContract = await hre.ethers.getContract<Contract>("StableCoin", deployer);
+  const coinContract = await hre.ethers.getContract<Contract>("MemeCoin", deployer);
 
-  await engineContract.setStableCoin(coinContract.target);
+  await basicLending.setMemeCoin(coinContract.target);
 };
 
 export default deployYourContract;
