@@ -22,7 +22,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const memePriceOracle = await deploy("MemePriceOracle", {
+  const cornPriceOracle = await deploy("CornPriceOracle", {
     from: deployer,
     args: [1000000000000000000000n],
     log: true,
@@ -31,7 +31,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
 
   await deploy("BasicLending", {
     from: deployer,
-    args: [memePriceOracle.address],
+    args: [cornPriceOracle.address],
     log: true,
     autoMine: true,
   });
@@ -39,7 +39,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   // Get the deployed contract
   const basicLending = await hre.ethers.getContract<Contract>("BasicLending", deployer);
 
-  await deploy("MemeCoin", {
+  await deploy("Corn", {
     from: deployer,
     // Contract constructor arguments
     args: [basicLending.target],
@@ -49,9 +49,9 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     autoMine: true,
   });
 
-  const coinContract = await hre.ethers.getContract<Contract>("MemeCoin", deployer);
+  const coinContract = await hre.ethers.getContract<Contract>("Corn", deployer);
 
-  await basicLending.setMemeCoin(coinContract.target);
+  await basicLending.setCorn(coinContract.target);
 };
 
 export default deployYourContract;

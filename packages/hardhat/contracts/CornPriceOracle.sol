@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-contract MemePriceOracle {
+contract CornPriceOracle {
     uint256 public price;
 
     event PriceUpdated(uint256 indexed price);

@@ -22,6 +22,16 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "Corn__InsufficientAllowance",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Corn__InsufficientBalance",
+          type: "error",
+        },
+        {
+          inputs: [],
           name: "Lending__BorrowingFailed",
           type: "error",
         },
@@ -43,16 +53,6 @@ const deployedContracts = {
         {
           inputs: [],
           name: "Lending__UnsafePositionRatio",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "MemeCoin__InsufficientAllowance",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "MemeCoin__InsufficientBalance",
           type: "error",
         },
         {
@@ -167,7 +167,7 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          name: "borrowMemeCoin",
+          name: "borrowCorn",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -251,7 +251,7 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          name: "repayMemeCoin",
+          name: "repayCorn",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -298,11 +298,11 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
-              name: "memeCoinAddress",
+              name: "cornAddress",
               type: "address",
             },
           ],
-          name: "setMemeCoin",
+          name: "setCorn",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -340,7 +340,7 @@ const deployedContracts = {
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
     },
-    MemeCoin: {
+    Corn: {
       address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
       abi: [
         {
@@ -353,6 +353,21 @@ const deployedContracts = {
           ],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          inputs: [],
+          name: "Corn__InsufficientBalance",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Corn__InvalidAddress",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Corn__InvalidAmount",
+          type: "error",
         },
         {
           inputs: [
@@ -438,21 +453,6 @@ const deployedContracts = {
             },
           ],
           name: "ERC20InvalidSpender",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "MemeCoin__InsufficientBalance",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "MemeCoin__InvalidAddress",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "MemeCoin__InvalidAmount",
           type: "error",
         },
         {
@@ -815,7 +815,7 @@ const deployedContracts = {
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
     },
-    MemePriceOracle: {
+    CornPriceOracle: {
       address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       abi: [
         {
