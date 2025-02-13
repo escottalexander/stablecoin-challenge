@@ -11,39 +11,35 @@ const MintOperations = () => {
   const { address } = useAccount();
 
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "EthPriceOracle",
+    contractName: "CornPriceOracle",
     functionName: "price",
   });
 
-  const { writeContractAsync: mintStableCoin } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
-  });
-
-  const { writeContractAsync: burnStableCoin } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
+  const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
+    contractName: "BasicLending",
   });
 
   const handleMint = async () => {
     try {
-      await mintStableCoin({
-        functionName: "mintStableCoin",
+      await writeBasicLendingContract({
+        functionName: "borrowCorn",
         args: [mintAmount ? parseEther(mintAmount) : 0n],
       });
       setMintAmount("");
     } catch (error) {
-      console.error("Error minting stablecoins:", error);
+      console.error("Error borrowing corn:", error);
     }
   };
 
   const handleBurn = async () => {
     try {
-      await burnStableCoin({
-        functionName: "burnStableCoin",
+      await writeBasicLendingContract({
+        functionName: "repayCorn",
         args: [burnAmount ? parseEther(burnAmount) : 0n],
       });
       setBurnAmount("");
     } catch (error) {
-      console.error("Error burning stablecoins:", error);
+      console.error("Error repaying corn:", error);
     }
   };
 

@@ -6,17 +6,13 @@ const CollateralOperations = () => {
   const [collateralAmount, setCollateralAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
-  const { writeContractAsync: addCollateral } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
-  });
-
-  const { writeContractAsync: withdrawCollateral } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
+  const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
+    contractName: "BasicLending",
   });
 
   const handleAddCollateral = async () => {
     try {
-      await addCollateral({
+      await writeBasicLendingContract({
         functionName: "addCollateral",
         value: collateralAmount ? parseEther(collateralAmount) : 0n,
       });
@@ -28,7 +24,7 @@ const CollateralOperations = () => {
 
   const handleWithdrawCollateral = async () => {
     try {
-      await withdrawCollateral({
+      await writeBasicLendingContract({
         functionName: "withdrawCollateral",
         args: [withdrawAmount ? parseEther(withdrawAmount) : 0n],
       });

@@ -17,7 +17,7 @@ const getDebtFromTransferEvent = (event: any) => {
 
 const CollateralGraph = () => {
   const { data: addEvents } = useScaffoldEventHistory({
-    contractName: "StableCoinEngine",
+    contractName: "BasicLending",
     eventName: "CollateralAdded",
     fromBlock: 0n,
     watch: true,
@@ -27,7 +27,7 @@ const CollateralGraph = () => {
   });
 
   const { data: withdrawEvents } = useScaffoldEventHistory({
-    contractName: "StableCoinEngine",
+    contractName: "BasicLending",
     eventName: "CollateralWithdrawn",
     fromBlock: 0n,
     watch: true,
@@ -37,7 +37,7 @@ const CollateralGraph = () => {
   });
 
   const { data: transferEvents } = useScaffoldEventHistory({
-    contractName: "StableCoin",
+    contractName: "Corn",
     eventName: "Transfer",
     fromBlock: 0n,
     watch: true,
@@ -47,7 +47,7 @@ const CollateralGraph = () => {
   });
 
   const { data: priceEvents } = useScaffoldEventHistory({
-    contractName: "EthPriceOracle",
+    contractName: "CornPriceOracle",
     eventName: "PriceUpdated",
     fromBlock: 0n,
     watch: true,
@@ -80,10 +80,10 @@ const CollateralGraph = () => {
     const prevDebt = acc[idx - 1]?.debt || 0n;
 
     const collateralInEth = prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n);
-    const ethPriceInStable = BigInt(Math.round(Number(formatEther(price || 0n))));
-    const collateralInStable = collateralInEth * ethPriceInStable;
+    const ethPriceInCorn = BigInt(Math.round(Number(formatEther(price || 0n))));
+    const collateralInCorn = collateralInEth * ethPriceInCorn;
     const debt = prevDebt + debtAdded;
-    const ratio = Number(collateralInStable || 1n) / Number(debt || collateralInStable || 1n);
+    const ratio = Number(collateralInCorn || 1n) / Number(debt || collateralInCorn || 1n);
 
     return [
       ...acc,

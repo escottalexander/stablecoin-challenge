@@ -11,14 +11,14 @@ type UserPositionProps = {
 
 const RatioChange = ({ user, ethPrice, inputMintAmount }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
-    contractName: "StableCoinEngine",
+    contractName: "BasicLending",
     functionName: "s_userCollateral",
     args: [user],
   });
 
   const { data: userMinted } = useScaffoldReadContract({
-    contractName: "StableCoinEngine",
-    functionName: "s_userMinted",
+    contractName: "BasicLending",
+    functionName: "s_userBorrowed",
     args: [user],
   });
 

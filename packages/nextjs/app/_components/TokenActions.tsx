@@ -12,18 +12,18 @@ const TokenActions = () => {
   const transferModalId = "myusd-transfer-modal";
   const swapModalId = "myusd-swap-modal";
 
-  const { data: stableCoinBalance } = useScaffoldReadContract({
-    contractName: "StableCoin",
+  const { data: cornBalance } = useScaffoldReadContract({
+    contractName: "Corn",
     functionName: "balanceOf",
     args: [address],
   });
 
-  const { data: ETHprice } = useScaffoldReadContract({
-    contractName: "EthPriceOracle",
+  const { data: Cornprice } = useScaffoldReadContract({
+    contractName: "CornPriceOracle",
     functionName: "price",
   });
 
-  const myUSDBalance = formatEther(stableCoinBalance || 0n);
+  const myUSDBalance = formatEther(cornBalance || 0n);
 
   return (
     <div className="absolute mt-3 top-[100px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
@@ -54,7 +54,7 @@ const TokenActions = () => {
       <TokenSwapModal
         myUSDBalance={myUSDBalance}
         connectedAddress={address || ""}
-        ETHprice={Number(formatEther(ETHprice || 0n)).toFixed(2)}
+        ETHprice={Number(formatEther(Cornprice || 0n)).toFixed(2)}
         modalId={`${swapModalId}`}
       />
     </div>

@@ -31,12 +31,12 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
   const [sellValue, setSellValue] = useState("");
   const [buyValue, setBuyValue] = useState("");
 
-  const { writeContractAsync: sendStableCoin } = useScaffoldWriteContract({
-    contractName: "StableCoin",
+  const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
+    contractName: "Corn",
   });
 
-  const { writeContractAsync: mintStableCoin } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
+  const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
+    contractName: "BasicLending",
   });
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
     setLoading(true);
     if (sellToken === "MyUSD") {
       try {
-        await sendStableCoin({
+        await writeCornContract({
           functionName: "transfer",
           args: [burnAddress, parseEther(sellValue)],
         });
@@ -101,7 +101,7 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
         setSellValue("");
         setBuyValue("");
       } catch (error) {
-        console.error("Error sending stablecoins:", error);
+        console.error("Error sending corn:", error);
       } finally {
         setLoading(false);
       }
@@ -112,15 +112,15 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
           value: parseEther(sellValue as `${number}`),
           account: connectedAddress,
         });
-        await mintStableCoin({
-          functionName: "mintStableCoin",
+        await writeBasicLendingContract({
+          functionName: "borrowCorn",
           args: [parseEther(buyValue)],
         });
 
         setBuyValue("");
         setSellValue("");
       } catch (error) {
-        console.error("Error minting stablecoins:", error);
+        console.error("Error borrowing corn:", error);
       } finally {
         setLoading(false);
       }
