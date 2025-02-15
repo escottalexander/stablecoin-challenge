@@ -3,6 +3,7 @@ import RatioChange from "./RatioChange";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { tokenName } from "~~/utils/constant";
 
 const MintOperations = () => {
   const [mintAmount, setMintAmount] = useState("");
@@ -52,7 +53,7 @@ const MintOperations = () => {
 
         <div className="form-control">
           <label className="label flex justify-between">
-            <span className="label-text">Mint MyUSD</span>{" "}
+            <span className="label-text">Mint {tokenName}</span>{" "}
             {address && (
               <RatioChange
                 user={address}

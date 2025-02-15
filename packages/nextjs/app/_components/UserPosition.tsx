@@ -2,6 +2,7 @@ import React from "react";
 import { formatEther } from "viem";
 import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { tokenName } from "~~/utils/constant";
 import { calculatePositionRatio, getRatioColorClass } from "~~/utils/helpers";
 
 type UserPositionProps = {
@@ -71,7 +72,9 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
         <AddressBlock address={user} disableAddressLink format="short" size="sm" />
       </td>
       <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)} ETH</td>
-      <td>{Number(formatEther(userBorrowed || 0n)).toFixed(2)} MyUSD</td>
+      <td>
+        {Number(formatEther(userBorrowed || 0n)).toFixed(2)} {tokenName}
+      </td>
       <td className={getRatioColorClass(ratio)}>{ratio === "N/A" ? "N/A" : `${ratio}%`}</td>
       <td className="flex justify-center">
         <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-sm btn-ghost">

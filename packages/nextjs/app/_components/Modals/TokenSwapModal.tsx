@@ -4,6 +4,7 @@ import { hardhat } from "viem/chains";
 import { ArrowDownIcon, ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { Balance, IntegerInput } from "~~/components/scaffold-eth";
 import { useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
+import { tokenName } from "~~/utils/constant";
 
 const localWalletClient = createWalletClient({
   chain: hardhat,
@@ -12,13 +13,13 @@ const localWalletClient = createWalletClient({
 const FAUCET_ACCOUNT_INDEX = 0;
 
 type TokenSwapModalProps = {
-  myUSDBalance: string;
+  tokenBalance: string;
   connectedAddress: string;
   ETHprice: string;
   modalId: string;
 };
 
-export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modalId }: TokenSwapModalProps) => {
+export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modalId }: TokenSwapModalProps) => {
   const burnAddress = "0x000000000000000000000000000000000000dead";
 
   const faucetTxn = useTransactor(localWalletClient);
@@ -27,7 +28,7 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
   const [faucetAddress, setFaucetAddress] = useState<Address>();
 
   const [loading, setLoading] = useState(false);
-  const [sellToken, setSellToken] = useState<"MyUSD" | "ETH">("MyUSD");
+  const [sellToken, setSellToken] = useState<"CORN" | "ETH">("CORN");
   const [sellValue, setSellValue] = useState("");
   const [buyValue, setBuyValue] = useState("");
 
@@ -52,18 +53,18 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
   }, []);
 
   const handleChangeSellToken = () => {
-    setSellToken(sellToken === "MyUSD" ? "ETH" : "MyUSD");
+    setSellToken(sellToken === "CORN" ? "ETH" : "CORN");
     setSellValue("");
     setBuyValue("");
   };
 
-  const ethToMyUSD = (ethAmount: string): string => {
-    const myUSDAmount = Number(ethAmount) * Number(ETHprice);
-    return myUSDAmount.toFixed(8);
+  const ethToToken = (ethAmount: string): string => {
+    const tokenAmount = Number(ethAmount) * Number(ETHprice);
+    return tokenAmount.toFixed(8);
   };
 
-  const MyUSDToETH = (myUSDAmount: string): string => {
-    const ethAmount = Number(myUSDAmount) / Number(ETHprice);
+  const tokenToETH = (tokenAmount: string): string => {
+    const ethAmount = Number(tokenAmount) / Number(ETHprice);
     return ethAmount.toFixed(8);
   };
 
@@ -75,18 +76,18 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
     }
     if (isSell) {
       setSellValue(newValue);
-      const myUSDAmount = sellToken === "ETH" ? ethToMyUSD(newValue) : MyUSDToETH(newValue);
-      setBuyValue(myUSDAmount);
+      const tokenAmount = sellToken === "ETH" ? ethToToken(newValue) : tokenToETH(newValue);
+      setBuyValue(tokenAmount);
     } else {
       setBuyValue(newValue);
-      const ethAmount = sellToken === "MyUSD" ? ethToMyUSD(newValue) : MyUSDToETH(newValue);
+      const ethAmount = sellToken === "CORN" ? ethToToken(newValue) : tokenToETH(newValue);
       setSellValue(ethAmount);
     }
   };
 
   const handleSwap = async () => {
     setLoading(true);
-    if (sellToken === "MyUSD") {
+    if (sellToken === "CORN") {
       try {
         await writeCornContract({
           functionName: "transfer",
@@ -142,7 +143,9 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
               <div className="flex flex-col">
                 <span className="text-sm font-bold pl-3">Available:</span>
                 <div className="flex">
-                  <span className="text-sm pl-3">{myUSDBalance} MyUSD</span>
+                  <span className="text-sm pl-3">
+                    {tokenBalance} {tokenName}
+                  </span>
                   <Balance address={connectedAddress as Address} className="min-h-0 h-auto" />
                 </div>
               </div>
@@ -160,7 +163,7 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
                   />
                 </div>
                 <span className="basis-2/12 flex justify-center items-center text-md">
-                  {sellToken === "MyUSD" ? "MyUSD" : "ETH"}
+                  {sellToken === "CORN" ? "CORN" : "ETH"}
                 </span>
               </div>
               <div className="flex justify-center">
@@ -175,12 +178,12 @@ export const TokenSwapModal = ({ myUSDBalance, connectedAddress, ETHprice, modal
                     onChange={newValue => {
                       handleChangeInput(false, newValue);
                     }}
-                    placeholder={`Buy ${sellToken === "MyUSD" ? "ETH" : "MyUSD"}`}
+                    placeholder={`Buy ${sellToken === "CORN" ? "ETH" : "CORN"}`}
                     disableMultiplyBy1e18
                   />
                 </div>
                 <span className="basis-2/12 flex justify-center items-center text-md">
-                  {sellToken === "MyUSD" ? "ETH" : "MyUSD"}
+                  {sellToken === "CORN" ? "ETH" : "CORN"}
                 </span>
               </div>
               <button className="h-10 btn btn-primary btn-sm px-2 rounded-full" onClick={handleSwap} disabled={loading}>
