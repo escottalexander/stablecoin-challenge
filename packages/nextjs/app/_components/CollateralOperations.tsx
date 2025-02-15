@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import TooltipInfo from "./TooltipInfo";
 import { parseEther } from "viem";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
@@ -35,7 +36,12 @@ const CollateralOperations = () => {
   };
 
   return (
-    <div className="card bg-base-100 w-96 shadow-xl">
+    <div className="card bg-base-100 w-96 shadow-xl indicator">
+      <TooltipInfo
+        top={5}
+        right={5}
+        infoText="Use these controls to add or withdraw collateral from the lending pool"
+      />
       <div className="card-body">
         <h2 className="card-title">Collateral Operations</h2>
 

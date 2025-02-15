@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import RatioChange from "./RatioChange";
+import TooltipInfo from "./TooltipInfo";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
@@ -45,7 +46,12 @@ const BorrowOperations = () => {
   };
 
   return (
-    <div className="card bg-base-100 w-96 shadow-xl">
+    <div className="card bg-base-100 w-96 shadow-xl indicator">
+      <TooltipInfo
+        top={5}
+        right={5}
+        infoText={`Use these controls to borrow and repay ${tokenName} from the lending pool`}
+      />
       <div className="card-body">
         <div className="w-full flex justify-between">
           <h2 className="card-title">Borrow Operations</h2>

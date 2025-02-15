@@ -1,6 +1,7 @@
 import React from "react";
 import { TokenSwapModal } from "./Modals/TokenSwapModal";
 import { TokenTransferModal } from "./Modals/TokenTransferModal";
+import TooltipInfo from "./TooltipInfo";
 import { formatEther } from "viem";
 import { hardhat } from "viem/chains";
 import { useAccount } from "wagmi";
@@ -29,14 +30,7 @@ const TokenActions = () => {
   return (
     <div className="absolute mt-3 top-[100px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
       <div className="w-[150px] py-5 flex flex-col items-center gap-1 indicator">
-        <span className="top-3 right-3 indicator-item">
-          <div
-            className="tooltip tooltip-info tooltip-left"
-            data-tip={`Here you can send ${tokenName} to any address or swap it`}
-          >
-            <QuestionMarkCircleIcon className="h-4 w-4" />
-          </div>
-        </span>
+        <TooltipInfo top={3} right={3} infoText={`Here you can send ${tokenName} to any address or swap it`} />
         <div className="flex flex-col items-center gap-1">
           <span className="text-sm">
             {tokenBalance} {tokenName}

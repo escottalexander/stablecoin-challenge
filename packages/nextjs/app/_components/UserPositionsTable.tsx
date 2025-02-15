@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import TooltipInfo from "./TooltipInfo";
 import UserPosition from "./UserPosition";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
@@ -35,7 +36,12 @@ const UserPositionsTable = () => {
   }, [events, users]);
 
   return (
-    <div className="card bg-base-100 w-full shadow-xl">
+    <div className="card bg-base-100 w-full shadow-xl indicator">
+      <TooltipInfo
+        top={3}
+        right={3}
+        infoText="This table displays all users with a position in the lending pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
+      />
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
