@@ -17,7 +17,7 @@ const getDebtFromTransferEvent = (event: any) => {
   }
 };
 
-const getPriceFromEvent = (blockNumber: BigInt, priceEvents: any, currentPrice: BigInt) => {
+const getPriceFromEvent = (blockNumber: bigint, priceEvents: any, currentPrice: bigint) => {
   for (let i = priceEvents.length - 1; i >= 0; i--) {
     if (priceEvents[i].blockNumber <= blockNumber) {
       return priceEvents[i].args.price;
