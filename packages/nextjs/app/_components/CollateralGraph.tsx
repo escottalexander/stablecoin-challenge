@@ -3,6 +3,7 @@ import TooltipInfo from "./TooltipInfo";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatEther, zeroAddress } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+import { collateralRatio } from "~~/utils/constant";
 
 const getDebtFromTransferEvent = (event: any) => {
   try {
@@ -112,13 +113,14 @@ const CollateralGraph = () => {
               label={{ value: "Time", position: "insideBottom", fill: "#ffffff" }}
             />
             <YAxis
-              domain={[0, 6]}
+              scale="log"
+              domain={[0.9, 1.5]}
               tickFormatter={value => `${(value * 100).toFixed(0)}%`}
               stroke="#ffffff"
               tick={{ fill: "#ffffff" }}
             />
             <Tooltip />
-            <ReferenceLine y={1.5} stroke="#ff4d4d" strokeDasharray="3 3" />
+            <ReferenceLine y={collateralRatio / 100} stroke="#ff4d4d" strokeDasharray="3 3" />
             <Line type="monotone" dataKey="ratio" stroke="#82ca9d" dot={false} strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
