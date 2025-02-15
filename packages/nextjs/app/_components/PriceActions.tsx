@@ -2,6 +2,7 @@ import React from "react";
 import { formatEther } from "viem";
 import { MinusIcon, PlusIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { tokenName } from "~~/utils/constant";
 
 const PriceActions = () => {
   const { data: price } = useScaffoldReadContract({
@@ -43,9 +44,11 @@ const PriceActions = () => {
           </div>
         </span>
         <div className="flex items-center gap-1">
-          <span className="text-sm">ETH Price Oracle</span>
+          <span className="text-sm">Price Oracle</span>
         </div>
-        <span className="font-bold flex items-center">${renderPrice}</span>
+        <span className="flex items-center text-xs">
+          1 ETH = {renderPrice} {tokenName}
+        </span>
         <div className="flex gap-2">
           <button onClick={() => handleClick(false)} className="btn btn-circle btn-xs">
             <MinusIcon className="h-3 w-3" />
