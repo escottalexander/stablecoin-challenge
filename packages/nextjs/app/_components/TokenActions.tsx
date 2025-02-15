@@ -5,7 +5,7 @@ import TooltipInfo from "./TooltipInfo";
 import { formatEther } from "viem";
 import { hardhat } from "viem/chains";
 import { useAccount } from "wagmi";
-import { ArrowsRightLeftIcon, PaperAirplaneIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowsRightLeftIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { tokenName } from "~~/utils/constant";
 

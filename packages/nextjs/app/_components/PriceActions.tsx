@@ -14,7 +14,7 @@ const PriceActions = () => {
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "CornPriceOracle" });
 
   const renderPrice =
-    price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : Number(formatEther(price)).toFixed(2);
+    price === undefined ? <div className="mr-1 skeleton w-10 h-4"></div> : Number(formatEther(price)).toFixed(2);
 
   const handleClick = async (isIncrease: boolean) => {
     if (price === undefined) {
@@ -45,7 +45,7 @@ const PriceActions = () => {
           <span className="text-sm">Price Oracle</span>
         </div>
         <span className="flex items-center text-xs">
-          1 ETH = {renderPrice} {tokenName}
+          {renderPrice} {tokenName} / ETH
         </span>
         <div className="flex gap-2">
           <button onClick={() => handleClick(false)} className="btn btn-circle btn-xs">
