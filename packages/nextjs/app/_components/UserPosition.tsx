@@ -2,7 +2,7 @@ import React from "react";
 import { formatEther } from "viem";
 import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
-import { tokenName } from "~~/utils/constant";
+import { collateralRatio, tokenName } from "~~/utils/constant";
 import { calculatePositionRatio, getRatioColorClass } from "~~/utils/helpers";
 
 type UserPositionProps = {
@@ -47,7 +47,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       ? "N/A"
       : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), borrowedAmount, ethPrice).toFixed(1);
 
-  const isPositionSafe = ratio == "N/A" || Number(ratio) >= 150;
+  const isPositionSafe = ratio == "N/A" || Number(ratio) >= collateralRatio;
   const liquidatePosition = async () => {
     if (allowance === undefined || userBorrowed === undefined || basicLendingContract === undefined) return;
     try {
