@@ -41,11 +41,11 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
     contractName: "Corn",
   });
 
-  const mintedAmount = Number(formatEther(userBorrowed || 0n));
+  const borrowedAmount = Number(formatEther(userBorrowed || 0n));
   const ratio =
-    mintedAmount === 0
+    borrowedAmount === 0
       ? "N/A"
-      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice).toFixed(1);
+      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), borrowedAmount, ethPrice).toFixed(1);
 
   const isPositionSafe = ratio == "N/A" || Number(ratio) >= 150;
   const liquidatePosition = async () => {

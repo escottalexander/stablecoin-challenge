@@ -5,9 +5,9 @@ import { useAccount } from "wagmi";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { tokenName } from "~~/utils/constant";
 
-const MintOperations = () => {
-  const [mintAmount, setMintAmount] = useState("");
-  const [burnAmount, setBurnAmount] = useState("");
+const BorrowOperations = () => {
+  const [borrowAmount, setBorrowAmount] = useState("");
+  const [repayAmount, setRepayAmount] = useState("");
 
   const { address } = useAccount();
 
@@ -20,25 +20,25 @@ const MintOperations = () => {
     contractName: "BasicLending",
   });
 
-  const handleMint = async () => {
+  const handleBorrow = async () => {
     try {
       await writeBasicLendingContract({
         functionName: "borrowCorn",
-        args: [mintAmount ? parseEther(mintAmount) : 0n],
+        args: [borrowAmount ? parseEther(borrowAmount) : 0n],
       });
-      setMintAmount("");
+      setBorrowAmount("");
     } catch (error) {
       console.error("Error borrowing corn:", error);
     }
   };
 
-  const handleBurn = async () => {
+  const handleRepay = async () => {
     try {
       await writeBasicLendingContract({
         functionName: "repayCorn",
-        args: [burnAmount ? parseEther(burnAmount) : 0n],
+        args: [repayAmount ? parseEther(repayAmount) : 0n],
       });
-      setBurnAmount("");
+      setRepayAmount("");
     } catch (error) {
       console.error("Error repaying corn:", error);
     }
@@ -48,17 +48,17 @@ const MintOperations = () => {
     <div className="card bg-base-100 w-96 shadow-xl">
       <div className="card-body">
         <div className="w-full flex justify-between">
-          <h2 className="card-title">Mint Operations</h2>
+          <h2 className="card-title">Borrow Operations</h2>
         </div>
 
         <div className="form-control">
           <label className="label flex justify-between">
-            <span className="label-text">Mint {tokenName}</span>{" "}
+            <span className="label-text">Borrow {tokenName}</span>{" "}
             {address && (
               <RatioChange
                 user={address}
                 ethPrice={Number(formatEther(ethPrice || 0n))}
-                inputMintAmount={Number(mintAmount)}
+                inputBorrowAmount={Number(borrowAmount)}
               />
             )}
           </label>
@@ -67,11 +67,11 @@ const MintOperations = () => {
               type="number"
               placeholder="Amount"
               className="input input-bordered w-full"
-              value={mintAmount}
-              onChange={e => setMintAmount(e.target.value)}
+              value={borrowAmount}
+              onChange={e => setBorrowAmount(e.target.value)}
             />
-            <button className="btn btn-primary" onClick={handleMint} disabled={!mintAmount}>
-              Mint
+            <button className="btn btn-primary" onClick={handleBorrow} disabled={!borrowAmount}>
+              Borrow
             </button>
           </div>
         </div>
@@ -85,10 +85,10 @@ const MintOperations = () => {
               type="number"
               placeholder="Amount"
               className="input input-bordered w-full"
-              value={burnAmount}
-              onChange={e => setBurnAmount(e.target.value)}
+              value={repayAmount}
+              onChange={e => setRepayAmount(e.target.value)}
             />
-            <button className="btn btn-primary" onClick={handleBurn} disabled={!burnAmount}>
+            <button className="btn btn-primary" onClick={handleRepay} disabled={!repayAmount}>
               Repay
             </button>
           </div>
@@ -98,4 +98,4 @@ const MintOperations = () => {
   );
 };
 
-export default MintOperations;
+export default BorrowOperations;

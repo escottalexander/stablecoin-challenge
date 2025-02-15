@@ -6,35 +6,35 @@ import { calculatePositionRatio, getRatioColorClass } from "~~/utils/helpers";
 type UserPositionProps = {
   user: string;
   ethPrice: number;
-  inputMintAmount: number;
+  inputBorrowAmount: number;
 };
 
-const RatioChange = ({ user, ethPrice, inputMintAmount }: UserPositionProps) => {
+const RatioChange = ({ user, ethPrice, inputBorrowAmount }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
     contractName: "BasicLending",
     functionName: "s_userCollateral",
     args: [user],
   });
 
-  const { data: userMinted } = useScaffoldReadContract({
+  const { data: userBorrowed } = useScaffoldReadContract({
     contractName: "BasicLending",
     functionName: "s_userBorrowed",
     args: [user],
   });
 
-  const mintedAmount = Number(formatEther(userMinted || 0n));
+  const borrowedAmount = Number(formatEther(userBorrowed || 0n));
   const ratio =
-    mintedAmount === 0
+    borrowedAmount === 0
       ? "N/A"
-      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice).toFixed(1);
+      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), borrowedAmount, ethPrice).toFixed(1);
 
   const newRatio = calculatePositionRatio(
     Number(formatEther(userCollateral || 0n)),
-    mintedAmount + inputMintAmount,
+    borrowedAmount + inputBorrowAmount,
     ethPrice,
   ).toFixed(1);
 
-  if (inputMintAmount <= 0) {
+  if (inputBorrowAmount <= 0) {
     return null;
   }
 
