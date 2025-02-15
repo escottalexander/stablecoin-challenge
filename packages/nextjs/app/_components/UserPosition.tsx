@@ -2,6 +2,7 @@ import React from "react";
 import { formatEther } from "viem";
 import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { collateralRatio, tokenName } from "~~/utils/constant";
 import { calculatePositionRatio, getRatioColorClass } from "~~/utils/helpers";
 
 type UserPositionProps = {
@@ -12,51 +13,51 @@ type UserPositionProps = {
 
 const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
-    contractName: "StableCoinEngine",
+    contractName: "BasicLending",
     functionName: "s_userCollateral",
     args: [user],
   });
 
-  const { data: userMinted } = useScaffoldReadContract({
-    contractName: "StableCoinEngine",
-    functionName: "s_userMinted",
+  const { data: userBorrowed } = useScaffoldReadContract({
+    contractName: "BasicLending",
+    functionName: "s_userBorrowed",
     args: [user],
   });
 
-  const { data: engineContract } = useDeployedContractInfo({
-    contractName: "StableCoinEngine",
+  const { data: basicLendingContract } = useDeployedContractInfo({
+    contractName: "BasicLending",
   });
 
   const { data: allowance } = useScaffoldReadContract({
-    contractName: "StableCoin",
+    contractName: "Corn",
     functionName: "allowance",
-    args: [user, engineContract?.address],
+    args: [user, basicLendingContract?.address],
   });
 
-  const { writeContractAsync: writeEngineContract, isPending: isLiquidating } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
+  const { writeContractAsync: writeBasicLendingContract, isPending: isLiquidating } = useScaffoldWriteContract({
+    contractName: "BasicLending",
   });
-  const { writeContractAsync: writeStableContract } = useScaffoldWriteContract({
-    contractName: "StableCoin",
+  const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
+    contractName: "Corn",
   });
 
-  const mintedAmount = Number(formatEther(userMinted || 0n));
+  const borrowedAmount = Number(formatEther(userBorrowed || 0n));
   const ratio =
-    mintedAmount === 0
+    borrowedAmount === 0
       ? "N/A"
-      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice).toFixed(1);
+      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), borrowedAmount, ethPrice).toFixed(1);
 
-  const isPositionSafe = ratio == "N/A" || Number(ratio) >= 150;
+  const isPositionSafe = ratio == "N/A" || Number(ratio) >= collateralRatio;
   const liquidatePosition = async () => {
-    if (allowance === undefined || userMinted === undefined || engineContract === undefined) return;
+    if (allowance === undefined || userBorrowed === undefined || basicLendingContract === undefined) return;
     try {
-      if (allowance < userMinted) {
-        await writeStableContract({
+      if (allowance < userBorrowed) {
+        await writeCornContract({
           functionName: "approve",
-          args: [engineContract?.address, userMinted],
+          args: [basicLendingContract?.address, userBorrowed],
         });
       }
-      await writeEngineContract({
+      await writeBasicLendingContract({
         functionName: "liquidate",
         args: [user],
       });
@@ -71,7 +72,9 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
         <AddressBlock address={user} disableAddressLink format="short" size="sm" />
       </td>
       <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)} ETH</td>
-      <td>{Number(formatEther(userMinted || 0n)).toFixed(2)} MyUSD</td>
+      <td>
+        {Number(formatEther(userBorrowed || 0n)).toFixed(2)} {tokenName}
+      </td>
       <td className={getRatioColorClass(ratio)}>{ratio === "N/A" ? "N/A" : `${ratio}%`}</td>
       <td className="flex justify-center">
         <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-sm btn-ghost">

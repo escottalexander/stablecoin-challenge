@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import TooltipInfo from "./TooltipInfo";
 import { parseEther } from "viem";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
@@ -6,17 +7,13 @@ const CollateralOperations = () => {
   const [collateralAmount, setCollateralAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
-  const { writeContractAsync: addCollateral } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
-  });
-
-  const { writeContractAsync: withdrawCollateral } = useScaffoldWriteContract({
-    contractName: "StableCoinEngine",
+  const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
+    contractName: "BasicLending",
   });
 
   const handleAddCollateral = async () => {
     try {
-      await addCollateral({
+      await writeBasicLendingContract({
         functionName: "addCollateral",
         value: collateralAmount ? parseEther(collateralAmount) : 0n,
       });
@@ -28,7 +25,7 @@ const CollateralOperations = () => {
 
   const handleWithdrawCollateral = async () => {
     try {
-      await withdrawCollateral({
+      await writeBasicLendingContract({
         functionName: "withdrawCollateral",
         args: [withdrawAmount ? parseEther(withdrawAmount) : 0n],
       });
@@ -39,7 +36,12 @@ const CollateralOperations = () => {
   };
 
   return (
-    <div className="card bg-base-100 w-96 shadow-xl">
+    <div className="card bg-base-100 w-96 shadow-xl indicator">
+      <TooltipInfo
+        top={5}
+        right={5}
+        infoText="Use these controls to add or withdraw collateral from the lending pool"
+      />
       <div className="card-body">
         <h2 className="card-title">Collateral Operations</h2>
 

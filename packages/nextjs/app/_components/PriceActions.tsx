@@ -1,18 +1,20 @@
 import React from "react";
+import TooltipInfo from "./TooltipInfo";
 import { formatEther } from "viem";
-import { MinusIcon, PlusIcon, QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
+import { MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { tokenName } from "~~/utils/constant";
 
 const PriceActions = () => {
   const { data: price } = useScaffoldReadContract({
-    contractName: "EthPriceOracle",
+    contractName: "CornPriceOracle",
     functionName: "price",
   });
 
-  const { writeContractAsync } = useScaffoldWriteContract({ contractName: "EthPriceOracle" });
+  const { writeContractAsync } = useScaffoldWriteContract({ contractName: "CornPriceOracle" });
 
   const renderPrice =
-    price === undefined ? <div className="ml-1 skeleton w-20 h-4"></div> : Number(formatEther(price)).toFixed(2);
+    price === undefined ? <div className="mr-1 skeleton w-10 h-4"></div> : Number(formatEther(price)).toFixed(2);
 
   const handleClick = async (isIncrease: boolean) => {
     if (price === undefined) {
@@ -34,18 +36,17 @@ const PriceActions = () => {
   return (
     <div className="absolute mt-10 right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
       <div className="w-[150px] py-5 flex flex-col items-center gap-2 indicator">
-        <span className="top-3 right-3 indicator-item">
-          <div
-            className="tooltip tooltip-info tooltip-left"
-            data-tip="Use these controls to simulate 10% price changes reported by the oracle"
-          >
-            <QuestionMarkCircleIcon className="h-4 w-4" />
-          </div>
-        </span>
+        <TooltipInfo
+          top={3}
+          right={3}
+          infoText="Use these controls to simulate 10% price changes reported by the oracle"
+        />
         <div className="flex items-center gap-1">
-          <span className="text-sm">ETH Price Oracle</span>
+          <span className="text-sm">Price Oracle</span>
         </div>
-        <span className="font-bold flex items-center">${renderPrice}</span>
+        <span className="flex items-center text-xs">
+          {renderPrice} {tokenName} / ETH
+        </span>
         <div className="flex gap-2">
           <button onClick={() => handleClick(false)} className="btn btn-circle btn-xs">
             <MinusIcon className="h-3 w-3" />

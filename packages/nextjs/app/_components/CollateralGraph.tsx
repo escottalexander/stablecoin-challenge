@@ -1,4 +1,5 @@
 import React from "react";
+import TooltipInfo from "./TooltipInfo";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatEther, zeroAddress } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
@@ -17,7 +18,7 @@ const getDebtFromTransferEvent = (event: any) => {
 
 const CollateralGraph = () => {
   const { data: addEvents } = useScaffoldEventHistory({
-    contractName: "StableCoinEngine",
+    contractName: "BasicLending",
     eventName: "CollateralAdded",
     fromBlock: 0n,
     watch: true,
@@ -27,7 +28,7 @@ const CollateralGraph = () => {
   });
 
   const { data: withdrawEvents } = useScaffoldEventHistory({
-    contractName: "StableCoinEngine",
+    contractName: "BasicLending",
     eventName: "CollateralWithdrawn",
     fromBlock: 0n,
     watch: true,
@@ -37,7 +38,7 @@ const CollateralGraph = () => {
   });
 
   const { data: transferEvents } = useScaffoldEventHistory({
-    contractName: "StableCoin",
+    contractName: "Corn",
     eventName: "Transfer",
     fromBlock: 0n,
     watch: true,
@@ -47,7 +48,7 @@ const CollateralGraph = () => {
   });
 
   const { data: priceEvents } = useScaffoldEventHistory({
-    contractName: "EthPriceOracle",
+    contractName: "CornPriceOracle",
     eventName: "PriceUpdated",
     fromBlock: 0n,
     watch: true,
@@ -80,10 +81,10 @@ const CollateralGraph = () => {
     const prevDebt = acc[idx - 1]?.debt || 0n;
 
     const collateralInEth = prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n);
-    const ethPriceInStable = BigInt(Math.round(Number(formatEther(price || 0n))));
-    const collateralInStable = collateralInEth * ethPriceInStable;
+    const ethPriceInCorn = BigInt(Math.round(Number(formatEther(price || 0n))));
+    const collateralInCorn = collateralInEth * ethPriceInCorn;
     const debt = prevDebt + debtAdded;
-    const ratio = Number(collateralInStable || 1n) / Number(debt || collateralInStable || 1n);
+    const ratio = Number(collateralInCorn || 1n) / Number(debt || collateralInCorn || 1n);
 
     return [
       ...acc,
@@ -97,7 +98,8 @@ const CollateralGraph = () => {
   }, []);
 
   return (
-    <div className="card bg-base-100 w-full shadow-xl">
+    <div className="card bg-base-100 w-full shadow-xl indicator">
+      <TooltipInfo top={5} right={5} infoText="This graph shows the total collateral/debt ratio over time" />
       <div className="card-body h-96 w-full">
         <h2 className="card-title">Total Collateral/Debt Ratio</h2>
         <ResponsiveContainer width="100%" height="100%">

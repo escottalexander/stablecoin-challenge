@@ -3,33 +3,34 @@ import { Address as AddressType, parseEther } from "viem";
 import { BanknotesIcon } from "@heroicons/react/24/outline";
 import { Address, AddressInput, IntegerInput } from "~~/components/scaffold-eth";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { tokenName } from "~~/utils/constant";
 
 type TokenTransferModalProps = {
-  myUSDBalance: string;
+  tokenBalance: string;
   connectedAddress: string;
   modalId: string;
 };
 
-export const TokenTransferModal = ({ myUSDBalance, connectedAddress, modalId }: TokenTransferModalProps) => {
+export const TokenTransferModal = ({ tokenBalance, connectedAddress, modalId }: TokenTransferModalProps) => {
   const [loading, setLoading] = useState(false);
   const [sendValue, setSendValue] = useState("");
 
   const [inputAddress, setInputAddress] = useState<AddressType>();
 
-  const { writeContractAsync: sendStableCoin } = useScaffoldWriteContract({
-    contractName: "StableCoin",
+  const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
+    contractName: "Corn",
   });
 
   const handleSend = async () => {
     try {
-      await sendStableCoin({
+      await writeCornContract({
         functionName: "transfer",
         args: [inputAddress, parseEther(sendValue)],
       });
       setInputAddress("");
       setSendValue("");
     } catch (error) {
-      console.error("Error sending stablecoins:", error);
+      console.error("Error sending corn:", error);
     } finally {
       setLoading(false);
     }
@@ -41,7 +42,7 @@ export const TokenTransferModal = ({ myUSDBalance, connectedAddress, modalId }: 
         <label className="modal-box relative">
           {/* dummy input to capture event onclick on modal box */}
           <input className="h-0 w-0 absolute top-0 left-0" />
-          <h3 className="text-xl font-bold mb-3">Send MyUSD</h3>
+          <h3 className="text-xl font-bold mb-3">Send {tokenName}</h3>
           <label htmlFor={`${modalId}`} className="btn btn-ghost btn-sm btn-circle absolute right-3 top-3">
             ✕
           </label>
@@ -53,7 +54,9 @@ export const TokenTransferModal = ({ myUSDBalance, connectedAddress, modalId }: 
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold pl-3">Available:</span>
-                <span className="pl-3">{myUSDBalance} MyUSD</span>
+                <span className="pl-3">
+                  {tokenBalance} {tokenName}
+                </span>
               </div>
             </div>
             <div className="flex flex-col space-y-3">
