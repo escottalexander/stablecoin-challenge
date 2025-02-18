@@ -110,7 +110,7 @@ const CollateralGraph = () => {
 
   return (
     <div className="card bg-base-100 w-full shadow-xl indicator">
-      <TooltipInfo top={5} right={5} infoText="This graph shows the total collateral/debt ratio over time" />
+      <TooltipInfo top={3} right={3} infoText="This graph shows the total collateral/debt ratio over time" />
       <div className="card-body h-96 w-full">
         <h2 className="card-title">Total Collateral/Debt Ratio</h2>
         <ResponsiveContainer width="100%" height="100%">

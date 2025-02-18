@@ -39,7 +39,7 @@ const PriceActions = () => {
       <div className="w-[150px] py-5 flex flex-col items-center gap-2 indicator">
         <TooltipInfo top={3} right={3} infoText="Use these controls to simulate price changes" />
         <div className="flex items-center gap-1">
-          <span className="text-sm">Price Oracle</span>
+          <span className="text-sm">CORN Price</span>
         </div>
         <span className="flex items-center text-xs">
           {renderPrice} {tokenName} / ETH
