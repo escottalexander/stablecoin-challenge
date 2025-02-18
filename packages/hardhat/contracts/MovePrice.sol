@@ -13,11 +13,11 @@ contract MovePrice {
         IERC20(_cornToken).approve(address(cornDex), type(uint256).max);
     }
 
-    function movePrice(int256 newPrice) public {
-        if (newPrice > 0) {
-            cornDex.swap{value: uint256(newPrice)}(uint256(newPrice));
+    function movePrice(int256 size) public {
+        if (size > 0) {
+            cornDex.swap{value: uint256(size)}(uint256(size));
         } else {
-            cornDex.swap(uint256(-newPrice));
+            cornDex.swap(uint256(-size));
         }
     }
 
