@@ -25,7 +25,7 @@ const TokenActions = () => {
     functionName: "currentPrice",
   });
 
-  const tokenBalance = Number(formatEther(cornBalance || 0n)).toFixed(2);
+  const tokenBalance = `${Math.floor(Number(formatEther(cornBalance || 0n)) * 100) / 100}`;
 
   return (
     <div className="absolute mt-3 top-[100px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
