@@ -18,8 +18,8 @@ const UserPositionsTable = () => {
     receiptData: false,
   });
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "CornPriceOracle",
-    functionName: "price",
+    contractName: "CornDEX",
+    functionName: "currentPrice",
   });
 
   useEffect(() => {

@@ -13,8 +13,8 @@ const BorrowOperations = () => {
   const { address } = useAccount();
 
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "CornPriceOracle",
-    functionName: "price",
+    contractName: "CornDEX",
+    functionName: "currentPrice",
   });
 
   const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({

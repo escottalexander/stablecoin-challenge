@@ -1,29 +1,17 @@
 import React from "react";
 import TooltipInfo from "./TooltipInfo";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatEther, zeroAddress } from "viem";
-import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { formatEther, parseEther } from "viem";
+import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { collateralRatio, initialPrice } from "~~/utils/constant";
 
-const getDebtFromTransferEvent = (event: any) => {
-  try {
-    const amount = BigInt(event.args.value || 0);
-    if (event.args.to === zeroAddress) return amount * -1n;
-    if (event.args.from === zeroAddress) return amount;
-    return 0n;
-  } catch (error) {
-    console.error("Error in getDebtFromTransferEvent:", error);
-    return 0n;
-  }
-};
-
-const getPriceFromEvent = (blockNumber: bigint, priceEvents: any, currentPrice: bigint) => {
+const getPriceFromEvent = (blockNumber: bigint, priceEvents: any) => {
   for (let i = priceEvents.length - 1; i >= 0; i--) {
     if (priceEvents[i].blockNumber <= blockNumber) {
       return priceEvents[i].args.price;
     }
   }
-  return currentPrice;
+  return initialPrice * parseEther("1");
 };
 
 const CollateralGraph = () => {
@@ -47,9 +35,19 @@ const CollateralGraph = () => {
     receiptData: true,
   });
 
-  const { data: transferEvents } = useScaffoldEventHistory({
-    contractName: "Corn",
-    eventName: "Transfer",
+  const { data: borrowEvents } = useScaffoldEventHistory({
+    contractName: "BasicLending",
+    eventName: "AssetBorrowed",
+    fromBlock: 0n,
+    watch: true,
+    blockData: true,
+    transactionData: true,
+    receiptData: true,
+  });
+
+  const { data: repaidEvents } = useScaffoldEventHistory({
+    contractName: "BasicLending",
+    eventName: "AssetRepaid",
     fromBlock: 0n,
     watch: true,
     blockData: true,
@@ -58,7 +56,7 @@ const CollateralGraph = () => {
   });
 
   const { data: priceEvents } = useScaffoldEventHistory({
-    contractName: "CornPriceOracle",
+    contractName: "CornDEX",
     eventName: "PriceUpdated",
     fromBlock: 0n,
     watch: true,
@@ -67,15 +65,11 @@ const CollateralGraph = () => {
     receiptData: true,
   });
 
-  const { data: cornPrice } = useScaffoldReadContract({
-    contractName: "CornPriceOracle",
-    functionName: "price",
-  });
-
   const combinedEvents = [
     ...(addEvents || []),
     ...(withdrawEvents || []),
-    ...(transferEvents || []),
+    ...(borrowEvents || []),
+    ...(repaidEvents || []),
     ...(priceEvents || []),
   ];
   const sortedEvents = combinedEvents.sort((a, b) => Number(a.blockNumber - b.blockNumber));
@@ -90,11 +84,9 @@ const CollateralGraph = () => {
   const ratioData = sortedEvents.reduce<DataPoint[]>((acc, event, idx) => {
     const collateralAdded = event.eventName === "CollateralAdded" ? event.args.amount : 0n;
     const collateralWithdrawn = event.eventName === "CollateralWithdrawn" ? event.args.amount : 0n;
-    const price =
-      "price" in event.args
-        ? event.args.price
-        : getPriceFromEvent(event.blockNumber, priceEvents, cornPrice || initialPrice);
-    const debtAdded = event.eventName === "Transfer" ? getDebtFromTransferEvent(event) : 0n;
+    const price = "price" in event.args ? event.args.price : getPriceFromEvent(event.blockNumber, priceEvents);
+    const debtAdded = event.eventName === "AssetBorrowed" ? event.args.amount || 0n : 0n;
+    const debtRepaid = event.eventName === "AssetRepaid" ? event.args.amount || 0n : 0n;
 
     const prevCollateral = acc[idx - 1]?.collateral || 0n;
     const prevDebt = acc[idx - 1]?.debt || 0n;
@@ -102,14 +94,14 @@ const CollateralGraph = () => {
     const collateralInEth = prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n);
     const ethPriceInCorn = BigInt(Math.round(Number(formatEther(price || 0n))));
     const collateralInCorn = collateralInEth * ethPriceInCorn;
-    const debt = prevDebt + debtAdded;
-    const ratio = Number(collateralInCorn || 1n) / Number(debt || collateralInCorn || 1n);
+    const debt = prevDebt + (debtAdded || 0n) - (debtRepaid || 0n);
+    const ratio = Number(formatEther(collateralInCorn) || 1n) / Number(formatEther(debt || collateralInCorn) || 1n);
 
     return [
       ...acc,
       {
         name: Number(event.blockNumber) || 0,
-        ratio: Number.isFinite(ratio) ? ratio : 1,
+        ratio: ratio && Number.isFinite(ratio) ? ratio : 1,
         collateral: collateralInEth,
         debt: debt,
       },
