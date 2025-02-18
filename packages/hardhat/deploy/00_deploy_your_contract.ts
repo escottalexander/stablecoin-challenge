@@ -71,7 +71,6 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   await cornToken.transferOwnership(basicLending.address);
   await cornToken.approve(cornDEX.target, hre.ethers.parseEther("1000000000"));
   await cornDEX.init(hre.ethers.parseEther("1000000000"), { value: hre.ethers.parseEther("1000000") });
-
 };
 
 export default deployYourContract;
