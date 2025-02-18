@@ -15,7 +15,7 @@ function etherValueToDisplayValue(usdMode: boolean, etherValue: string, nativeCu
       // We need to round the value rather than use toFixed,
       // since otherwise a user would not be able to modify the decimal value
       return (
-        Math.round(parsedEthValue * nativeCurrencyPrice * 10 ** MAX_DECIMALS_USD) /
+        Math.floor(parsedEthValue * nativeCurrencyPrice * 10 ** MAX_DECIMALS_USD) /
         10 ** MAX_DECIMALS_USD
       ).toString();
     }
