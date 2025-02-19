@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
-import { Address, createWalletClient, http, parseEther } from "viem";
-import { hardhat } from "viem/chains";
+import { useState } from "react";
+import { Address, parseEther } from "viem";
 import { ArrowDownIcon, ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { Balance, IntegerInput } from "~~/components/scaffold-eth";
-import { useScaffoldWriteContract, useTransactor } from "~~/hooks/scaffold-eth";
+import { useDeployedContractInfo, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { tokenName } from "~~/utils/constant";
-
-const localWalletClient = createWalletClient({
-  chain: hardhat,
-  transport: http(),
-});
-const FAUCET_ACCOUNT_INDEX = 0;
 
 type TokenSwapModalProps = {
   tokenBalance: string;
@@ -20,37 +13,22 @@ type TokenSwapModalProps = {
 };
 
 export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modalId }: TokenSwapModalProps) => {
-  const burnAddress = "0x000000000000000000000000000000000000dead";
-
-  const faucetTxn = useTransactor(localWalletClient);
-  const writeTx = useTransactor();
-
-  const [faucetAddress, setFaucetAddress] = useState<Address>();
-
   const [loading, setLoading] = useState(false);
   const [sellToken, setSellToken] = useState<"CORN" | "ETH">("CORN");
   const [sellValue, setSellValue] = useState("");
   const [buyValue, setBuyValue] = useState("");
 
+  const { data: cornDEXContract } = useDeployedContractInfo({
+    contractName: "CornDEX",
+  });
+
+  const { writeContractAsync: writeDEXContract } = useScaffoldWriteContract({
+    contractName: "CornDEX",
+  });
+
   const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
     contractName: "Corn",
   });
-
-  const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
-    contractName: "BasicLending",
-  });
-
-  useEffect(() => {
-    const getFaucetAddress = async () => {
-      try {
-        const accounts = await localWalletClient.getAddresses();
-        setFaucetAddress(accounts[FAUCET_ACCOUNT_INDEX]);
-      } catch (error) {
-        console.error("⚡️ ~ file: Faucet.tsx:getFaucetAddress ~ error", error);
-      }
-    };
-    getFaucetAddress();
-  }, []);
 
   const handleChangeSellToken = () => {
     setSellToken(sellToken === "CORN" ? "ETH" : "CORN");
@@ -90,13 +68,12 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
     if (sellToken === "CORN") {
       try {
         await writeCornContract({
-          functionName: "transfer",
-          args: [burnAddress, parseEther(sellValue)],
+          functionName: "approve",
+          args: [cornDEXContract?.address, parseEther(sellValue)],
         });
-        await faucetTxn({
-          to: connectedAddress,
-          value: parseEther(buyValue as `${number}`),
-          account: faucetAddress,
+        await writeDEXContract({
+          functionName: "swap",
+          args: [parseEther(sellValue)],
         });
 
         setSellValue("");
@@ -108,14 +85,10 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
       }
     } else {
       try {
-        await writeTx({
-          to: faucetAddress,
+        await writeDEXContract({
+          functionName: "swap",
+          args: [parseEther(sellValue)],
           value: parseEther(sellValue as `${number}`),
-          account: connectedAddress,
-        });
-        await writeBasicLendingContract({
-          functionName: "borrowCorn",
-          args: [parseEther(buyValue)],
         });
 
         setBuyValue("");

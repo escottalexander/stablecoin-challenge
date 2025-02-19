@@ -20,12 +20,12 @@ const TokenActions = () => {
     args: [address],
   });
 
-  const { data: Cornprice } = useScaffoldReadContract({
-    contractName: "CornPriceOracle",
-    functionName: "price",
+  const { data: cornPrice } = useScaffoldReadContract({
+    contractName: "CornDEX",
+    functionName: "currentPrice",
   });
 
-  const tokenBalance = formatEther(cornBalance || 0n);
+  const tokenBalance = `${Math.floor(Number(formatEther(cornBalance || 0n)) * 100) / 100}`;
 
   return (
     <div className="absolute mt-3 top-[100px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
@@ -51,7 +51,7 @@ const TokenActions = () => {
       <TokenSwapModal
         tokenBalance={tokenBalance}
         connectedAddress={address || ""}
-        ETHprice={Number(formatEther(Cornprice || 0n)).toFixed(2)}
+        ETHprice={Number(formatEther(cornPrice || 0n)).toFixed(2)}
         modalId={`${swapModalId}`}
       />
     </div>

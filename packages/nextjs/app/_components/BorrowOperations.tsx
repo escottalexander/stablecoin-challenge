@@ -13,8 +13,8 @@ const BorrowOperations = () => {
   const { address } = useAccount();
 
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "CornPriceOracle",
-    functionName: "price",
+    contractName: "CornDEX",
+    functionName: "currentPrice",
   });
 
   const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
@@ -48,8 +48,8 @@ const BorrowOperations = () => {
   return (
     <div className="card bg-base-100 w-96 shadow-xl indicator">
       <TooltipInfo
-        top={5}
-        right={5}
+        top={3}
+        right={3}
         infoText={`Use these controls to borrow and repay ${tokenName} from the lending pool`}
       />
       <div className="card-body">

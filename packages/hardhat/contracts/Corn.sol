@@ -10,7 +10,7 @@ error Corn__InsufficientAllowance();
 error Corn__InvalidAddress();
 
 contract Corn is ERC20, Ownable {
-    constructor(address _owner) ERC20("CORN", "CORN") Ownable(_owner) {}
+    constructor() ERC20("CORN", "CORN") Ownable(msg.sender) {}
 
     function burnFrom(address account, uint256 amount) external onlyOwner returns (bool) {
         uint256 balance = balanceOf(account);

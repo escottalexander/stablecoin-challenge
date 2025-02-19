@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Corn.sol";
-import "./CornPriceOracle.sol";
+import "./CornDEX.sol";
 
 error Lending__InvalidAmount();
 error Lending__TransferFailed();
@@ -18,20 +18,19 @@ contract BasicLending is Ownable {
     uint256 private constant LIQUIDATOR_REWARD = 10; // 10% reward for liquidators
 
     Corn private i_corn;
-    CornPriceOracle private i_cornPriceOracle;
+    CornDEX private i_cornDEX;
 
     mapping(address => uint256) public s_userCollateral; // User's collateral balance
     mapping(address => uint256) public s_userBorrowed; // User's borrowed corn balance
 
     event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
     event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
+    event AssetBorrowed(address indexed user, uint256 indexed amount, uint256 price);
+    event AssetRepaid(address indexed user, uint256 indexed amount, uint256 price);
 
-    constructor(address _ethPriceOracle) Ownable(msg.sender) {
-        i_cornPriceOracle = CornPriceOracle(_ethPriceOracle);
-    }
-
-    function setCorn(address cornAddress) external onlyOwner {
-        i_corn = Corn(cornAddress);
+    constructor(address _cornDEX, address _corn) Ownable(msg.sender) {
+        i_cornDEX = CornDEX(_cornDEX);
+        i_corn = Corn(_corn);
     }
 
     // Allows users to add collateral to their account
@@ -40,7 +39,7 @@ contract BasicLending is Ownable {
             revert Lending__InvalidAmount(); // Revert if no collateral is sent
         }
         s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
-        emit CollateralAdded(msg.sender, msg.value, i_cornPriceOracle.price()); // Emit event for collateral addition
+        emit CollateralAdded(msg.sender, msg.value, i_cornDEX.currentPrice()); // Emit event for collateral addition
     }
 
     // Allows users to withdraw collateral as long as it doesn't make them liquidatable
@@ -61,7 +60,7 @@ contract BasicLending is Ownable {
         // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
 
-        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_cornPriceOracle.price()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_cornDEX.currentPrice()); // Emit event for collateral withdrawal
     }
 
     // Allows users to borrow corn based on their collateral
@@ -75,6 +74,7 @@ contract BasicLending is Ownable {
         if (!success) {
             revert Lending__BorrowingFailed(); // Revert if borrowing fails
         }
+        emit AssetBorrowed(msg.sender, borrowAmount, i_cornDEX.currentPrice()); // Emit event for borrowing
     }
 
     // Allows users to repay corn and reduce their debt
@@ -87,6 +87,7 @@ contract BasicLending is Ownable {
         if (!success) {
             revert Lending__RepayingFailed(); // Revert if burning fails
         }
+        emit AssetRepaid(msg.sender, repayAmount, i_cornDEX.currentPrice()); // Emit event for repaying
     }
 
     // Retrieves the user's position, including borrowed amount and collateral value
@@ -99,7 +100,7 @@ contract BasicLending is Ownable {
     // Calculates the total collateral value for a user based on their collateral balance and price point
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_cornPriceOracle.price()) / 1e18; // Calculate collateral value in terms of ETH price
+        return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
     }
 
     // Calculates the position ratio for a user to ensure they are within safe limits
@@ -156,13 +157,15 @@ contract BasicLending is Ownable {
         uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
         uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
         uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
+        amountForLiquidator = amountForLiquidator > userCollateral ? userCollateral : amountForLiquidator; // Ensure we don't exceed user's collateral
 
         // transfer 110% of the debt to the liquidator
-        (bool sent, bytes memory data) = payable(msg.sender).call{ value: amountForLiquidator }("");
+        (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
         require(sent, "Failed to send Ether");
 
         s_userCollateral[user] = userCollateral - amountForLiquidator;
 
-        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_cornPriceOracle.price()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_cornDEX.currentPrice()); // Emit event for collateral withdrawal
+        emit AssetRepaid(msg.sender, userDebt, i_cornDEX.currentPrice()); // Emit event for repaying
     }
 }
