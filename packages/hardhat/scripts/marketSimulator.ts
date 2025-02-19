@@ -12,13 +12,13 @@ const liquidationInProgress = new Set<string>();
 async function fundAccountsIfNeeded(accounts: SimulatedAccount[], deployer: any) {
   for (const account of accounts) {
     const currentBalance = await ethers.provider.getBalance(account.wallet.address);
-    
+
     // Fund if balance drops below 2 ETH
     if (currentBalance < ethers.parseEther("2")) {
       // Random amount between 3-13 ETH
       const randomEth = 3 + Math.random() * 10;
       const topUpAmount = ethers.parseEther(randomEth.toString());
-      
+
       const tx = await deployer.sendTransaction({
         to: account.wallet.address,
         value: topUpAmount,
@@ -40,11 +40,14 @@ async function simulatePeriodicFunding(accounts: SimulatedAccount[], deployer: a
       }
     } catch (error) {
       console.error(`Error in periodic funding at block ${blockNumber}`);
+      if (process.env.DEBUG) {
+        console.error(error);
+      }
     }
   });
 }
 
-async function setupAccounts(lending: BasicLending, corn: Corn): Promise<SimulatedAccount[]> {
+async function setupAccounts(): Promise<SimulatedAccount[]> {
   console.log("Setting up simulated accounts...");
 
   const accounts: SimulatedAccount[] = [];
@@ -66,7 +69,6 @@ async function setupAccounts(lending: BasicLending, corn: Corn): Promise<Simulat
   // Do initial funding
   await fundAccountsIfNeeded(accounts, deployer);
 
-
   return accounts;
 }
 
@@ -87,21 +89,23 @@ async function movePrice(movePrice: MovePrice) {
         trend *= -1; // Reverse trend
         trendDuration = 0;
         maxTrendDuration = Math.floor(Math.random() * 10) + 5; // New random duration
-        console.log(`Block ${blockNumber}: Trend reversed to ${trend > 0 ? 'upward' : 'downward'}`);
+        console.log(`Block ${blockNumber}: Trend reversed to ${trend > 0 ? "upward" : "downward"}`);
       }
 
       // Add some noise to the trend
-      const noise = (Math.random() * 2.5 - 1.6);
+      const noise = Math.random() * 2.5 - 1.6;
       const direction = trend + noise;
-      
+
       const amount = parseEther("24000");
       const amountToSell = direction > 0 ? amount : -amount * 1000n;
-  
+
       const tx = await movePrice.movePrice(amountToSell);
       await tx.wait();
-
     } catch (error) {
-      console.error(`Error updating price at block ${blockNumber}:`, error);
+      console.error(`Error updating price at block ${blockNumber}`);
+      if (process.env.DEBUG) {
+        console.error(error);
+      }
     }
   });
 }
@@ -112,14 +116,14 @@ async function simulateBorrowing(lending: BasicLending, accounts: SimulatedAccou
   ethers.provider.on("block", async blockNumber => {
     try {
       // 20% chance each block that a random account will try to borrow
-      if (Math.random() < 0.30) {
+      if (Math.random() < 0.3) {
         const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
         const lendingWithAccount = lending.connect(randomAccount.wallet);
 
         const collateralValue = await lending.calculateCollateralValue(randomAccount.wallet.address);
         if (collateralValue > 0n) {
           const aggressiveBorrower = Math.random() < 0.3;
-          
+
           // Calculate max borrow amount based on collateral
           let maxBorrowAmount: bigint;
           if (aggressiveBorrower) {
@@ -131,23 +135,29 @@ async function simulateBorrowing(lending: BasicLending, accounts: SimulatedAccou
             const percentage = 30 + Math.random() * 40;
             maxBorrowAmount = (collateralValue * BigInt(Math.floor(percentage * 10))) / 1000n;
           }
-          
+
           if (maxBorrowAmount > 0n) {
             try {
               await lendingWithAccount.borrowCorn(maxBorrowAmount);
               console.log(
                 `Account ${randomAccount.wallet.address} borrowed ${ethers.formatEther(maxBorrowAmount)} CORN ` +
-                `(${aggressiveBorrower ? 'aggressive' : 'conservative'}, ` +
-                `${((Number(maxBorrowAmount) * 100) / Number(collateralValue)).toFixed(1)}% of collateral)`
+                  `(${aggressiveBorrower ? "aggressive" : "conservative"}, ` +
+                  `${((Number(maxBorrowAmount) * 100) / Number(collateralValue)).toFixed(1)}% of collateral)`,
               );
             } catch (error) {
               // Silently fail if borrowing not possible
+              if (process.env.DEBUG) {
+                console.error(error);
+              }
             }
           }
         }
       }
     } catch (error) {
-      console.error(`Error in random borrowing at block ${blockNumber}:`, error);
+      console.error(`Error in random borrowing at block ${blockNumber}`);
+      if (process.env.DEBUG) {
+        console.error(error);
+      }
     }
   });
 }
@@ -171,7 +181,7 @@ async function simulateLiquidator(lending: BasicLending, corn: Corn, accounts: S
 
         const amountBorrowed = await lending.s_userBorrowed(user);
         if (amountBorrowed === 0n) continue;
-        
+
         const isLiquidatable = await lending.isLiquidatable(user);
         if (!isLiquidatable) continue;
 
@@ -192,7 +202,7 @@ async function simulateLiquidator(lending: BasicLending, corn: Corn, accounts: S
           const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
           if (randomAccount.wallet.address.toLowerCase() !== user.toLowerCase()) {
             const cornDEXWithAccount = cornDEX.connect(randomAccount.wallet);
-            
+
             // Calculate how much ETH we need to swap to get enough CORN
             const currentPrice = await cornDEX.currentPrice();
             // Add 10% buffer for price impact and slippage
@@ -201,19 +211,24 @@ async function simulateLiquidator(lending: BasicLending, corn: Corn, accounts: S
             const maxETHPossible = ethNeeded > balance ? balance - ethers.parseEther("0.1") : ethNeeded;
             if (maxETHPossible < ethers.parseEther("0.01")) continue;
             try {
-              const swapTx = await cornDEXWithAccount.swap(maxETHPossible, { 
-                value: maxETHPossible 
+              const swapTx = await cornDEXWithAccount.swap(maxETHPossible, {
+                value: maxETHPossible,
               });
               await swapTx.wait();
-              
+
               // Verify the swap gave enough CORN
               const newBalance = await corn.balanceOf(randomAccount.wallet.address);
               if (newBalance >= amountBorrowed) {
                 eligibleLiquidators.push(randomAccount);
-                console.log(`Account ${randomAccount.wallet.address} swapped ${ethers.formatEther(ethNeeded)} ETH for CORN`);
+                console.log(
+                  `Account ${randomAccount.wallet.address} swapped ${ethers.formatEther(ethNeeded)} ETH for CORN`,
+                );
               }
             } catch (error) {
               console.error(`Failed to swap ETH for CORN`);
+              if (process.env.DEBUG) {
+                console.error(error);
+              }
             }
           }
         }
@@ -245,6 +260,9 @@ async function simulateLiquidator(lending: BasicLending, corn: Corn, accounts: S
           console.log(`Successfully liquidated position for user ${user} at block ${blockNumber}`);
         } catch (error) {
           console.error(`Failed to liquidate user ${user}`);
+          if (process.env.DEBUG) {
+            console.error(error);
+          }
         } finally {
           liquidationInProgress.delete(user.toLowerCase());
         }
@@ -254,6 +272,9 @@ async function simulateLiquidator(lending: BasicLending, corn: Corn, accounts: S
       }
     } catch (error) {
       console.error(`Error in liquidator at block ${blockNumber}`);
+      if (process.env.DEBUG) {
+        console.error(error);
+      }
     }
   });
 }
@@ -264,19 +285,19 @@ async function simulateAddCollateral(lending: BasicLending, accounts: SimulatedA
   ethers.provider.on("block", async blockNumber => {
     try {
       // 15% chance each block that a random account will add collateral
-      if (Math.random() < 0.20) {
+      if (Math.random() < 0.2) {
         const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
         const lendingWithAccount = lending.connect(randomAccount.wallet);
 
         // Get current balance and collateral
         const balance = await ethers.provider.getBalance(randomAccount.wallet.address);
         const currentCollateral = await lending.s_userCollateral(randomAccount.wallet.address);
-        
+
         // Only proceed if account has more than 3 ETH (keep some for gas)
         if (balance > ethers.parseEther("3")) {
           // Calculate a random amount to add as collateral
           const maxPossible = balance - ethers.parseEther("2"); // Keep 2 ETH for operations
-          
+
           // Random percentage of available ETH (20-80%)
           const percentage = 20 + Math.random() * 60;
           const amountToAdd = (maxPossible * BigInt(Math.floor(percentage * 10))) / 1000n;
@@ -285,20 +306,26 @@ async function simulateAddCollateral(lending: BasicLending, accounts: SimulatedA
             try {
               const tx = await lendingWithAccount.addCollateral({ value: amountToAdd });
               await tx.wait();
-              
+
               console.log(
                 `Account ${randomAccount.wallet.address} added ${ethers.formatEther(amountToAdd)} ETH as collateral ` +
-                `(${percentage.toFixed(1)}% of available balance, ` +
-                `total collateral: ${ethers.formatEther(currentCollateral + amountToAdd)} ETH)`
+                  `(${percentage.toFixed(1)}% of available balance, ` +
+                  `total collateral: ${ethers.formatEther(currentCollateral + amountToAdd)} ETH)`,
               );
             } catch (error) {
               // Silently fail if transaction fails
+              if (process.env.DEBUG) {
+                console.error(error);
+              }
             }
           }
         }
       }
     } catch (error) {
       console.error(`Error in random collateral at block ${blockNumber}`);
+      if (process.env.DEBUG) {
+        console.error(error);
+      }
     }
   });
 }
@@ -318,7 +345,7 @@ async function main() {
   const corn = await ethers.getContract<Corn>("Corn", deployer);
 
   // Setup accounts
-  const accounts = await setupAccounts(lending, corn);
+  const accounts = await setupAccounts();
 
   // Disable automine now that accounts are set up
   await disableAutomine();
