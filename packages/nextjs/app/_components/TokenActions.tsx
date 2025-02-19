@@ -32,6 +32,7 @@ const TokenActions = () => {
       <div className="w-[150px] py-5 flex flex-col items-center gap-1 indicator">
         <TooltipInfo top={3} right={3} infoText={`Here you can send ${tokenName} to any address or swap it`} />
         <div className="flex flex-col items-center gap-1">
+          <span className="text-sm font-bold">{tokenName} Wallet</span>
           <span className="text-sm">
             {tokenBalance} {tokenName}
           </span>

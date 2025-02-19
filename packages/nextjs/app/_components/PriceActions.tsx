@@ -13,8 +13,14 @@ const PriceActions = () => {
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "MovePrice" });
 
+  const priceOfOneCORN = price ? parseEther((1 / Number(formatEther(price))).toString()) : undefined; // Fixed parentheses and added toString()
   const renderPrice =
-    price === undefined ? <div className="mr-1 skeleton w-10 h-4"></div> : Number(formatEther(price)).toFixed(2);
+    priceOfOneCORN === undefined ? (
+      <div className="mr-1 skeleton w-10 h-4"></div>
+    ) : (
+      Number(formatEther(priceOfOneCORN)).toFixed(6)
+    );
+  const renderETHPrice = price ? Number(formatEther(price)).toFixed(2) : <div className="mr-1 skeleton w-10 h-4"></div>;
 
   const handleClick = async (isIncrease: boolean) => {
     if (price === undefined) {
@@ -22,7 +28,7 @@ const PriceActions = () => {
       return;
     }
     const amount = parseEther("50000");
-    const amountToSell = !isIncrease ? amount : -amount * 1000n;
+    const amountToSell = isIncrease ? amount : -amount * 1000n;
 
     try {
       await writeContractAsync({
@@ -39,11 +45,10 @@ const PriceActions = () => {
       <div className="w-[150px] py-5 flex flex-col items-center gap-2 indicator">
         <TooltipInfo top={3} right={3} infoText="Use these controls to simulate price changes" />
         <div className="flex items-center gap-1">
-          <span className="text-sm">CORN Price</span>
+          <span className="text-sm font-bold">{tokenName} Price</span>
         </div>
-        <span className="flex items-center text-xs">
-          {renderPrice} {tokenName} / ETH
-        </span>
+        <span className="flex items-center text-xs">{renderPrice} ETH</span>
+        <span className="flex items-center text-xs">{renderETHPrice} CORN/ETH</span>
         <div className="flex gap-2">
           <button onClick={() => handleClick(false)} className="btn btn-circle btn-xs">
             <MinusIcon className="h-3 w-3" />
