@@ -64,7 +64,7 @@ async function simulateMarketActions(
   lending: BasicLending,
   corn: Corn,
   accounts: SimulatedAccount[],
-  deployer: any
+  deployer: any,
 ) {
   console.log("Starting market simulation...");
 
@@ -106,7 +106,6 @@ async function simulateMarketActions(
 
       // 5. Check for and perform liquidations
       await checkAndPerformLiquidations(lending, corn, accounts);
-
     } catch (error) {
       console.error("Error in market simulation interval");
       if (process.env.DEBUG) {
@@ -124,12 +123,12 @@ async function simulateBorrowing(lending: BasicLending, accounts: SimulatedAccou
   if (collateralValue <= 0n) return;
 
   const aggressiveBorrower = Math.random() < CHANCE_TO_BORROW;
-  
+
   // Calculate max borrow amount
-  const percentage = aggressiveBorrower ? 
-    85 + Math.random() * 14 : // Aggressive: 85-99%
-    30 + Math.random() * 40;  // Conservative: 30-70%
-  
+  const percentage = aggressiveBorrower
+    ? 85 + Math.random() * 14 // Aggressive: 85-99%
+    : 30 + Math.random() * 40; // Conservative: 30-70%
+
   const maxBorrowAmount = (collateralValue * BigInt(Math.floor(percentage * 10))) / 1000n;
 
   if (maxBorrowAmount > 0n) {
@@ -137,8 +136,8 @@ async function simulateBorrowing(lending: BasicLending, accounts: SimulatedAccou
       await lendingWithAccount.borrowCorn(maxBorrowAmount);
       console.log(
         `Account ${randomAccount.wallet.address} borrowed ${ethers.formatEther(maxBorrowAmount)} CORN ` +
-        `(${aggressiveBorrower ? "aggressive" : "conservative"}, ` +
-        `${((Number(maxBorrowAmount) * 100) / Number(collateralValue)).toFixed(1)}% of collateral)`
+          `(${aggressiveBorrower ? "aggressive" : "conservative"}, ` +
+          `${((Number(maxBorrowAmount) * 100) / Number(collateralValue)).toFixed(1)}% of collateral)`,
       );
     } catch (error) {
       if (process.env.DEBUG) {
