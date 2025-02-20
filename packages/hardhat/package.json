@@ -18,7 +18,7 @@
     "lint-staged": "eslint --config ./.eslintrc.json --ignore-path ./.eslintignore",
     "test": "REPORT_GAS=true hardhat test --network hardhat",
     "verify": "hardhat etherscan-verify",
-    "simulator": "hardhat run scripts/marketSimulator.ts"
+    "simulate": "hardhat run scripts/marketSimulator.ts"
   },
   "dependencies": {
     "@inquirer/password": "^4.0.2",
