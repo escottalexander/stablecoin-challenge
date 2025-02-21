@@ -79,6 +79,13 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     log: true,
     autoMine: true,
   });
+
+  await deploy("Leverage", {
+    from: deployer,
+    args: [basicLending.address, cornDEX.target, cornToken.target],
+    log: true,
+    autoMine: true,
+  });
 };
 
 export default deployYourContract;

@@ -108,7 +108,7 @@ contract BasicLending is Ownable {
      * @return borrowedAmount The borrowed amount
      * @return collateralValue The collateral value
      */
-    function _getUserPosition(address user) private view returns (uint256 borrowedAmount, uint256 collateralValue) {
+    function _getUserPosition(address user) internal view returns (uint256 borrowedAmount, uint256 collateralValue) {
         borrowedAmount = s_userBorrowed[user]; // Get user's borrowed amount
         collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
         return (borrowedAmount, collateralValue); // Return user's position
@@ -129,7 +129,7 @@ contract BasicLending is Ownable {
      * @param user The address of the user to calculate the position ratio for
      * @return uint256 The position ratio
      */
-    function _calculatePositionRatio(address user) private view returns (uint256) {
+    function _calculatePositionRatio(address user) internal view returns (uint256) {
         (uint256 borrowedAmount, uint256 collateralValue) = _getUserPosition(user); // Get user's position
         if (borrowedAmount == 0) return type(uint256).max; // Return max if no corn is borrowed
         return (collateralValue * 1e18) / borrowedAmount; // Calculate position ratio
@@ -181,10 +181,10 @@ contract BasicLending is Ownable {
             revert Corn__InsufficientAllowance();
         }
 
-        // tranfer value of debt to the contract
+        // transfer value of debt to the contract
         i_corn.transferFrom(msg.sender, address(this), userDebt);
 
-        // burn the transfered corn
+        // burn the transferred corn
         i_corn.burnFrom(address(this), userDebt);
 
         // Clear user's debt
@@ -207,6 +207,47 @@ contract BasicLending is Ownable {
 
     /**
      * @notice For Side quest only
+     * @notice Calculates maximum CORN that can be borrowed for a given ETH collateral amount
+     * @param ethCollateralAmount Amount of ETH to use as collateral (in wei)
+     * @return Maximum amount of CORN that can be borrowed while maintaining safe collateral ratio
+     */
+    function getMaxBorrowAmount(uint256 ethCollateralAmount) public view returns (uint256) {
+        if (ethCollateralAmount == 0) return 0;
+        
+        // Calculate collateral value in CORN terms
+        uint256 collateralValue = (ethCollateralAmount * i_cornDEX.currentPrice()) / 1e18;
+        
+        // Calculate max borrow amount while maintaining the required collateral ratio
+        // maxBorrow = collateralValue * 100 / COLLATERAL_RATIO
+        return (collateralValue * 100) / COLLATERAL_RATIO;
+    }
+
+    /**
+     * @notice For Side quest only
+     * @notice Calculates maximum ETH collateral that can be withdrawn while keeping position safe
+     * @param user The address of the user to calculate for
+     * @return Maximum amount of ETH collateral (in wei) that can be safely withdrawn
+     */
+    function getMaxWithdrawableCollateral(address user) public view returns (uint256) {
+        uint256 borrowedAmount = s_userBorrowed[user];
+        uint256 userCollateral = s_userCollateral[user];
+        if (borrowedAmount == 0) return userCollateral;
+
+        uint256 maxBorrowedAmount = getMaxBorrowAmount(userCollateral);
+        if (borrowedAmount == maxBorrowedAmount) return 0;
+
+        uint256 potentialBorrowingAmount = maxBorrowedAmount - borrowedAmount;
+        uint256 ethValueOfPotentialBorrowingAmount = (potentialBorrowingAmount * 1e18) / i_cornDEX.currentPrice();
+
+        return (ethValueOfPotentialBorrowingAmount * COLLATERAL_RATIO) / 100;
+    }
+
+    /**
+     * @notice For Side quest only
+     * @notice Check out https://github.com/aave-dao/aave-v3-origin/blob/083bd38a137b42b5df04e22ad4c9e72454365d0d/src/contracts/protocol/libraries/logic/FlashLoanLogic.sol#L184
+     * @param _recipient The address of the recipient contract of the flash loan, must adhere to the IFlashLoanRecipient interface
+     * @param _amount The amount of CORN to borrow
+     * @param _extraParam This could be anything that the recipient contract needs to execute the flash loan (Aave allows you to pass several extra parameters)
      */
     function flashLoan(address _recipient, uint256 _amount, address _extraParam) public {
         IFlashLoanRecipient recipient = IFlashLoanRecipient(_recipient);

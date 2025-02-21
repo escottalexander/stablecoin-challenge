@@ -64,7 +64,7 @@ contract CornDEX {
     }
 
     /**
-     * @notice returns the current price of ETH in $CORN
+     * @notice returns the current price of ETH in CORN
      */
     function currentPrice() public view returns (uint256 _currentPrice) {
         _currentPrice = price(1 ether, address(this).balance, token.balanceOf(address(this)));
