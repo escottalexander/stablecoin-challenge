@@ -6,6 +6,7 @@ import { CornDEX } from "./CornDEX.sol";
 import { Corn } from "./Corn.sol";
 
 /**
+ * @notice For Side quest only
  * @notice This contract is used to leverage a user's position by borrowing CORN from the BasicLending contract
  * then borrowing more CORN from the DEX to repay the initial borrow then repeating until the user has borrowed as much as they want
  */
