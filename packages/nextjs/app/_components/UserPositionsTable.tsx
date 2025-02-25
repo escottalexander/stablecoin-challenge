@@ -9,7 +9,7 @@ const UserPositionsTable = () => {
   const { address: connectedAddress } = useAccount();
   const [users, setUsers] = useState<string[]>([]);
   const { data: events, isLoading } = useScaffoldEventHistory({
-    contractName: "BasicLending",
+    contractName: "Lending",
     eventName: "CollateralAdded",
     fromBlock: 0n, // should be the block number where the contract was deployed
     watch: true,

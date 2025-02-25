@@ -1,6 +1,6 @@
 import { HDNodeWallet, parseEther } from "ethers";
 import hre from "hardhat";
-import { CornDEX, BasicLending, Corn, MovePrice } from "../typechain-types";
+import { CornDEX, Lending, Corn, MovePrice } from "../typechain-types";
 const ethers = hre.ethers;
 
 interface SimulatedAccount {
@@ -61,7 +61,7 @@ async function setupAccounts(): Promise<SimulatedAccount[]> {
 
 async function simulateMarketActions(
   movePrice: MovePrice,
-  lending: BasicLending,
+  lending: Lending,
   corn: Corn,
   accounts: SimulatedAccount[],
   deployer: any,
@@ -115,7 +115,7 @@ async function simulateMarketActions(
   }, 2000); // 2 second interval
 }
 
-async function simulateBorrowing(lending: BasicLending, accounts: SimulatedAccount[]) {
+async function simulateBorrowing(lending: Lending, accounts: SimulatedAccount[]) {
   const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
   const lendingWithAccount = lending.connect(randomAccount.wallet);
 
@@ -147,7 +147,7 @@ async function simulateBorrowing(lending: BasicLending, accounts: SimulatedAccou
   }
 }
 
-async function simulateAddCollateral(lending: BasicLending, accounts: SimulatedAccount[]) {
+async function simulateAddCollateral(lending: Lending, accounts: SimulatedAccount[]) {
   const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
   const lendingWithAccount = lending.connect(randomAccount.wallet);
 
@@ -178,7 +178,7 @@ async function simulateAddCollateral(lending: BasicLending, accounts: SimulatedA
   }
 }
 
-async function checkAndPerformLiquidations(lending: BasicLending, corn: Corn, accounts: SimulatedAccount[]) {
+async function checkAndPerformLiquidations(lending: Lending, corn: Corn, accounts: SimulatedAccount[]) {
   const cornDEX = await ethers.getContract<CornDEX>("CornDEX");
 
   const filter = lending.filters.CollateralAdded();
@@ -267,7 +267,7 @@ async function checkAndPerformLiquidations(lending: BasicLending, corn: Corn, ac
 async function main() {
   const [deployer] = await ethers.getSigners();
   const movePriceContract = await ethers.getContract<MovePrice>("MovePrice", deployer);
-  const lending = await ethers.getContract<BasicLending>("BasicLending", deployer);
+  const lending = await ethers.getContract<Lending>("Lending", deployer);
   const corn = await ethers.getContract<Corn>("Corn", deployer);
 
   const accounts = await setupAccounts();

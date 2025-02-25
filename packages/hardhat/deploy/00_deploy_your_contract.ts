@@ -40,7 +40,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     autoMine: true,
   });
   const cornDEX = await hre.ethers.getContract<Contract>("CornDEX", deployer);
-  const basicLending = await deploy("BasicLending", {
+  const basicLending = await deploy("Lending", {
     from: deployer,
     args: [cornDEX.target, cornToken.target],
     log: true,

@@ -5,13 +5,13 @@ const LiquidateOperations = () => {
   const [targetAddress, setTargetAddress] = useState("");
 
   const { data: isLiquidatable } = useScaffoldReadContract({
-    contractName: "BasicLending",
+    contractName: "Lending",
     functionName: "isLiquidatable",
     args: [targetAddress || "0x0000000000000000000000000000000000000000"],
   });
 
   const { writeContractAsync: liquidate } = useScaffoldWriteContract({
-    contractName: "BasicLending",
+    contractName: "Lending",
   });
 
   const handleLiquidate = async () => {

@@ -7,13 +7,13 @@ const CollateralOperations = () => {
   const [collateralAmount, setCollateralAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
-  const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
-    contractName: "BasicLending",
+  const { writeContractAsync: writeLendingContract } = useScaffoldWriteContract({
+    contractName: "Lending",
   });
 
   const handleAddCollateral = async () => {
     try {
-      await writeBasicLendingContract({
+      await writeLendingContract({
         functionName: "addCollateral",
         value: collateralAmount ? parseEther(collateralAmount) : 0n,
       });
@@ -25,7 +25,7 @@ const CollateralOperations = () => {
 
   const handleWithdrawCollateral = async () => {
     try {
-      await writeBasicLendingContract({
+      await writeLendingContract({
         functionName: "withdrawCollateral",
         args: [withdrawAmount ? parseEther(withdrawAmount) : 0n],
       });

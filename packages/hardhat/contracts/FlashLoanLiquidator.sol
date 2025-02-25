@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { BasicLending } from "./BasicLending.sol";
+import { Lending } from "./Lending.sol";
 import { CornDEX } from "./CornDEX.sol";
 import { Corn } from "./Corn.sol";
 
@@ -11,12 +11,12 @@ import { Corn } from "./Corn.sol";
  * then swapping the returned ETH for CORN for repaying the flash loan
  */
 contract FlashLoanLiquidator {
-    BasicLending i_lending;
+    Lending i_lending;
     CornDEX i_cornDEX;
     Corn i_corn;
 
     constructor(address _lending, address _cornDEX, address _corn) {
-        i_lending = BasicLending(_lending);
+        i_lending = Lending(_lending);
         i_cornDEX = CornDEX(_cornDEX);
         i_corn = Corn(_corn);
     }
@@ -34,7 +34,7 @@ contract FlashLoanLiquidator {
         
         // Execute the swap
         i_cornDEX.swap{value: requiredETHInput}(requiredETHInput); // Swap ETH for tokens
-        // Send the tokens back to BasicLending to repay the flash loan
+        // Send the tokens back to Lending to repay the flash loan
         i_corn.transfer(address(i_lending), i_corn.balanceOf(address(this)));
         // Send the ETH back to the initiator
         if (address(this).balance > 0) {
