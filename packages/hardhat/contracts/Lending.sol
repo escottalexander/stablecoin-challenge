@@ -24,7 +24,7 @@ contract Lending is Ownable {
     mapping(address => uint256) public s_userBorrowed; // User's borrowed corn balance
 
     event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
-    event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
+    event CollateralWithdrawn(address indexed user, uint256 indexed amount, uint256 price);
     event AssetBorrowed(address indexed user, uint256 indexed amount, uint256 price);
     event AssetRepaid(address indexed user, uint256 indexed amount, uint256 price);
     event Liquidation(address indexed user, address indexed liquidator, uint256 indexed amount, uint256 price);
@@ -38,11 +38,11 @@ contract Lending is Ownable {
      * @notice Allows users to add collateral to their account
      */
     function addCollateral() public payable {
-        // if (msg.value == 0) {
-        //     revert Lending__InvalidAmount(); // Revert if no collateral is sent
-        // }
-        // s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
-        // emit CollateralAdded(msg.sender, msg.value, i_cornDEX.currentPrice()); // Emit event for collateral addition
+        if (msg.value == 0) {
+            revert Lending__InvalidAmount(); // Revert if no collateral is sent
+        }
+        s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
+        emit CollateralAdded(msg.sender, msg.value, i_cornDEX.currentPrice()); // Emit event for collateral addition
     }
 
     /**
@@ -50,13 +50,13 @@ contract Lending is Ownable {
      * @param amount The amount of collateral to withdraw
      */
     function withdrawCollateral(uint256 amount) public {
-        // if (amount == 0 || s_userCollateral[msg.sender] < amount) {
-        //     revert Lending__InvalidAmount(); // Revert if the amount is invalid
-        // }
+        if (amount == 0 || s_userCollateral[msg.sender] < amount) {
+            revert Lending__InvalidAmount(); // Revert if the amount is invalid
+        }
 
-        // // Temporarily reduce the user's collateral to check if they remain safe
-        // uint256 newCollateral = s_userCollateral[msg.sender] - amount;
-        // s_userCollateral[msg.sender] = newCollateral;
+        // Temporarily reduce the user's collateral to check if they remain safe
+        uint256 newCollateral = s_userCollateral[msg.sender] - amount;
+        s_userCollateral[msg.sender] = newCollateral;
 
         // // Validate the user's position after withdrawal
         // if (s_userBorrowed[msg.sender] > 0) {
@@ -64,9 +64,42 @@ contract Lending is Ownable {
         // }
 
         // // Transfer the collateral to the user
-        // payable(msg.sender).transfer(amount);
+        payable(msg.sender).transfer(amount);
 
-        // emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_cornDEX.currentPrice()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(msg.sender, amount, i_cornDEX.currentPrice()); // Emit event for collateral withdrawal
+    }
+
+    /**
+     * @notice Calculates the total collateral value for a user based on their collateral balance
+     * @param user The address of the user to calculate the collateral value for
+     * @return uint256 The collateral value
+     */
+    function calculateCollateralValue(address user) public view returns (uint256) {
+        uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
+        return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
+    }
+
+    /**
+     * @notice Calculates the position ratio for a user to ensure they are within safe limits
+     * @param user The address of the user to calculate the position ratio for
+     * @return uint256 The position ratio
+     */
+    function _calculatePositionRatio(address user) internal view returns (uint256) {
+        uint borrowedAmount = s_userBorrowed[user]; // Get user's borrowed amount
+        uint collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
+        if (borrowedAmount == 0) return type(uint256).max; // Return max if no corn is borrowed
+        return (collateralValue * 1e18) / borrowedAmount; // Calculate position ratio
+    }
+
+    /**
+     * @notice Internal view method that reverts if a user's position is unsafe
+     * @param user The address of the user to validate
+     */
+    function _validatePosition(address user) internal view {
+        uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
+        if ((positionRatio * 100) < COLLATERAL_RATIO * 1e18) {
+            revert Lending__UnsafePositionRatio(); // Revert if position is unsafe
+        }
     }
 
     /**
@@ -100,50 +133,6 @@ contract Lending is Ownable {
         //     revert Lending__RepayingFailed(); // Revert if burning fails
         // }
         // emit AssetRepaid(msg.sender, repayAmount, i_cornDEX.currentPrice()); // Emit event for repaying
-    }
-
-    /**
-     * @notice Retrieves the user's position, including borrowed amount and collateral value
-     * @param user The address of the user to get the position for
-     * @return borrowedAmount The borrowed amount
-     * @return collateralValue The collateral value
-     */
-    function _getUserPosition(address user) internal view returns (uint256 borrowedAmount, uint256 collateralValue) {
-        // borrowedAmount = s_userBorrowed[user]; // Get user's borrowed amount
-        // collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
-        // return (borrowedAmount, collateralValue); // Return user's position
-    }
-
-    /**
-     * @notice Calculates the total collateral value for a user based on their collateral balance
-     * @param user The address of the user to calculate the collateral value for
-     * @return uint256 The collateral value
-     */
-    function calculateCollateralValue(address user) public view returns (uint256) {
-        // uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        // return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
-    }
-
-    /**
-     * @notice Calculates the position ratio for a user to ensure they are within safe limits
-     * @param user The address of the user to calculate the position ratio for
-     * @return uint256 The position ratio
-     */
-    function _calculatePositionRatio(address user) internal view returns (uint256) {
-        // (uint256 borrowedAmount, uint256 collateralValue) = _getUserPosition(user); // Get user's position
-        // if (borrowedAmount == 0) return type(uint256).max; // Return max if no corn is borrowed
-        // return (collateralValue * 1e18) / borrowedAmount; // Calculate position ratio
-    }
-
-    /**
-     * @notice Internal view method that reverts if a user's position is unsafe
-     * @param user The address of the user to validate
-     */
-    function _validatePosition(address user) internal view {
-        // uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        // if ((positionRatio * 100) < COLLATERAL_RATIO * 1e18) {
-        //     revert Lending__UnsafePositionRatio(); // Revert if position is unsafe
-        // }
     }
 
     /**
