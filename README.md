@@ -342,7 +342,7 @@ Then it will call the `executeOperation` function on the recipient contract and 
 
 Use the CORN tokens `burnFrom` method to destroy the CORN that was minted at the beginning of this function. Burn it from `address(this)` since the recipient should have returned it. If they didn't this burn method will revert when we try to burn tokens that are not held by the lending contract. If it reverts then the CORN will have never been minted to the recipient - no risk of the tokens being stolen.
 
-<details markdown='1'><summary>`flashLoan` Code</summary>
+<details markdown='1'><summary>Solution Code</summary>
 
 ```solidity
     function flashLoan(IFlashLoanRecipient _recipient, uint256 _amount, address _extraParam) public {
@@ -467,7 +467,7 @@ Let's start by adding a couple helper methods to the `Lending.sol` contract.
 
 First let's add a method called `getMaxBorrowAmount` that takes a uint256 representing the amount of ETH we have to deposit and returns the maximum amount of CORN we can expect to receive. See if you can figure it out without the solution below, then compare if you run into issues.
 
-<details markdown='1'><summary>`getMaxBorrowAmount` Code</summary>
+<details markdown='1'><summary>Solution Code</summary>
 
 ```solidity
     function getMaxBorrowAmount(uint256 ethCollateralAmount) public view returns (uint256) {
@@ -487,7 +487,7 @@ Now lets add a method that will help us when we go to unravel a position.
 
 Create a function called `getMaxWithdrawableCollateral` that receives an address representing the user we want to query. It should return a uint256 representing the amount of ETH that the account has deposited as collateral that is OK to withdraw without putting the position into a liquidatable state. Try to figure it out yourself but feel free to peek at the solution below.
 
-<details markdown='1'><summary>`getMaxWithdrawableCollateral` Code</summary>
+<details markdown='1'><summary>Solution Code</summary>
 
 ```solidity
     function getMaxWithdrawableCollateral(address user) public view returns (uint256) {
@@ -511,7 +511,7 @@ Now let's create a new contract that will use those new view functions to "while
 
 Create a new file in the contracts directory called `Leverage.sol` and copy the following code into it:
 
-<details><summary>`Leverage` Code</summary>
+<details><summary>Solution Code</summary>
 
 ```solidity
 // SPDX-License-Identifier: MIT
