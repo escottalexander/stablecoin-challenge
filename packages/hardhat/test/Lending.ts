@@ -165,8 +165,7 @@ describe("🚩 Challenge 10: ♦♦♦⚖️💰 Over Collateralized Lending Cha
     it("Should emit appropriate events on liquidation", async function () {
       await cornDEX.swap(ethers.parseEther("300"), { value: ethers.parseEther("300") });
       await expect(lending.connect(user2).liquidate(user1.address))
-        .to.emit(lending, "CollateralWithdrawn")
-        .and.to.emit(lending, "AssetRepaid");
+        .to.emit(lending, "Liquidation");
     });
   });
 });
