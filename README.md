@@ -455,7 +455,7 @@ Create a debt position that is close to the liquidation line and then increase t
 
 Then go to the Debug Tab and trigger the `Lending.flashLoan` method with your `FlashLoanLiquidator` contract address as the `recipient`, the amount of CORN needed to liquidate as the `amount` and the borrowers address as the `extraParam`.
 
-Pretty cool, huh? you can liquidate any position without needing to have the CORN to pay back the loan!
+Pretty cool, huh? You can liquidate any position without needing to have the CORN to pay back the loan!
 
 ### ⚔️ Side Quest 2: Maximum Leverage With A Recursive Borrow > Swap > Deposit Loop
 
