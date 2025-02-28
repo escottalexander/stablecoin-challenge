@@ -304,8 +304,7 @@ Throwback to the `withdrawCollateral` function. What happens when a borrower wit
 
 Great work! Your contract has all the necessary functionality to help people get CORN loans.
 
->👇 Now try to tackle these optional gigachad sidequests
-> The front end doesn't have any special components for using these side quests but you can use the Debug Tab to trigger them
+>👇 Now try to tackle these optional gigachad sidequests. The front end doesn't have any special components for using these side quests but you can use the Debug Tab to trigger them
 
 ### ⚔️ Side Quest 1: Flash Loans
 
