@@ -118,20 +118,20 @@ TODO: Add faucet screen shot
 
 ## Checkpoint 3: 🫶 Helper Methods
 
-Now we need to add three methods that we will use in other functions to get various details about a users debt position.
+Now we need to add four methods that we will use in other functions to get various details about a users debt position.
 
 Let's start with `calculateCollateralValue`. This function receives the address of the user in question and returns a uint256 representing the ETH collateral in CORN.
 
 We know how to get the user's collateral and we know the price in CORN is returned by `i_cornDEX.currentPrice()`. Can you figure out how to return the collateral value in CORN?
 
-<details markdown='1'><summary>🔎 Hint 1</summary>
+<details markdown='1'><summary>🔎 Hint</summary>
 
 > This method just needs to return the users collateral multiplied by the price of CORN (`i_cornDEX.currentPrice()`) *divided by 1e18* (since that is how many decimals CORN has).
 
 <details markdown='1'><summary>Solution Code</summary>
 
 ```solidity
-function calculateCollateralValue(address user) public view returns (uint256) {
+    function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
         return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
     }
@@ -142,22 +142,332 @@ function calculateCollateralValue(address user) public view returns (uint256) {
 
 Let's turn our attention to the internal `_calculatePositionRatio` view function.
 
-This function takes a user address and returns what we are calling the "position ratio". This is the percentage difference
+This function takes a user address and returns what we are calling the "position ratio". This is the percentage of collateral to borrowed assets with a caveat, it is returned as the percentage * 1e18. In other words, if the collateral ratio percent is 133 then the returned value would be 133000000000000000000. We do this to enable a higher amount of precision. Try to figure out the math on your own.
+
+<details markdown='1'><summary>🔎 Hint</summary>
+
+> It needs to return the value of the collateral (in CORN) divided by the amount borrowed.
+
+<details markdown='1'><summary>Solution Code</summary>
+
+```solidity
+    function _calculatePositionRatio(address user) internal view returns (uint256) {
+        uint borrowedAmount = s_userBorrowed[user]; // Get user's borrowed amount
+        uint collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
+        if (borrowedAmount == 0) return type(uint256).max; // Return max if no corn is borrowed
+        return (collateralValue * 1e18) / borrowedAmount; // Calculate position ratio
+    }
+```
+
+</details>
+</details>
+
+Last helper function! Now we will fill in the details on `isLiquidatable`. This function should return a bool indicating if the position ratio is less than `COLLATERAL_RATIO`. See if you can implement the logic without the hint.
+
+<details markdown='1'><summary>🔎 Hint</summary>
+
+> We can use the `_calculatePositionRatio` function we just made to get the current ratio. Then just a simple comparison between that and the COLLATERAL_RATIO to make sure we aren't below the acceptable liquidatable threshold.
+
+<details markdown='1'><summary>Solution Code</summary>
+
+```solidity
+    function isLiquidatable(address user) public view returns (bool) {
+        uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
+        return (positionRatio * 100) < COLLATERAL_RATIO * 1e18; // Check if position is unsafe
+    }
+```
+
+</details>
+</details>
+
+Lastly let's fill in a simple function called `_validatePosition`. This function has one use case: revert with `Lending_UnsafePositionRatio` if the user's position is liquidatable (`isLiquidatable` returns exactly what we need). We can then use this function any place where we need to verify the user's ratio position hasn't been changed to a liquidatable state after changing the user's state.
+
+---
 
 ### 🥅 Goals
 
-- [ ] Can you send value from the RiggedRoll contract to your front end address?
-- [ ] Is anyone able to call the withdraw function? What would be the downside to that?
+- [ ] Do you understand why we need to multiply/divide everything by 1e18? (Search term: Solidity precision loss)
+- [ ] Glance around the other methods and try to predict where we may use these methods
 
-### ⚔️ Side Quest
+---
 
-- [ ] Lock the withdraw function so it can only be called by the owner.
+## Checkpoint 4: 🌽 Let's Borrow Some CORN!
 
-![WithdrawOnlyOwner](https://github.com/scaffold-eth/se-2-challenges/assets/55535804/e8397b1e-a077-4009-b518-30a6d8deb6e7)
+👀 Go to the `borrowCorn` function. 
 
-> ⚠️ But wait, I am not the owner! You will want to set your front end address as the owner in `01_deploy_riggedRoll.ts`. This will allow your front end address to call the withdraw function.
+It should revert with `Lending_InvalidAmount()` if somebody calls it without a `borrowAmount`.
 
-## Checkpoint 4: 💾 Deploy your contracts! 🛰
+It should add the borrowed amount to the user's balance in the `s_userBorrowed` mapping.
+
+It should validate the users position (`_validatePosition`) so that it reverts if they are attempting to borrow more than they are allowed.
+
+Then it should use the CORN tokens `mintTo` function to mint the tokens to the user's address.
+ > ⚠️ This is an oversimplification on our part. A real lending contract would not be minting the asset that is being borrowed in most cases. This way we only have to deal with one side of the market so it makes it easier to understand.
+
+You should also emit the `AssetBorrowed` event.
+
+Perfect! Now lets go fill out the `repayCorn` function.
+
+Revert with `Lending_InvalidAmount` if the repayAmount is 0 or if it is more than the user has borrowed.
+
+Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN tokens `burnFrom` function to remove the CORN from the borrowers wallet.
+
+And finally, emit the `AssetRepaid` event.
+
+Restart `yarn chain` and then `yarn deploy` so you can play with borrowing and repaying on the front end.
+---
+
+### 🥅 Goals
+
+- [ ] Can you borrow and repay CORN?
+- [ ] What happens if you repay without having enough tokens to repay? Have you handled that well? (`Lending__RepayingFailed` might be nice to throw...)
+- [ ] Can you borrow more than 120% of your collateral value? It should revert if you attempt this...
+
+---
+
+## Checkpoint 5: 📉 Liquidation Mechanism
+
+So we have a way to deposit collateral and borrow against it. Great! But what happens if the price of CORN goes up and the liquidation threshold is surpassed?
+
+We need a liquidation mechanism!
+
+Let's go to the `liquidate` function. We want anyone to be able to call this when a position is liquidatable. The caller must have enough CORN to repay the debt. This function should remove the borrowers debt AND the amount of collateral that is needed to cover the debt.
+
+First let's make sure to revert if the user's position is not liquidatable with `Lending__NotLiquidatable`.
+
+Let's transfer the CORN to this contract from the liquidator and then burn it. (`transferFrom` and `burnFrom`).
+
+Clear the borrower's debt completely.
+
+Calculate the amount of collateral needed to cover the cost of the burned CORN and remove it from the borrower's collateral.
+> Keep in mind, It's not enough to simply have a liquidation mechanism. We need an incentive for people to trigger it!
+
+**So** add the `LIQUIDATOR_REWARD` as a percentage on top of the collateral (but never exceeding the borrowers's total collateral) so that the liquidator has a nice incentive to want to liquidate that poor borrower.
+
+Transfer that amount of collateral to the liquidator.
+
+Finally emit the `Liquidation` event.
+
+<details markdown='1'><summary>Solution Code</summary>
+
+```solidity
+    function liquidate(address user) public {
+        if (!isLiquidatable(user)) {
+            revert Lending__NotLiquidatable(); // Revert if position is not liquidatable
+        }
+
+        uint256 userDebt = s_userBorrowed[user]; // Get user's borrowed amount
+        uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
+        uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
+
+        // transfer value of debt to the contract
+        i_corn.transferFrom(msg.sender, address(this), userDebt);
+
+        // burn the transferred corn
+        i_corn.burnFrom(address(this), userDebt);
+
+        // Clear user's debt
+        s_userBorrowed[user] = 0;
+
+        // calculate collateral to purchase (maintain the ratio of debt to collateral value)
+        uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
+        uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
+        uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
+        amountForLiquidator = amountForLiquidator > userCollateral ? userCollateral : amountForLiquidator; // Ensure we don't exceed user's collateral
+
+        s_userCollateral[user] = userCollateral - amountForLiquidator;
+
+        // transfer 110% of the collateral needed to cover the debt to the liquidator
+        (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
+        require(sent, "Failed to send Ether");
+
+        emit Liquidation(user, msg.sender, amountForLiquidator, i_cornDEX.currentPrice());
+    }
+```
+
+</details>
+
+You know the drill. Restart `yarn chain` and then `yarn deploy` so you can try liquidating on the front end. It may be useful to open a private browser tab and go to `localhost:3000` so you can simulate multiple parties.
+
+---
+
+### 🥅 Goals
+
+- [ ] As long as people follow the incentives, will the protocol ever go under 100% backed loans? Look into this situation that happened to [Aave](https://blockworks.co/news/aave-curve-exposure)
+- [ ] What happens when a liquidator doesn't have enough CORN to repay the loan? Does it revert like it ought to?
+
+---
+
+## Checkpoint 6: Final Touches
+
+Throwback to the `withdrawCollateral` function. What happens when a borrower withdraws collateral exceeding the safe position ratio? You should add a `_validatePosition` check to make sure that never happens. Skip the check if they don't have any borrowed CORN.
+
+Great work! Your contract has all the necessary functionality to help people get CORN loans.
+
+>👇 Now try to tackle these optional gigachad sidequests
+> The front end doesn't have any special components for using these side quests but you can use the Debug Tab to trigger them
+
+### ⚔️ Side Quest 1: Flash Loans
+
+🤔 What if you could borrow any amount of CORN as long as it was paid back by the end of the transaction? That is exactly what a flash loan does! Flash loans are a new financial primitive that is only possible onchain.
+
+Let's implement a fee free flash loan function!
+
+Before we implement the logic we need to crete a new interface called `IFlashLoanRecipient`. You can define it beneath the `Lending`. It should have a function called `executeOperation` that receives the following parameters: `uint256 amount, address initiator, address extraParam` and returns a bool.
+
+<details markdown='1'><summary>Interface Code</summary>
+
+```solidity
+contract Lending is Ownable {
+    // ...
+    // Existing code
+    // ...
+}
+
+// Place this beneath so we don't have to import from another file
+interface IFlashLoanRecipient {
+    function executeOperation(uint256 amount, address initiator, address extraParam) external returns (bool);
+}
+```
+
+</details>
+
+There isn't any existing `flashLoan` function in `Lending.sol` but that is where we need one. Go ahead and define one that is public. It should receive the following parameters:
+- `IFlashLoanRecipient _recipient` This is because the loan recipient must be a contract that adheres to the `IFlashLoanRecipient` interface -- Not your EOA. You will see why in a minute
+- `uint256 _amount` The amount of CORN to send to the recipient contract
+- `address _extraParam` In a real flash loan function this would probably be a struct with several optional properties allowing people to pass along any data to the recipient contract. See Aave's implementation [here](https://github.com/aave-dao/aave-v3-origin/blob/083bd38a137b42b5df04e22ad4c9e72454365d0d/src/contracts/protocol/libraries/logic/FlashLoanLogic.sol#L184) 
+
+The logic inside the method needs to mint the amount of CORN that is given in the parameter to the recipient address - The IFlashLoanRecipient adhering contract.
+
+Then it will call the `executeOperation` function on the recipient contract and make sure that it returns `true`.
+
+Use the CORN tokens `burnFrom` method to destroy the CORN that was minted at the beginning of this function. Burn it from `address(this)` since the recipient should have returned it. If they didn't this burn method will revert when we try to burn tokens that are not held by the lending contract. If it reverts then the CORN will have never been minted to the recipient - no risk of the tokens being stolen.
+
+<details markdown='1'><summary>`flashLoan` Code</summary>
+
+```solidity
+    function flashLoan(IFlashLoanRecipient _recipient, uint256 _amount, address _extraParam) public {
+        // Send the loan to the recipient - No collateral is required since it gets repaid all in the same transaction
+        i_corn.mintTo(address(_recipient), _amount);
+
+        // Execute the operation - It should return the loan amount back to this contract
+        bool success = _recipient.executeOperation(_amount, msg.sender, _extraParam);
+        require(success, "Operation was unsuccessful");
+
+        // Burn the loan - Should revert if it doesn't have enough
+        i_corn.burnFrom(address(this), _amount);
+    }
+```
+
+</details>
+
+Now we need to create a contract that is the recipient of the CORN. Let's create a contract that uses the `flashLoan` method to make it possible to liquidate loans without the liquidator needing to hold CORN tokens.
+
+> ❕ Keep in mind, this is just one example of how we could use the `flashLoan` function. There are so many more things you can build with flash loans!
+
+Create a new contract file and call it `FlashLoanLiquidator.sol`
+
+See if you can figure out the correct logic to liquidate a loan inside a function called `executeOperation`. It will need to utilize the DEX to swap ETH for CORN in order to repay the CORN loan after liquidating the position and receiving the ETH. 
+After liquidating the loan the contract should send any remaining ETH back to the original initiator of the `flashLoan` function.
+
+Don't forget to let the contract `receive()` ether!
+
+<details markdown='1'><summary>FlashLoanLiquidator Contract Code</summary>
+
+Here is one example of how to accomplish this:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import { Lending } from "./Lending.sol";
+import { CornDEX } from "./CornDEX.sol";
+import { Corn } from "./Corn.sol";
+
+/**
+ * @notice For Side quest only
+ * @notice This contract is used to liquidate unsafe positions by using a flash loan to borrow CORN to liquidate the position
+ * then swapping the returned ETH for CORN for repaying the flash loan
+ */
+contract FlashLoanLiquidator {
+    Lending i_lending;
+    CornDEX i_cornDEX;
+    Corn i_corn;
+
+    constructor(address _lending, address _cornDEX, address _corn) {
+        i_lending = Lending(_lending);
+        i_cornDEX = CornDEX(_cornDEX);
+        i_corn = Corn(_corn);
+    }
+
+    function executeOperation(uint256 amount, address initiator, address toLiquidate) public returns (bool) {
+        // Approve the lending contract to spend the tokens
+        i_corn.approve(address(i_lending), amount);
+        // First liquidate to get the collateral tokens
+        i_lending.liquidate(toLiquidate);
+        
+        // Calculate required input amount of ETH to get exactly 'amount' of tokens
+        uint256 ethReserves = address(i_cornDEX).balance;
+        uint256 tokenReserves = i_corn.balanceOf(address(i_cornDEX));
+        uint256 requiredETHInput = i_cornDEX.calculateXInput(amount, ethReserves, tokenReserves);
+        
+        // Execute the swap
+        i_cornDEX.swap{value: requiredETHInput}(requiredETHInput); // Swap ETH for tokens
+        // Send the tokens back to Lending to repay the flash loan
+        i_corn.transfer(address(i_lending), i_corn.balanceOf(address(this)));
+        // Send the ETH back to the initiator
+        if (address(this).balance > 0) {
+            (bool success, ) = payable(initiator).call{value: address(this).balance}("");
+            require(success, "Failed to send ETH back to initiator");
+        }
+
+        return true;
+    }
+
+    receive() external payable {}
+}
+
+```
+
+</details>
+
+Now you need to add your new contract to the deployment script. You can just add it to beneath all the existing logic in `packages/hardhat/deploy/00_deploy_contracts.ts`.
+<details markdown='1'><summary>Deployment Code</summary>
+
+```typescript
+const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+
+    // All existing logic...
+
+    await deploy("FlashLoanLiquidator", {
+        from: deployer,
+        args: [basicLending.address, cornDEX.target, cornToken.target],
+        log: true,
+        autoMine: true,
+    });
+}
+```
+
+</details>
+
+Restart `yarn chain` and deploy your contracts with `yarn deploy`.
+
+Create a debt position that is close to the liquidation line and then increase the price of CORN until the postion is liquidatable.
+
+Then go to the Debug Tab and trigger the `Lending.flashLoan` method with your `FlashLoanLiquidator` contract address as the `recipient`, the amount of CORN needed to liquidate as the `amount` and the borrowers address as the `extraParam`.
+
+Pretty cool, huh? you can liquidate any position without needing to have the CORN to pay back the loan!
+
+### ⚔️ Side Quest 2: Maximum Leverage With A Recursive Borrow > Swap > Deposit Loop
+
+🤔 What if you think the price of CORN is going down relative to ETH (*Why in the world would you think that!?* 🤣). You could borrow CORN but then use the DEX to buy more ETH with your CORN. But wait! Now you have more ETH you could technically use it as collateral *again* and then you could borrow more CORN and swap to ETH and repeat that as many times as possible.
+
+You can already do this manually but what if we created some methods that make it easy?
+
+TODO: Should we/can we move these methods into the Lending contract?
+
+
+## Checkpoint 7: 💾 Deploy your contracts! 🛰
 
 📡 Edit the `defaultNetwork` to [your choice of public EVM networks](https://ethereum.org/en/developers/docs/networks/) in `packages/hardhat/hardhat.config.ts`
 
@@ -173,7 +483,7 @@ This function takes a user address and returns what we are calling the "position
 
 ---
 
-## Checkpoint 5: 🚢 Ship your frontend! 🚁
+## Checkpoint 8: 🚢 Ship your frontend! 🚁
 
 ✏️ Edit your frontend config in `packages/nextjs/scaffold.config.ts` to change the `targetNetwork` to `chains.sepolia` (or `chains.optimismSepolia` if you deployed to OP Sepolia)
 
@@ -206,7 +516,7 @@ For production-grade applications, it's recommended to obtain your own API keys 
 
 ---
 
-## Checkpoint 6: 📜 Contract Verification
+## Checkpoint 9: 📜 Contract Verification
 
 Run the `yarn verify --network your_network` command to verify your contracts on etherscan 🛰
 

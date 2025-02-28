@@ -59,9 +59,9 @@ contract Lending is Ownable {
         s_userCollateral[msg.sender] = newCollateral;
 
         // // Validate the user's position after withdrawal
-        // if (s_userBorrowed[msg.sender] > 0) {
-        //     _validatePosition(msg.sender);
-        // }
+        if (s_userBorrowed[msg.sender] > 0) {
+            _validatePosition(msg.sender);
+        }
 
         // // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
@@ -92,12 +92,21 @@ contract Lending is Ownable {
     }
 
     /**
+     * @notice Checks if a user's position can be liquidated
+     * @param user The address of the user to check
+     * @return bool True if the position is liquidatable, false otherwise
+     */
+    function isLiquidatable(address user) public view returns (bool) {
+        uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
+        return (positionRatio * 100) < COLLATERAL_RATIO * 1e18; // Check if position is unsafe
+    }
+
+    /**
      * @notice Internal view method that reverts if a user's position is unsafe
      * @param user The address of the user to validate
      */
     function _validatePosition(address user) internal view {
-        uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        if ((positionRatio * 100) < COLLATERAL_RATIO * 1e18) {
+        if (isLiquidatable(user)) {
             revert Lending__UnsafePositionRatio(); // Revert if position is unsafe
         }
     }
@@ -107,16 +116,16 @@ contract Lending is Ownable {
      * @param borrowAmount The amount of corn to borrow
      */
     function borrowCorn(uint256 borrowAmount) public {
-        // if (borrowAmount == 0) {
-        //     revert Lending__InvalidAmount(); // Revert if borrow amount is zero
-        // }
-        // s_userBorrowed[msg.sender] += borrowAmount; // Update user's borrowed corn balance
-        // _validatePosition(msg.sender); // Validate user's position before borrowing
-        // bool success = i_corn.mintTo(msg.sender, borrowAmount); // Borrow corn to user
-        // if (!success) {
-        //     revert Lending__BorrowingFailed(); // Revert if borrowing fails
-        // }
-        // emit AssetBorrowed(msg.sender, borrowAmount, i_cornDEX.currentPrice()); // Emit event for borrowing
+        if (borrowAmount == 0) {
+            revert Lending__InvalidAmount(); // Revert if borrow amount is zero
+        }
+        s_userBorrowed[msg.sender] += borrowAmount; // Update user's borrowed corn balance
+        _validatePosition(msg.sender); // Validate user's position before borrowing
+        bool success = i_corn.mintTo(msg.sender, borrowAmount); // Borrow corn to user
+        if (!success) {
+            revert Lending__BorrowingFailed(); // Revert if borrowing fails
+        }
+        emit AssetBorrowed(msg.sender, borrowAmount, i_cornDEX.currentPrice()); // Emit event for borrowing
     }
 
     /**
@@ -124,25 +133,15 @@ contract Lending is Ownable {
      * @param repayAmount The amount of corn to repay
      */
     function repayCorn(uint256 repayAmount) public {
-        // if (repayAmount == 0 || repayAmount > s_userBorrowed[msg.sender]) {
-        //     revert Lending__InvalidAmount(); // Revert if repay amount is invalid
-        // }
-        // s_userBorrowed[msg.sender] -= repayAmount; // Reduce user's borrowed balance
-        // bool success = i_corn.burnFrom(msg.sender, repayAmount); // Burn corns from user
-        // if (!success) {
-        //     revert Lending__RepayingFailed(); // Revert if burning fails
-        // }
-        // emit AssetRepaid(msg.sender, repayAmount, i_cornDEX.currentPrice()); // Emit event for repaying
-    }
-
-    /**
-     * @notice Checks if a user's position can be liquidated
-     * @param user The address of the user to check
-     * @return bool True if the position is liquidatable, false otherwise
-     */
-    function isLiquidatable(address user) public view returns (bool) {
-        // uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        // return (positionRatio * 100) < COLLATERAL_RATIO * 1e18; // Check if position is unsafe
+        if (repayAmount == 0 || repayAmount > s_userBorrowed[msg.sender]) {
+            revert Lending__InvalidAmount(); // Revert if repay amount is invalid
+        }
+        s_userBorrowed[msg.sender] -= repayAmount; // Reduce user's borrowed balance
+        bool success = i_corn.burnFrom(msg.sender, repayAmount); // Burn corns from user
+        if (!success) {
+            revert Lending__RepayingFailed(); // Revert if burning fails
+        }
+        emit AssetRepaid(msg.sender, repayAmount, i_cornDEX.currentPrice()); // Emit event for repaying
     }
 
     /**
@@ -152,15 +151,15 @@ contract Lending is Ownable {
      * @dev The caller must have approved this contract to transfer the debt
      */
     function liquidate(address user) public {
-        // if (!isLiquidatable(user)) {
-        //     revert Lending__NotLiquidatable(); // Revert if position is not liquidatable
-        // }
+        if (!isLiquidatable(user)) {
+            revert Lending__NotLiquidatable(); // Revert if position is not liquidatable
+        }
 
-        // uint256 userDebt = s_userBorrowed[user]; // Get user's borrowed amount
-        // uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
-        // uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
+        uint256 userDebt = s_userBorrowed[user]; // Get user's borrowed amount
+        uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
+        uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
 
-        // // check that liquidator has enough funds to pay back the debt
+        // check that liquidator has enough funds to pay back the debt
         // if (i_corn.balanceOf(msg.sender) < userDebt) {
         //     revert Corn__InsufficientBalance();
         // }
@@ -170,28 +169,28 @@ contract Lending is Ownable {
         //     revert Corn__InsufficientAllowance();
         // }
 
-        // // transfer value of debt to the contract
-        // i_corn.transferFrom(msg.sender, address(this), userDebt);
+        // transfer value of debt to the contract
+        i_corn.transferFrom(msg.sender, address(this), userDebt);
 
-        // // burn the transferred corn
-        // i_corn.burnFrom(address(this), userDebt);
+        // burn the transferred corn
+        i_corn.burnFrom(address(this), userDebt);
 
-        // // Clear user's debt
-        // s_userBorrowed[user] = 0;
+        // Clear user's debt
+        s_userBorrowed[user] = 0;
 
-        // // calculate collateral to purchase (maintain the ratio of debt to collateral value)
-        // uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
-        // uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
-        // uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
-        // amountForLiquidator = amountForLiquidator > userCollateral ? userCollateral : amountForLiquidator; // Ensure we don't exceed user's collateral
+        // calculate collateral to purchase (maintain the ratio of debt to collateral value)
+        uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
+        uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
+        uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
+        amountForLiquidator = amountForLiquidator > userCollateral ? userCollateral : amountForLiquidator; // Ensure we don't exceed user's collateral
 
-        // s_userCollateral[user] = userCollateral - amountForLiquidator;
+        s_userCollateral[user] = userCollateral - amountForLiquidator;
 
-        // // transfer 110% of the debt to the liquidator
-        // (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
-        // require(sent, "Failed to send Ether");
+        // transfer 110% of the collateral needed to cover the debt to the liquidator
+        (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
+        require(sent, "Failed to send Ether");
 
-        // emit Liquidation(user, msg.sender, amountForLiquidator, i_cornDEX.currentPrice());
+        emit Liquidation(user, msg.sender, amountForLiquidator, i_cornDEX.currentPrice());
     }
 
     /**
@@ -238,13 +237,12 @@ contract Lending is Ownable {
      * @param _amount The amount of CORN to borrow
      * @param _extraParam This could be anything that the recipient contract needs to execute the flash loan (Aave allows you to pass several extra parameters)
      */
-    function flashLoan(address _recipient, uint256 _amount, address _extraParam) public {
-        IFlashLoanRecipient recipient = IFlashLoanRecipient(_recipient);
+    function flashLoan(IFlashLoanRecipient _recipient, uint256 _amount, address _extraParam) public {
         // Send the loan to the recipient - No collateral is required since it gets repaid all in the same transaction
-        i_corn.mintTo(_recipient, _amount);
+        i_corn.mintTo(address(_recipient), _amount);
 
         // Execute the operation - It should return the loan amount back to this contract
-        bool success = recipient.executeOperation(_amount, msg.sender, _extraParam);
+        bool success = _recipient.executeOperation(_amount, msg.sender, _extraParam);
         require(success, "Operation was unsuccessful");
 
         // Burn the loan - Should revert if it doesn't have enough
