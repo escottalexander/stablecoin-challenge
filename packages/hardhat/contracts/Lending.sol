@@ -206,7 +206,6 @@ contract Lending is Ownable {
         uint256 collateralValue = (ethCollateralAmount * i_cornDEX.currentPrice()) / 1e18;
         
         // Calculate max borrow amount while maintaining the required collateral ratio
-        // maxBorrow = collateralValue * 100 / COLLATERAL_RATIO
         return (collateralValue * 100) / COLLATERAL_RATIO;
     }
 

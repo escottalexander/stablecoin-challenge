@@ -431,7 +431,7 @@ contract FlashLoanLiquidator {
 
 </details>
 
-Now you need to add your new contract to the deployment script. You can just add it to beneath all the existing logic in `packages/hardhat/deploy/00_deploy_contracts.ts`.
+Now you need to add your new contract to the deployment script. You can just add it beneath all the existing logic in `packages/hardhat/deploy/00_deploy_contracts.ts`.
 <details markdown='1'><summary>Deployment Code</summary>
 
 ```typescript
@@ -462,10 +462,218 @@ Pretty cool, huh? you can liquidate any position without needing to have the COR
 
 🤔 What if you think the price of CORN is going down relative to ETH (*Why in the world would you think that!?* 🤣). You could borrow CORN but then use the DEX to buy more ETH with your CORN. But wait! Now you have more ETH you could technically use it as collateral *again* and then you could borrow more CORN and swap to ETH and repeat that as many times as possible.
 
-You can already do this manually but what if we created some methods that make it easy?
+You can already do this manually but what if we created a contract with some methods that make it easy?
 
-TODO: Should we/can we move these methods into the Lending contract?
+Let's start by adding a couple helper methods to the `Lending.sol` contract.
 
+First let's add a method called `getMaxBorrowAmount` that takes a uint256 representing the amount of ETH we have to deposit and returns the maximum amount of CORN we can expect to receive. See if you can figure it out without the solution below, then compare if you run into issues.
+
+<details markdown='1'><summary>`getMaxBorrowAmount` Code</summary>
+
+```solidity
+    function getMaxBorrowAmount(uint256 ethCollateralAmount) public view returns (uint256) {
+        if (ethCollateralAmount == 0) return 0;
+        
+        // Calculate collateral value in CORN terms
+        uint256 collateralValue = (ethCollateralAmount * i_cornDEX.currentPrice()) / 1e18;
+        
+        // Calculate max borrow amount while maintaining the required collateral ratio
+        return (collateralValue * 100) / COLLATERAL_RATIO;
+    }
+```
+
+</details>
+
+Now lets add a method that will help us when we go to unravel a position.
+
+Create a function called `getMaxWithdrawableCollateral` that receives an address representing the user we want to query. It should return a uint256 representing the amount of ETH that the account has deposited as collateral that is OK to withdraw without putting the position into a liquidatable state. Try to figure it out yourself but feel free to peek at the solution below.
+
+<details markdown='1'><summary>`getMaxWithdrawableCollateral` Code</summary>
+
+```solidity
+    function getMaxWithdrawableCollateral(address user) public view returns (uint256) {
+        uint256 borrowedAmount = s_userBorrowed[user];
+        uint256 userCollateral = s_userCollateral[user];
+        if (borrowedAmount == 0) return userCollateral;
+
+        uint256 maxBorrowedAmount = getMaxBorrowAmount(userCollateral);
+        if (borrowedAmount == maxBorrowedAmount) return 0;
+
+        uint256 potentialBorrowingAmount = maxBorrowedAmount - borrowedAmount;
+        uint256 ethValueOfPotentialBorrowingAmount = (potentialBorrowingAmount * 1e18) / i_cornDEX.currentPrice();
+
+        return (ethValueOfPotentialBorrowingAmount * COLLATERAL_RATIO) / 100;
+    }
+```
+
+</details>
+
+Now let's create a new contract that will use those new view functions to "while loop" until we trigger a stop.
+
+Create a new file in the contracts directory called `Leverage.sol` and copy the following code into it:
+
+<details><summary>`Leverage` Code</summary>
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import { Lending } from "./Lending.sol";
+import { CornDEX } from "./CornDEX.sol";
+import { Corn } from "./Corn.sol";
+
+/**
+ * @notice For Side quest only
+ * @notice This contract is used to leverage a user's position by borrowing CORN from the Lending contract
+ * then borrowing more CORN from the DEX to repay the initial borrow then repeating until the user has borrowed as much as they want
+ */
+contract Leverage {
+    Lending i_lending;
+    CornDEX i_cornDEX;
+    Corn i_corn;
+    address public owner;
+
+    event LeveragedPositionOpened(address user, uint256 loops);
+    event LeveragedPositionClosed(address user, uint256 loops);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+
+    constructor(address _lending, address _cornDEX, address _corn) {
+        i_lending = Lending(_lending);
+        i_cornDEX = CornDEX(_cornDEX);
+        i_corn = Corn(_corn);
+        // Approve the DEX to spend the user's CORN
+        i_corn.approve(address(i_cornDEX), type(uint256).max);
+    }
+    
+    /**
+     * @notice Claim ownership of the contract so that no one else can change your position or withdraw your funds
+     */
+    function claimOwnership() public {
+        owner = msg.sender;
+    }
+
+    /**
+     * @notice Open a leveraged position, recursively borrowing CORN, swapping it for ETH, and adding it as collateral
+     * @param reserve The amount of ETH that we will keep in the contract as a reserve to prevent liquidation
+     */
+    function openLeveragedPosition(uint256 reserve) public payable onlyOwner {
+        uint256 loops = 0;
+        while (true) {
+            // Write more code here
+            loops++;
+        }
+        emit LeveragedPositionOpened(msg.sender, loops);
+    }
+
+    /**
+     * @notice Close a leveraged position, recursively withdrawing collateral, swapping it for CORN, and repaying the lending contract until the position is closed
+     */
+    function closeLeveragedPosition() public onlyOwner {
+        uint256 loops = 0;
+        while (true) {
+            // Write more code here
+            loops++;
+        }
+        emit LeveragedPositionClosed(msg.sender, loops);
+    }
+
+    /**
+     * @notice Withdraw the ETH from the contract
+     */
+    function withdraw() public onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No balance to withdraw");
+        (bool success, ) = payable(msg.sender).call{value: balance}("");
+        require(success, "Failed to send Ether");
+    }
+
+    receive() external payable {}
+}
+```
+
+</details>
+
+Try to fill in the "while loops" in the open and close leveraged position functions.
+
+Notice how the `openLeveragedPosition` receives a uint256 which represents the amount of ETH the caller wants left over as collateral after looping. If none is specified then the the loan will right at the liquidation threshold. The smallest movement in CORN going higher could cause you to be liquidated.
+
+The while loop should check add collateral to the `Lending` contract and then borrow the max amount of CORN. Then it should use the DEX to swap that CORN for more ETH. Then the loop should be good to go again. Just make sure you add a condition to check if the amount of ETH is equal to the reserve amount and if so, break out of the loop.
+
+<details><summary>Solution Code</summary>
+
+```solidity
+    function openLeveragedPosition(uint256 reserve) public payable onlyOwner {
+        uint256 loops = 0;
+        while (true) {
+            uint256 balance = address(this).balance;
+            i_lending.addCollateral{value: balance}();
+            if (balance <= reserve) {
+                break;
+            }
+            uint256 maxBorrowAmount = i_lending.getMaxBorrowAmount(balance);
+            i_lending.borrowCorn(maxBorrowAmount);
+            
+            i_cornDEX.swap(maxBorrowAmount);
+            loops++;
+        }
+        emit LeveragedPositionOpened(msg.sender, loops);
+    }
+```
+
+</details>
+
+`closeLeveragedPosition` Should be similar except it will be withdrawing the maximum amount of collateral, swapping to CORN and repaying the debt until there isn't any more CORN left to repay.
+
+<details><summary>Solution Code</summary>
+
+```solidity
+    function closeLeveragedPosition() public onlyOwner {
+        uint256 loops = 0;
+        while (true) {
+            uint256 maxWithdrawable = i_lending.getMaxWithdrawableCollateral(address(this));
+            i_lending.withdrawCollateral(maxWithdrawable);
+            require(maxWithdrawable == address(this).balance, "maxWithdrawable is not equal to balance");
+            i_cornDEX.swap{value:maxWithdrawable}(maxWithdrawable);
+            uint256 cornBalance = i_corn.balanceOf(address(this));
+            uint256 amountToRepay = cornBalance > i_lending.s_userBorrowed(address(this)) ? i_lending.s_userBorrowed(address(this)) : cornBalance;
+            if (amountToRepay > 0) {
+                i_lending.repayCorn(amountToRepay);
+            } else {
+                // Swap the remaining CORN to ETH since we don't want CORN exposure
+                i_cornDEX.swap(i_corn.balanceOf(address(this)));
+                break;
+            }
+            loops++;
+        }
+        emit LeveragedPositionClosed(msg.sender, loops);
+    }
+```
+
+</details>
+
+The `Leverage` contract has a `claimOwnership` and `withdraw` function so that you can claim ownership of the contract before opening the position because the position is actually owned by this contract.
+
+Lastly, add the deploy logic to the deployment script. Add it beneath all the existing logic in `packages/hardhat/deploy/00_deploy_contracts.ts` like you did with the last side quest.
+<details markdown='1'><summary>Deployment Code</summary>
+
+```typescript
+  await deploy("Leverage", {
+    from: deployer,
+    args: [basicLending.address, cornDEX.target, cornToken.target],
+    log: true,
+    autoMine: true,
+  });
+```
+
+</details>
+
+Restart `yarn chain` and deploy your contracts with `yarn deploy`.
+
+Try opening a leveraged position and see how changing the reserve amount affects your tolerance to changes in the market. Leverage is powerful stuff that will blow up in your face if you aren't careful.
 
 ## Checkpoint 7: 💾 Deploy your contracts! 🛰
 
