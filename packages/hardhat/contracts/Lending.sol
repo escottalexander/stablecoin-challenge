@@ -58,12 +58,12 @@ contract Lending is Ownable {
         uint256 newCollateral = s_userCollateral[msg.sender] - amount;
         s_userCollateral[msg.sender] = newCollateral;
 
-        // // Validate the user's position after withdrawal
+        // Validate the user's position after withdrawal
         if (s_userBorrowed[msg.sender] > 0) {
             _validatePosition(msg.sender);
         }
 
-        // // Transfer the collateral to the user
+        // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
 
         emit CollateralWithdrawn(msg.sender, amount, i_cornDEX.currentPrice()); // Emit event for collateral withdrawal
@@ -158,16 +158,6 @@ contract Lending is Ownable {
         uint256 userDebt = s_userBorrowed[user]; // Get user's borrowed amount
         uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
         uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
-
-        // check that liquidator has enough funds to pay back the debt
-        // if (i_corn.balanceOf(msg.sender) < userDebt) {
-        //     revert Corn__InsufficientBalance();
-        // }
-
-        // // check that liquidator has approved the engine to transfer the debt
-        // if (i_corn.allowance(msg.sender, address(this)) < userDebt) {
-        //     revert Corn__InsufficientAllowance();
-        // }
 
         // transfer value of debt to the contract
         i_corn.transferFrom(msg.sender, address(this), userDebt);
