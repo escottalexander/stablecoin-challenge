@@ -73,7 +73,7 @@ Navigate to the `Debug Contracts` tab, you should see four smart contracts displ
 
 ![ch-4-main](TODO: Add image of debug contracts)
 
-> Check out the empty function in `Lending.sol` to see aspects of each function. If you can explain how each function will work with one another, that's great! 😎
+> Check out the empty functions in `Lending.sol` to see aspects of each function. If you can explain how each function will work with one another, that's great! 😎
 
 ---
 
