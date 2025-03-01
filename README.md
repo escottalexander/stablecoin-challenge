@@ -304,7 +304,7 @@ Throwback to the `withdrawCollateral` function. What happens when a borrower wit
 
 Great work! Your contract has all the necessary functionality to help people get CORN loans.
 
->👇 Now try to tackle these optional gigachad sidequests. The front end doesn't have any special components for using these side quests but you can use the Debug Tab to trigger them
+>👇 Now try to tackle these optional gigachad side quests. The front end doesn't have any special components for using these side quests but you can use the Debug Tab to trigger them
 
 ### ⚔️ Side Quest 1: Flash Loans
 
@@ -451,7 +451,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
 Restart `yarn chain` and deploy your contracts with `yarn deploy`.
 
-Create a debt position that is close to the liquidation line and then increase the price of CORN until the postion is liquidatable.
+Create a debt position that is close to the liquidation line and then increase the price of CORN until the position is liquidatable.
 
 Then go to the Debug Tab and trigger the `Lending.flashLoan` method with your `FlashLoanLiquidator` contract address as the `recipient`, the amount of CORN needed to liquidate as the `amount` and the borrowers address as the `extraParam`.
 
