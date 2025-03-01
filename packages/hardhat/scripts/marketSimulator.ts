@@ -8,9 +8,9 @@ interface SimulatedAccount {
   initialEth: bigint;
 }
 
-const NUM_ACCOUNTS = 5;
-const CHANCE_TO_BORROW = 0.3;
-const CHANCE_TO_ADD_COLLATERAL = 0.2;
+const NUM_ACCOUNTS = 5; // Number of simulated accounts
+const CHANCE_TO_BORROW = 0.3; // 30% chance to borrow
+const CHANCE_TO_ADD_COLLATERAL = 0.2; // 20% chance to add collateral
 
 const liquidationInProgress = new Set<string>();
 
