@@ -40,7 +40,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
     autoMine: true,
   });
   const cornDEX = await hre.ethers.getContract<Contract>("CornDEX", deployer);
-  const basicLending = await deploy("Lending", {
+  const lending = await deploy("Lending", {
     from: deployer,
     args: [cornDEX.target, cornToken.target],
     log: true,
@@ -68,21 +68,21 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
     `0x${hre.ethers.parseEther("100000000000").toString(16)}`,
   ]);
 
-  await cornToken.transferOwnership(basicLending.address);
+  await cornToken.transferOwnership(lending.address);
   await cornToken.approve(cornDEX.target, hre.ethers.parseEther("1000000000"));
   await cornDEX.init(hre.ethers.parseEther("1000000000"), { value: hre.ethers.parseEther("1000000") });
 
   // Side quest only
   await deploy("FlashLoanLiquidator", {
     from: deployer,
-    args: [basicLending.address, cornDEX.target, cornToken.target],
+    args: [lending.address, cornDEX.target, cornToken.target],
     log: true,
     autoMine: true,
   });
 
   await deploy("Leverage", {
     from: deployer,
-    args: [basicLending.address, cornDEX.target, cornToken.target],
+    args: [lending.address, cornDEX.target, cornToken.target],
     log: true,
     autoMine: true,
   });

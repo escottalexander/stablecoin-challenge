@@ -2,7 +2,7 @@
 
 TODO: Add banner
 
-> ❓ How does lending work onchain? First, traditional lending usually involves one party (such as banks) offering up money and another party agreeing to pay interest over-time in order to use that money. The only way this works is because the lending party has some way to hold the borrower accountable. This requires some way to identify the borrower and a legal structure that will help settle things if the borrower decides to stop making interest payments. In the onchain world we don't have a reliable identification system *(yet)* so all lending is "over-collateralized". Borrowers must lock up collateral in order to take out a loan. "Over-collateralized" means you can never borrow more value than you have supplied. I am sure you are wondering, "What is the benefit of a loan if you can't take out more than you put in?" Great question! This form of lending lacks the common use case seen in traditional lending where people may use the loan to buy a house they otherwise couldn't afford but here are a few primary use cases of permissionless lending in DeFi:
+> ❓ How does lending work onchain? First, traditional lending usually involves one party (such as banks) offering up money and another party agreeing to pay interest over-time in order to use that money. The only way this works is because the lending party has some way to hold the borrower accountable. This requires some way to identify the borrower and a legal structure that will help settle things if the borrower decides to stop making interest payments. In the onchain world we don't have a reliable identification system *(yet)* so all lending is "over-collateralized". Borrower's must lock up collateral in order to take out a loan. "Over-collateralized" means you can never borrow more value than you have supplied. I am sure you are wondering, "What is the benefit of a loan if you can't take out more than you put in?" Great question! This form of lending lacks the common use case seen in traditional lending where people may use the loan to buy a house they otherwise couldn't afford but here are a few primary use cases of permissionless lending in DeFi:
 
 - Maintaining Price Exposure ~ You may have real world bills due but you are *sure* that ETH is going up in value from here and it would kill you to sell to pay your bills. You could get a loan against your ETH in a stablecoin and pay your bills. You would still have ETH locked up to come back to and all you would have to do is pay back the stablecoin loan.
 - Leverage ~ You could deposit ETH and borrow a stablecoin but only use it to buy more ETH, increasing your exposure to the ETH price movements (to the upside 🎢 or the downside 🔻😰).
@@ -10,7 +10,7 @@ TODO: Add banner
 
 > 👍 Now that you know the background of what is and is not possible with onchain lending, lets dive in to the challenge!
 
-> 💬 The Lending contract accepts ETH deposits and allows depositors to take out a loan in CORN 🌽. The contract tracks each depositors address and only allows them to borrow as long as they maintain at least 120% of the loans value in ETH. If the collateral falls in value or if CORN goes up in value then the borrowers position may be liquidatable by anyone who pays back the loan. They have an incentive to do this because they collect a 10% fee on top of the value of the loan. 
+> 💬 The Lending contract accepts ETH deposits and allows depositor's to take out a loan in CORN 🌽. The contract tracks each depositor's address and only allows them to borrow as long as they maintain at least 120% of the loans value in ETH. If the collateral falls in value or if CORN goes up in value then the borrower's position may be liquidatable by anyone who pays back the loan. The liquidator has an incentive to do this because they collect a 10% fee on top of the value of the loan. 
 
 > 📈 The Lending contract naively uses the price returned by a CORN/ETH DEX contract. This makes it easy for you to change the price of CORN by "moving the market" with large swaps. Shout out to the [DEX challenge](https://github.com/scaffold-eth/se-2-challenges/blob/challenge-4-dex/README.md)! Using a DEX as the sole price oracle would never work in a production grade system but it will help to demonstrate the different market conditions that affect a lending protocol.
 
@@ -57,7 +57,7 @@ yarn start
 
 📱 Open http://localhost:3000 to see the app.
 
-> 👩‍💻 Rerun `yarn deploy` whenever you want to deploy new contracts to the frontend. If you haven't made any contract changes, you can run `yarn deploy --reset` for a completely fresh deploy.
+> 👩‍💻 Restart `yarn chain` and then run `yarn deploy` whenever you want to deploy new or updated contracts to your local network. If you haven't made any contract changes, you can run `yarn deploy --reset` for a completely fresh deploy.
 
 ---
 
@@ -100,9 +100,9 @@ Very good! Now let's look at the `withdrawCollateral` function. Don't want to se
 
 Let's revert with `Lending_InvalidAmount()` right at the start if someone attempts to use the function with the `amount` parameter set to 0. We also want to revert if the sender doesn't have the `amount` of collateral they are requesting.
 
-Now let's reduce the senders collateral (in the mapping) and send it back to their address.
+Now let's reduce the sender's collateral (in the mapping) and send it back to their address.
 
-Emit `CollateralWithdrawn` with the senders address, the amount they withdrew and the `currentPrice` from the DEX.
+Emit `CollateralWithdrawn` with the sender's address, the amount they withdrew and the `currentPrice` from the DEX.
 
 Excellent! Re-deploy your contract with `yarn deploy` but first shut down and restart `yarn chain`. We want to do a fresh deploy of all the contracts so that they each have correct constructor parameters. Now try out your methods from the front end and see if you need to make any changes.
 
@@ -212,7 +212,7 @@ Perfect! Now lets go fill out the `repayCorn` function.
 
 Revert with `Lending_InvalidAmount` if the repayAmount is 0 or if it is more than the user has borrowed.
 
-Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN tokens `burnFrom` function to remove the CORN from the borrowers wallet.
+Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN tokens `burnFrom` function to remove the CORN from the borrower's wallet.
 
 And finally, emit the `AssetRepaid` event.
 
@@ -233,7 +233,7 @@ So we have a way to deposit collateral and borrow against it. Great! But what ha
 
 We need a liquidation mechanism!
 
-Let's go to the `liquidate` function. We want anyone to be able to call this when a position is liquidatable. The caller must have enough CORN to repay the debt. This function should remove the borrowers debt AND the amount of collateral that is needed to cover the debt.
+Let's go to the `liquidate` function. We want anyone to be able to call this when a position is liquidatable. The caller must have enough CORN to repay the debt. This function should remove the borrower's debt AND the amount of collateral that is needed to cover the debt.
 
 First let's make sure to revert if the user's position is not liquidatable with `Lending__NotLiquidatable`.
 
@@ -244,7 +244,7 @@ Clear the borrower's debt completely.
 Calculate the amount of collateral needed to cover the cost of the burned CORN and remove it from the borrower's collateral.
 > Keep in mind, It's not enough to simply have a liquidation mechanism. We need an incentive for people to trigger it!
 
-**So** add the `LIQUIDATOR_REWARD` as a percentage on top of the collateral (but never exceeding the borrowers's total collateral) so that the liquidator has a nice incentive to want to liquidate that poor borrower.
+**So** add the `LIQUIDATOR_REWARD` as a percentage on top of the collateral (but never exceeding the borrower's's total collateral) so that the liquidator has a nice incentive to want to liquidate that poor borrower.
 
 Transfer that amount of collateral to the liquidator.
 
@@ -444,7 +444,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     await deploy("FlashLoanLiquidator", {
         from: deployer,
-        args: [basicLending.address, cornDEX.target, cornToken.target],
+        args: [lending.address, cornDEX.target, cornToken.target],
         log: true,
         autoMine: true,
     });
@@ -457,7 +457,7 @@ Restart `yarn chain` and deploy your contracts with `yarn deploy`.
 
 Create a debt position that is close to the liquidation line and then increase the price of CORN until the position is liquidatable.
 
-Then go to the Debug Tab and trigger the `Lending.flashLoan` method with your `FlashLoanLiquidator` contract address as the `recipient`, the amount of CORN needed to liquidate as the `amount` and the borrowers address as the `extraParam`.
+Then go to the Debug Tab and trigger the `Lending.flashLoan` method with your `FlashLoanLiquidator` contract address as the `recipient`, the amount of CORN needed to liquidate as the `amount` and the borrower's address as the `extraParam`.
 
 Pretty cool, huh? You can liquidate any position without needing to have the CORN to pay back the loan!
 
@@ -602,9 +602,9 @@ contract Leverage {
 
 Try to fill in the "while loops" in the open and close leveraged position functions.
 
-Notice how the `openLeveragedPosition` receives a uint256 which represents the amount of ETH the caller wants left over as collateral after looping. If none is specified then the the loan will right at the liquidation threshold. The smallest movement in CORN going higher could cause you to be liquidated.
+Notice how the `openLeveragedPosition` receives a uint256 which represents the amount of ETH the caller wants left over as collateral after looping. If none is specified then the the loan will stop right at the liquidation threshold. The smallest movement in CORN going higher could cause you to be liquidated.
 
-The while loop should check add collateral to the `Lending` contract and then borrow the max amount of CORN. Then it should use the DEX to swap that CORN for more ETH. Then the loop should be good to go again. Just make sure you add a condition to check if the amount of ETH is equal to the reserve amount and if so, break out of the loop.
+The while loop should add collateral to the `Lending` contract and then borrow the max amount of CORN. Then it should use the DEX to swap that CORN for more ETH. Then the loop should be good to go again. Just make sure you add a condition to check if the amount of ETH is less than or equal to the reserve amount and if so, break out of the loop.
 
 <details><summary>Solution Code</summary>
 
@@ -666,7 +666,7 @@ Lastly, add the deploy logic to the deployment script. Add it beneath all the ex
 ```typescript
   await deploy("Leverage", {
     from: deployer,
-    args: [basicLending.address, cornDEX.target, cornToken.target],
+    args: [lending.address, cornDEX.target, cornToken.target],
     log: true,
     autoMine: true,
   });
