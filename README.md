@@ -8,7 +8,7 @@ TODO: Add banner
 - Leverage ~ You could deposit ETH and borrow a stablecoin but only use it to buy more ETH, increasing your exposure to the ETH price movements (to the upside 🎢 or the downside 🔻😰).
 - Tax Advantages ~ In many jurisdictions, money obtained from a loan is taxed differently than money obtained other ways. It might be advantageous to avoid outright selling of an asset and instead get a loan against it.
 
-> 👍 Now that you know the background of what is and is not possible with onchain lending, lets dive in to the challenge!
+> 👍 Now that you know the background of what is and is not possible with onchain lending, let's dive in to the challenge!
 
 > 💬 The Lending contract accepts ETH deposits and allows depositor's to take out a loan in CORN 🌽. The contract tracks each depositor's address and only allows them to borrow as long as they maintain at least 120% of the loans value in ETH. If the collateral falls in value or if CORN goes up in value then the borrower's position may be liquidatable by anyone who pays back the loan. The liquidator has an incentive to do this because they collect a 10% fee on top of the value of the loan. 
 
@@ -122,7 +122,7 @@ TODO: Add faucet screen shot
 
 Now we need to add four methods that we will use in other functions to get various details about a user's debt position.
 
-Let's start with `calculateCollateralValue`. This function receives the address of the user in question and returns a uint256 representing the ETH collateral in CORN.
+Let's start with `calculateCollateralValue`. This function receives the address of the user in question and returns a uint256 representing the ETH collateral, priced in CORN.
 
 We know how to get the user's collateral and we know the price in CORN is returned by `i_cornDEX.currentPrice()`. Can you figure out how to return the collateral value in CORN?
 
@@ -208,7 +208,7 @@ Then it should use the CORN token's `mintTo` function to mint the tokens to the 
 
 You should also emit the `AssetBorrowed` event.
 
-Perfect! Now lets go fill out the `repayCorn` function.
+Perfect! Now let's go fill out the `repayCorn` function.
 
 Revert with `Lending_InvalidAmount` if the repayAmount is 0 or if it is more than the user has borrowed.
 
@@ -217,6 +217,38 @@ Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN token's
 And finally, emit the `AssetRepaid` event.
 
 Restart `yarn chain` and then `yarn deploy` so you can play with borrowing and repaying on the front end.
+
+<details><summary>Solution Code</summary>
+
+```solidity
+    function borrowCorn(uint256 borrowAmount) public {
+        if (borrowAmount == 0) {
+            revert Lending__InvalidAmount(); // Revert if borrow amount is zero
+        }
+        s_userBorrowed[msg.sender] += borrowAmount; // Update user's borrowed corn balance
+        _validatePosition(msg.sender); // Validate user's position before borrowing
+        bool success = i_corn.mintTo(msg.sender, borrowAmount); // Borrow corn to user
+        if (!success) {
+            revert Lending__BorrowingFailed(); // Revert if borrowing fails
+        }
+        emit AssetBorrowed(msg.sender, borrowAmount, i_cornDEX.currentPrice()); // Emit event for borrowing
+    }
+
+    function repayCorn(uint256 repayAmount) public {
+        if (repayAmount == 0 || repayAmount > s_userBorrowed[msg.sender]) {
+            revert Lending__InvalidAmount(); // Revert if repay amount is invalid
+        }
+        s_userBorrowed[msg.sender] -= repayAmount; // Reduce user's borrowed balance
+        bool success = i_corn.burnFrom(msg.sender, repayAmount); // Burn corns from user
+        if (!success) {
+            revert Lending__RepayingFailed(); // Revert if burning fails
+        }
+        emit AssetRepaid(msg.sender, repayAmount, i_cornDEX.currentPrice()); // Emit event for repaying
+    }
+```
+
+</details>
+
 ---
 
 ### 🥅 Goals
@@ -487,7 +519,7 @@ First let's add a method called `getMaxBorrowAmount` that takes a uint256 repres
 
 </details>
 
-Now lets add a method that will help us when we go to unravel a position.
+Now let's add a method that will help us when we go to unravel a position.
 
 Create a function called `getMaxWithdrawableCollateral` that receives an address representing the user we want to query. It should return a uint256 representing the amount of ETH that the account has deposited as collateral that is OK to withdraw without putting the position into a liquidatable state. Try to figure it out yourself but feel free to peek at the solution below.
 
@@ -710,7 +742,7 @@ Try opening a leveraged position and see how changing the reserve amount affects
 
 > Follow the steps to deploy to Vercel. It'll give you a public URL.
 
-> 🦊 Since we have deployed to a public testnet, you will now need to connect using a wallet you own or use a burner wallet. By default 🔥 `burner wallets` are only available on `hardhat` . You can enable them on every chain by setting `onlyLocalBurnerWallet: false` in your frontend config (`scaffold.config.ts` in `packages/nextjs/`)
+> 🦊 Since we have deployed to a public testnet, you will now need to connect using a wallet you own or use a burner wallet. By default 🔥 `burner wallet's` are only available on `hardhat` . You can enable them on every chain by setting `onlyLocalBurnerWallet: false` in your frontend config (`scaffold.config.ts` in `packages/nextjs/`)
 
 #### Configuration of Third-Party Services for Production-Grade Apps.
 
