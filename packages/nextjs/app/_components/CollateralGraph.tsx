@@ -60,6 +60,16 @@ const CollateralGraph = () => {
     receiptData: true,
   });
 
+  const { data: liquidatedEvents } = useScaffoldEventHistory({
+    contractName: "Lending",
+    eventName: "Liquidation",
+    fromBlock: 0n,
+    watch: true,
+    blockData: true,
+    transactionData: true,
+    receiptData: true,
+  });
+
   const { data: priceEvents } = useScaffoldEventHistory({
     contractName: "CornDEX",
     eventName: "PriceUpdated",
@@ -76,6 +86,7 @@ const CollateralGraph = () => {
     ...(borrowEvents || []),
     ...(repaidEvents || []),
     ...(priceEvents || []),
+    ...(liquidatedEvents || []),
   ];
   const sortedEvents = combinedEvents.sort((a, b) => Number(a.blockNumber - b.blockNumber));
 
@@ -92,14 +103,17 @@ const CollateralGraph = () => {
     const price = "price" in event.args ? event.args.price : getPriceFromEvent(event.blockNumber, priceEvents);
     const debtAdded = event.eventName === "AssetBorrowed" ? event.args.amount || 0n : 0n;
     const debtRepaid = event.eventName === "AssetRepaid" ? event.args.amount || 0n : 0n;
+    const amountForLiquidator = event.eventName === "Liquidation" ? event.args.amountForLiquidator || 0n : 0n;
+    const liquidatedDebtAmount = event.eventName === "Liquidation" ? event.args.liquidatedUserDebt || 0n : 0n;
 
     const prevCollateral = acc[idx - 1]?.collateral || 0n;
     const prevDebt = acc[idx - 1]?.debt || 0n;
 
-    const collateralInEth = prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n);
+    const collateralInEth =
+      prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n) - (amountForLiquidator || 0n);
     const ethPriceInCorn = BigInt(Math.round(Number(formatEther(price || 0n))));
     const collateralInCorn = collateralInEth * ethPriceInCorn;
-    const debt = prevDebt + (debtAdded || 0n) - (debtRepaid || 0n);
+    const debt = prevDebt + (debtAdded || 0n) - (debtRepaid || 0n) - (liquidatedDebtAmount || 0n);
     const ratio = Number(formatEther(collateralInCorn) || 1n) / Number(formatEther(debt || collateralInCorn) || 1n);
 
     return [

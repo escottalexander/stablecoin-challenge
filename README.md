@@ -135,7 +135,7 @@ We know how to get the user's collateral and we know the price in CORN is return
 ```solidity
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
+        return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in CORN
     }
 ```
 
@@ -315,7 +315,7 @@ Finally emit the `Liquidation` event.
         (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
         require(sent, "Failed to send Ether");
 
-        emit Liquidation(user, msg.sender, amountForLiquidator, i_cornDEX.currentPrice());
+        emit Liquidation(user, msg.sender, amountForLiquidator, userDebt, i_cornDEX.currentPrice());
     }
 ```
 

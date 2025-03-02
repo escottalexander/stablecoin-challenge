@@ -27,7 +27,7 @@ contract Lending is Ownable {
     event CollateralWithdrawn(address indexed user, uint256 indexed amount, uint256 price);
     event AssetBorrowed(address indexed user, uint256 indexed amount, uint256 price);
     event AssetRepaid(address indexed user, uint256 indexed amount, uint256 price);
-    event Liquidation(address indexed user, address indexed liquidator, uint256 indexed amount, uint256 price);
+    event Liquidation(address indexed user, address indexed liquidator, uint256 amountForLiquidator, uint256 liquidatedUserDebt, uint256 price);
 
     constructor(address _cornDEX, address _corn) Ownable(msg.sender) {
         i_cornDEX = CornDEX(_cornDEX);
@@ -76,7 +76,7 @@ contract Lending is Ownable {
      */
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
+        return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in CORN
     }
 
     /**
@@ -180,7 +180,7 @@ contract Lending is Ownable {
         (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
         require(sent, "Failed to send Ether");
 
-        emit Liquidation(user, msg.sender, amountForLiquidator, i_cornDEX.currentPrice());
+        emit Liquidation(user, msg.sender, amountForLiquidator, userDebt, i_cornDEX.currentPrice());
     }
 
     /**
