@@ -120,7 +120,7 @@ TODO: Add faucet screen shot
 
 ## Checkpoint 3: 🫶 Helper Methods
 
-Now we need to add four methods that we will use in other functions to get various details about a users debt position.
+Now we need to add four methods that we will use in other functions to get various details about a user's debt position.
 
 Let's start with `calculateCollateralValue`. This function receives the address of the user in question and returns a uint256 representing the ETH collateral in CORN.
 
@@ -201,9 +201,9 @@ It should revert with `Lending_InvalidAmount()` if somebody calls it without a `
 
 It should add the borrowed amount to the user's balance in the `s_userBorrowed` mapping.
 
-It should validate the users position (`_validatePosition`) so that it reverts if they are attempting to borrow more than they are allowed.
+It should validate the user's position (`_validatePosition`) so that it reverts if they are attempting to borrow more than they are allowed.
 
-Then it should use the CORN tokens `mintTo` function to mint the tokens to the user's address.
+Then it should use the CORN token's `mintTo` function to mint the tokens to the user's address.
  > ⚠️ This is an oversimplification on our part. A real lending contract would not be minting the asset that is being borrowed in most cases. This way we only have to deal with one side of the market so it makes it easier to understand.
 
 You should also emit the `AssetBorrowed` event.
@@ -212,7 +212,7 @@ Perfect! Now lets go fill out the `repayCorn` function.
 
 Revert with `Lending_InvalidAmount` if the repayAmount is 0 or if it is more than the user has borrowed.
 
-Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN tokens `burnFrom` function to remove the CORN from the borrower's wallet.
+Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN token's `burnFrom` function to remove the CORN from the borrower's wallet.
 
 And finally, emit the `AssetRepaid` event.
 
@@ -244,7 +244,7 @@ Clear the borrower's debt completely.
 Calculate the amount of collateral needed to cover the cost of the burned CORN and remove it from the borrower's collateral.
 > Keep in mind, It's not enough to simply have a liquidation mechanism. We need an incentive for people to trigger it!
 
-**So** add the `LIQUIDATOR_REWARD` as a percentage on top of the collateral (but never exceeding the borrower's's total collateral) so that the liquidator has a nice incentive to want to liquidate that poor borrower.
+**So** add the `LIQUIDATOR_REWARD` as a percentage on top of the collateral (but never exceeding the borrower's total collateral) so that the liquidator has a nice incentive to want to liquidate that poor borrower.
 
 Transfer that amount of collateral to the liquidator.
 
@@ -344,7 +344,7 @@ The logic inside the method needs to mint the amount of CORN that is given in th
 
 Then it will call the `executeOperation` function on the recipient contract and make sure that it returns `true`.
 
-Use the CORN tokens `burnFrom` method to destroy the CORN that was minted at the beginning of this function. Burn it from `address(this)` since the recipient should have returned it. If they didn't this burn method will revert when we try to burn tokens that are not held by the lending contract. If it reverts then the CORN will have never been minted to the recipient - no risk of the tokens being stolen.
+Use the CORN token's `burnFrom` method to destroy the CORN that was minted at the beginning of this function. Burn it from `address(this)` since the recipient should have returned it. If they didn't this burn method will revert when we try to burn tokens that are not held by the lending contract. If it reverts then the CORN will have never been minted to the recipient - no risk of the tokens being stolen.
 
 <details markdown='1'><summary>Solution Code</summary>
 
