@@ -109,7 +109,8 @@ const CollateralGraph = () => {
     const prevCollateral = acc[idx - 1]?.collateral || 0n;
     const prevDebt = acc[idx - 1]?.debt || 0n;
 
-    const collateralInEth = prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n) - (amountForLiquidator || 0n);
+    const collateralInEth =
+      prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n) - (amountForLiquidator || 0n);
     const ethPriceInCorn = BigInt(Math.round(Number(formatEther(price || 0n))));
     const collateralInCorn = collateralInEth * ethPriceInCorn;
     const debt = prevDebt + (debtAdded || 0n) - (debtRepaid || 0n) - (liquidatedDebtAmount || 0n);
