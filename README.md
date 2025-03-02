@@ -315,7 +315,7 @@ Finally emit the `Liquidation` event.
         (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
         require(sent, "Failed to send Ether");
 
-        emit Liquidation(user, msg.sender, amountForLiquidator, i_cornDEX.currentPrice());
+        emit Liquidation(user, msg.sender, amountForLiquidator, userDebt, i_cornDEX.currentPrice());
     }
 ```
 
