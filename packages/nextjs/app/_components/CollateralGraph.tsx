@@ -1,5 +1,6 @@
 import React from "react";
 import TooltipInfo from "./TooltipInfo";
+import { useTheme } from "next-themes";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatEther, parseEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
@@ -15,8 +16,12 @@ const getPriceFromEvent = (blockNumber: bigint, priceEvents: any) => {
 };
 
 const CollateralGraph = () => {
+  const { resolvedTheme } = useTheme();
+  const isDarkMode = resolvedTheme === "dark";
+  const strokeColor = isDarkMode ? "#ffffff" : "#000000";
+
   const { data: addEvents } = useScaffoldEventHistory({
-    contractName: "BasicLending",
+    contractName: "Lending",
     eventName: "CollateralAdded",
     fromBlock: 0n,
     watch: true,
@@ -26,7 +31,7 @@ const CollateralGraph = () => {
   });
 
   const { data: withdrawEvents } = useScaffoldEventHistory({
-    contractName: "BasicLending",
+    contractName: "Lending",
     eventName: "CollateralWithdrawn",
     fromBlock: 0n,
     watch: true,
@@ -36,7 +41,7 @@ const CollateralGraph = () => {
   });
 
   const { data: borrowEvents } = useScaffoldEventHistory({
-    contractName: "BasicLending",
+    contractName: "Lending",
     eventName: "AssetBorrowed",
     fromBlock: 0n,
     watch: true,
@@ -46,7 +51,7 @@ const CollateralGraph = () => {
   });
 
   const { data: repaidEvents } = useScaffoldEventHistory({
-    contractName: "BasicLending",
+    contractName: "Lending",
     eventName: "AssetRepaid",
     fromBlock: 0n,
     watch: true,
@@ -118,16 +123,16 @@ const CollateralGraph = () => {
             <XAxis
               domain={["auto", "auto"]}
               dataKey="name"
-              stroke="#ffffff"
+              stroke={strokeColor}
               tick={false}
-              label={{ value: "Time", position: "insideBottom", fill: "#ffffff" }}
+              label={{ value: "Time", position: "insideBottom", fill: strokeColor }}
             />
             <YAxis
               scale="log"
               domain={[0.9, 1.5]}
               tickFormatter={value => `${(value * 100).toFixed(0)}%`}
-              stroke="#ffffff"
-              tick={{ fill: "#ffffff" }}
+              stroke={strokeColor}
+              tick={{ fill: strokeColor }}
             />
             <Tooltip />
             <ReferenceLine y={collateralRatio / 100} stroke="#ff4d4d" strokeDasharray="3 3" />

@@ -8,7 +8,7 @@ import { Contract } from "ethers";
  *
  * @param hre HardhatRuntimeEnvironment object.
  */
-const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   /*
     On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
 
@@ -40,7 +40,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     autoMine: true,
   });
   const cornDEX = await hre.ethers.getContract<Contract>("CornDEX", deployer);
-  const basicLending = await deploy("BasicLending", {
+  const lending = await deploy("Lending", {
     from: deployer,
     args: [cornDEX.target, cornToken.target],
     log: true,
@@ -68,27 +68,27 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     `0x${hre.ethers.parseEther("100000000000").toString(16)}`,
   ]);
 
-  await cornToken.transferOwnership(basicLending.address);
+  await cornToken.transferOwnership(lending.address);
   await cornToken.approve(cornDEX.target, hre.ethers.parseEther("1000000000"));
   await cornDEX.init(hre.ethers.parseEther("1000000000"), { value: hre.ethers.parseEther("1000000") });
 
   // Side quest only
   await deploy("FlashLoanLiquidator", {
     from: deployer,
-    args: [basicLending.address, cornDEX.target, cornToken.target],
+    args: [lending.address, cornDEX.target, cornToken.target],
     log: true,
     autoMine: true,
   });
 
   await deploy("Leverage", {
     from: deployer,
-    args: [basicLending.address, cornDEX.target, cornToken.target],
+    args: [lending.address, cornDEX.target, cornToken.target],
     log: true,
     autoMine: true,
   });
 };
 
-export default deployYourContract;
+export default deployContracts;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags YourContract

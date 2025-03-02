@@ -13,19 +13,19 @@ type UserPositionProps = {
 
 const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
-    contractName: "BasicLending",
+    contractName: "Lending",
     functionName: "s_userCollateral",
     args: [user],
   });
 
   const { data: userBorrowed } = useScaffoldReadContract({
-    contractName: "BasicLending",
+    contractName: "Lending",
     functionName: "s_userBorrowed",
     args: [user],
   });
 
   const { data: basicLendingContract } = useDeployedContractInfo({
-    contractName: "BasicLending",
+    contractName: "Lending",
   });
 
   const { data: allowance } = useScaffoldReadContract({
@@ -34,8 +34,8 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
     args: [user, basicLendingContract?.address],
   });
 
-  const { writeContractAsync: writeBasicLendingContract, isPending: isLiquidating } = useScaffoldWriteContract({
-    contractName: "BasicLending",
+  const { writeContractAsync: writeLendingContract, isPending: isLiquidating } = useScaffoldWriteContract({
+    contractName: "Lending",
   });
   const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
     contractName: "Corn",
@@ -57,7 +57,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
           args: [basicLendingContract?.address, userBorrowed],
         });
       }
-      await writeBasicLendingContract({
+      await writeLendingContract({
         functionName: "liquidate",
         args: [user],
       });

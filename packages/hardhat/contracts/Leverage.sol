@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { BasicLending } from "./BasicLending.sol";
+import { Lending } from "./Lending.sol";
 import { CornDEX } from "./CornDEX.sol";
 import { Corn } from "./Corn.sol";
 
 /**
  * @notice For Side quest only
- * @notice This contract is used to leverage a user's position by borrowing CORN from the BasicLending contract
+ * @notice This contract is used to leverage a user's position by borrowing CORN from the Lending contract
  * then borrowing more CORN from the DEX to repay the initial borrow then repeating until the user has borrowed as much as they want
  */
 contract Leverage {
-    BasicLending i_lending;
+    Lending i_lending;
     CornDEX i_cornDEX;
     Corn i_corn;
     address public owner;
@@ -25,7 +25,7 @@ contract Leverage {
     }
 
     constructor(address _lending, address _cornDEX, address _corn) {
-        i_lending = BasicLending(_lending);
+        i_lending = Lending(_lending);
         i_cornDEX = CornDEX(_cornDEX);
         i_corn = Corn(_corn);
         // Approve the DEX to spend the user's CORN

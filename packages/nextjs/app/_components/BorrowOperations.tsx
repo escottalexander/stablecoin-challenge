@@ -17,13 +17,13 @@ const BorrowOperations = () => {
     functionName: "currentPrice",
   });
 
-  const { writeContractAsync: writeBasicLendingContract } = useScaffoldWriteContract({
-    contractName: "BasicLending",
+  const { writeContractAsync: writeLendingContract } = useScaffoldWriteContract({
+    contractName: "Lending",
   });
 
   const handleBorrow = async () => {
     try {
-      await writeBasicLendingContract({
+      await writeLendingContract({
         functionName: "borrowCorn",
         args: [borrowAmount ? parseEther(borrowAmount) : 0n],
       });
@@ -35,7 +35,7 @@ const BorrowOperations = () => {
 
   const handleRepay = async () => {
     try {
-      await writeBasicLendingContract({
+      await writeLendingContract({
         functionName: "repayCorn",
         args: [repayAmount ? parseEther(repayAmount) : 0n],
       });
