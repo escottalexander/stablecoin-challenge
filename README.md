@@ -54,6 +54,7 @@ yarn deploy
 cd lending-challenge
 yarn start
 ```
+![debugcontracts](https://github.com/user-attachments/assets/74a742d8-138a-469c-b28d-ab55bd082af3)
 
 📱 Open http://localhost:3000 to see the app.
 
@@ -73,7 +74,7 @@ Navigate to the `Debug Contracts` tab, you should see four smart contracts displ
 
 > Below is what your front-end will look like with no implementation code within your smart contracts yet. The buttons will likely break because there are no functions tied to them yet!
 
-![ch-4-main](TODO: Add image of debug contracts)
+![debugcontracts](https://github.com/user-attachments/assets/5b94045c-503a-44ac-9217-764b6e4c2435)
 
 > Check out the empty functions in `Lending.sol` to see aspects of each function. If you can explain how each function will work with one another, that's great! 😎
 
@@ -107,7 +108,8 @@ Emit `CollateralWithdrawn` with the sender's address, the amount they withdrew a
 Excellent! Re-deploy your contract with `yarn deploy` but first shut down and restart `yarn chain`. We want to do a fresh deploy of all the contracts so that they each have correct constructor parameters. Now try out your methods from the front end and see if you need to make any changes.
 
 Don't forget to give yourself some ETH from the faucet!
-TODO: Add faucet screen shot
+
+![faucet](https://github.com/user-attachments/assets/d3db19a5-c444-4e4c-9a35-bf9c15ceb7ec)
 
 ---
 
@@ -217,6 +219,8 @@ Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN token's
 And finally, emit the `AssetRepaid` event.
 
 Restart `yarn chain` and then `yarn deploy` so you can play with borrowing and repaying on the front end.
+
+![DefaultView](https://github.com/user-attachments/assets/7f7faf46-5394-4237-a3d8-8c39598a1089)
 
 <details><summary>Solution Code</summary>
 
