@@ -17,20 +17,20 @@ export const TokenTransferModal = ({ tokenBalance, connectedAddress, modalId }: 
 
   const [inputAddress, setInputAddress] = useState<AddressType>();
 
-  const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
-    contractName: "Corn",
+  const { writeContractAsync: writeStablecoinContract } = useScaffoldWriteContract({
+    contractName: "Stablecoin",
   });
 
   const handleSend = async () => {
     try {
-      await writeCornContract({
+      await writeStablecoinContract({
         functionName: "transfer",
         args: [inputAddress, parseEther(sendValue)],
       });
       setInputAddress("");
       setSendValue("");
     } catch (error) {
-      console.error("Error sending corn:", error);
+      console.error("Error sending MyUSD:", error);
     } finally {
       setLoading(false);
     }

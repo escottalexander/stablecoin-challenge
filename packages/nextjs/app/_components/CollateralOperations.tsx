@@ -8,13 +8,13 @@ const CollateralOperations = () => {
   const [collateralAmount, setCollateralAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
-  const { writeContractAsync: writeLendingContract } = useScaffoldWriteContract({
-    contractName: "Lending",
+  const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
+    contractName: "StablecoinEngine",
   });
 
   const handleAddCollateral = async () => {
     try {
-      await writeLendingContract({
+      await writeStablecoinEngineContract({
         functionName: "addCollateral",
         value: collateralAmount ? parseEther(collateralAmount) : 0n,
       });
@@ -26,7 +26,7 @@ const CollateralOperations = () => {
 
   const handleWithdrawCollateral = async () => {
     try {
-      await writeLendingContract({
+      await writeStablecoinEngineContract({
         functionName: "withdrawCollateral",
         args: [withdrawAmount ? parseEther(withdrawAmount) : 0n],
       });
@@ -41,7 +41,7 @@ const CollateralOperations = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="Use these controls to add or withdraw collateral from the lending pool"
+        infoText="Use these controls to add or withdraw collateral from the StablecoinEngine pool"
       />
       <div className="card-body">
         <h2 className="card-title">Collateral Operations</h2>

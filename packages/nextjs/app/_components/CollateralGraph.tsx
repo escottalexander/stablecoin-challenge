@@ -21,7 +21,7 @@ const CollateralGraph = () => {
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
 
   const { data: addEvents } = useScaffoldEventHistory({
-    contractName: "Lending",
+    contractName: "StablecoinEngine",
     eventName: "CollateralAdded",
     fromBlock: 0n,
     watch: true,
@@ -31,7 +31,7 @@ const CollateralGraph = () => {
   });
 
   const { data: withdrawEvents } = useScaffoldEventHistory({
-    contractName: "Lending",
+    contractName: "StablecoinEngine",
     eventName: "CollateralWithdrawn",
     fromBlock: 0n,
     watch: true,
@@ -41,7 +41,7 @@ const CollateralGraph = () => {
   });
 
   const { data: borrowEvents } = useScaffoldEventHistory({
-    contractName: "Lending",
+    contractName: "StablecoinEngine",
     eventName: "AssetBorrowed",
     fromBlock: 0n,
     watch: true,
@@ -51,7 +51,7 @@ const CollateralGraph = () => {
   });
 
   const { data: repaidEvents } = useScaffoldEventHistory({
-    contractName: "Lending",
+    contractName: "StablecoinEngine",
     eventName: "AssetRepaid",
     fromBlock: 0n,
     watch: true,
@@ -61,7 +61,7 @@ const CollateralGraph = () => {
   });
 
   const { data: liquidatedEvents } = useScaffoldEventHistory({
-    contractName: "Lending",
+    contractName: "StablecoinEngine",
     eventName: "Liquidation",
     fromBlock: 0n,
     watch: true,
@@ -71,7 +71,7 @@ const CollateralGraph = () => {
   });
 
   const { data: priceEvents } = useScaffoldEventHistory({
-    contractName: "CornDEX",
+    contractName: "StablecoinDEX",
     eventName: "PriceUpdated",
     fromBlock: 0n,
     watch: true,
@@ -111,10 +111,10 @@ const CollateralGraph = () => {
 
     const collateralInEth =
       prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n) - (amountForLiquidator || 0n);
-    const ethPriceInCorn = BigInt(Math.round(Number(formatEther(price || 0n))));
-    const collateralInCorn = collateralInEth * ethPriceInCorn;
+    const ethPriceInMyUSD = BigInt(Math.round(Number(formatEther(price || 0n))));
+    const collateralInMyUSD = collateralInEth * ethPriceInMyUSD;
     const debt = prevDebt + (debtAdded || 0n) - (debtRepaid || 0n) - (liquidatedDebtAmount || 0n);
-    const ratio = Number(formatEther(collateralInCorn) || 1n) / Number(formatEther(debt || collateralInCorn) || 1n);
+    const ratio = Number(formatEther(collateralInMyUSD) || 1n) / Number(formatEther(debt || collateralInMyUSD) || 1n);
 
     return [
       ...acc,

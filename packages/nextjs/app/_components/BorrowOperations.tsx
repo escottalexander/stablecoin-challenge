@@ -14,35 +14,35 @@ const BorrowOperations = () => {
   const { address } = useAccount();
 
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "CornDEX",
+    contractName: "StablecoinDEX",
     functionName: "currentPrice",
   });
 
-  const { writeContractAsync: writeLendingContract } = useScaffoldWriteContract({
-    contractName: "Lending",
+  const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
+    contractName: "StablecoinEngine",
   });
 
   const handleBorrow = async () => {
     try {
-      await writeLendingContract({
-        functionName: "borrowCorn",
+      await writeStablecoinEngineContract({
+        functionName: "borrowStablecoin",
         args: [borrowAmount ? parseEther(borrowAmount) : 0n],
       });
       setBorrowAmount("");
     } catch (error) {
-      console.error("Error borrowing corn:", error);
+      console.error("Error borrowing MyUSD:", error);
     }
   };
 
   const handleRepay = async () => {
     try {
-      await writeLendingContract({
-        functionName: "repayCorn",
+      await writeStablecoinEngineContract({
+        functionName: "repayStablecoin",
         args: [repayAmount ? parseEther(repayAmount) : 0n],
       });
       setRepayAmount("");
     } catch (error) {
-      console.error("Error repaying corn:", error);
+      console.error("Error repaying MyUSD:", error);
     }
   };
 
@@ -51,7 +51,7 @@ const BorrowOperations = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText={`Use these controls to borrow and repay ${tokenName} from the lending pool`}
+        infoText={`Use these controls to borrow and repay ${tokenName} from the StablecoinEngine pool`}
       />
       <div className="card-body">
         <div className="w-full flex justify-between">
