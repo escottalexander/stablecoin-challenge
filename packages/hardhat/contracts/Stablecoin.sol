@@ -4,21 +4,21 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-error Corn__InvalidAmount();
-error Corn__InsufficientBalance();
-error Corn__InsufficientAllowance();
-error Corn__InvalidAddress();
+error Stablecoin__InvalidAmount();
+error Stablecoin__InsufficientBalance();
+error Stablecoin__InsufficientAllowance();
+error Stablecoin__InvalidAddress();
 
-contract Corn is ERC20, Ownable {
-    constructor() ERC20("CORN", "CORN") Ownable(msg.sender) {}
+contract Stablecoin is ERC20, Ownable {
+    constructor() ERC20("MyUSD", "MyUSD") Ownable(msg.sender) {}
 
     function burnFrom(address account, uint256 amount) external onlyOwner returns (bool) {
         uint256 balance = balanceOf(account);
         if (amount == 0) {
-            revert Corn__InvalidAmount();
+            revert Stablecoin__InvalidAmount();
         }
         if (balance < amount) {
-            revert Corn__InsufficientBalance();
+            revert Stablecoin__InsufficientBalance();
         }
         _burn(account, amount);
         return true;
@@ -26,10 +26,10 @@ contract Corn is ERC20, Ownable {
 
     function mintTo(address to, uint256 amount) external onlyOwner returns (bool) {
         if (to == address(0)) {
-            revert Corn__InvalidAddress();
+            revert Stablecoin__InvalidAddress();
         }
         if (amount == 0) {
-            revert Corn__InvalidAmount();
+            revert Stablecoin__InvalidAmount();
         }
         _mint(to, amount);
         return true;

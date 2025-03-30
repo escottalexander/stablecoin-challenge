@@ -22,7 +22,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  await deploy("Corn", {
+  await deploy("Stablecoin", {
     from: deployer,
     // Contract constructor arguments
     args: [],
@@ -31,18 +31,18 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
     // automatically mining the contract deployment transaction. There is no effect on live networks.
     autoMine: true,
   });
-  const cornToken = await hre.ethers.getContract<Contract>("Corn", deployer);
+  const stablecoin = await hre.ethers.getContract<Contract>("Stablecoin", deployer);
 
-  await deploy("CornDEX", {
+  await deploy("StablecoinDEX", {
     from: deployer,
-    args: [cornToken.target],
+    args: [stablecoin.target],
     log: true,
     autoMine: true,
   });
-  const cornDEX = await hre.ethers.getContract<Contract>("CornDEX", deployer);
-  const lending = await deploy("Lending", {
+  const stablecoinDEX = await hre.ethers.getContract<Contract>("StablecoinDEX", deployer);
+  const stablecoinEngine = await deploy("StablecoinEngine", {
     from: deployer,
-    args: [cornDEX.target, cornToken.target],
+    args: [stablecoinDEX.target, stablecoin.target],
     log: true,
     autoMine: true,
   });
@@ -50,42 +50,27 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   // Set up the move price contract
   const movePrice = await deploy("MovePrice", {
     from: deployer,
-    args: [cornDEX.target, cornToken.target],
+    args: [stablecoinDEX.target, stablecoin.target],
     log: true,
     autoMine: true,
   });
 
-  // Give ETH and CORN to the move price contract
+  // Give ETH and MyUSD to the move price contract
   await hre.ethers.provider.send("hardhat_setBalance", [
     movePrice.address,
     `0x${hre.ethers.parseEther("10000000000000000000000").toString(16)}`,
   ]);
-  await cornToken.mintTo(movePrice.address, hre.ethers.parseEther("10000000000000000000000"));
-  // Give CORN and ETH to the deployer
-  await cornToken.mintTo(deployer, hre.ethers.parseEther("1000000000000"));
+  await stablecoin.mintTo(movePrice.address, hre.ethers.parseEther("10000000000000000000000"));
+  // Give MyUSD and ETH to the deployer
+  await stablecoin.mintTo(deployer, hre.ethers.parseEther("1000000000000"));
   await hre.ethers.provider.send("hardhat_setBalance", [
     deployer,
     `0x${hre.ethers.parseEther("100000000000").toString(16)}`,
   ]);
 
-  await cornToken.transferOwnership(lending.address);
-  await cornToken.approve(cornDEX.target, hre.ethers.parseEther("1000000000"));
-  await cornDEX.init(hre.ethers.parseEther("1000000000"), { value: hre.ethers.parseEther("1000000") });
-
-  // Side quest only
-  await deploy("FlashLoanLiquidator", {
-    from: deployer,
-    args: [lending.address, cornDEX.target, cornToken.target],
-    log: true,
-    autoMine: true,
-  });
-
-  await deploy("Leverage", {
-    from: deployer,
-    args: [lending.address, cornDEX.target, cornToken.target],
-    log: true,
-    autoMine: true,
-  });
+  await stablecoin.transferOwnership(stablecoinEngine.address);
+  await stablecoin.approve(stablecoinDEX.target, hre.ethers.parseEther("1000000000"));
+  await stablecoinDEX.init(hre.ethers.parseEther("1000000000"), { value: hre.ethers.parseEther("1000000") });
 };
 
 export default deployContracts;
