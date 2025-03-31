@@ -13,32 +13,32 @@ type UserPositionProps = {
 
 const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
-    contractName: "Lending",
+    contractName: "StablecoinEngine",
     functionName: "s_userCollateral",
     args: [user],
   });
 
   const { data: userBorrowed } = useScaffoldReadContract({
-    contractName: "Lending",
+    contractName: "StablecoinEngine",
     functionName: "s_userBorrowed",
     args: [user],
   });
 
-  const { data: basicLendingContract } = useDeployedContractInfo({
-    contractName: "Lending",
+  const { data: stablecoinEngineContract } = useDeployedContractInfo({
+    contractName: "StablecoinEngine",
   });
 
   const { data: allowance } = useScaffoldReadContract({
-    contractName: "Corn",
+    contractName: "Stablecoin",
     functionName: "allowance",
-    args: [user, basicLendingContract?.address],
+    args: [user, stablecoinEngineContract?.address],
   });
 
-  const { writeContractAsync: writeLendingContract, isPending: isLiquidating } = useScaffoldWriteContract({
-    contractName: "Lending",
+  const { writeContractAsync: writeStablecoinEngineContract, isPending: isLiquidating } = useScaffoldWriteContract({
+    contractName: "StablecoinEngine",
   });
-  const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
-    contractName: "Corn",
+  const { writeContractAsync: writeStablecoinContract } = useScaffoldWriteContract({
+    contractName: "Stablecoin",
   });
 
   const borrowedAmount = Number(formatEther(userBorrowed || 0n));
@@ -49,15 +49,15 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
 
   const isPositionSafe = ratio == "N/A" || Number(ratio) >= collateralRatio;
   const liquidatePosition = async () => {
-    if (allowance === undefined || userBorrowed === undefined || basicLendingContract === undefined) return;
+    if (allowance === undefined || userBorrowed === undefined || stablecoinEngineContract === undefined) return;
     try {
       if (allowance < userBorrowed) {
-        await writeCornContract({
+        await writeStablecoinContract({
           functionName: "approve",
-          args: [basicLendingContract?.address, userBorrowed],
+          args: [stablecoinEngineContract?.address, userBorrowed],
         });
       }
-      await writeLendingContract({
+      await writeStablecoinEngineContract({
         functionName: "liquidate",
         args: [user],
       });

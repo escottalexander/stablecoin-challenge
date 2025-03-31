@@ -1,6 +1,6 @@
 import { HDNodeWallet, parseEther } from "ethers";
 import hre from "hardhat";
-import { CornDEX, Lending, Corn, MovePrice } from "../typechain-types";
+import { StablecoinDEX, StablecoinEngine, Stablecoin, MovePrice } from "../typechain-types";
 const ethers = hre.ethers;
 
 interface SimulatedAccount {
@@ -61,8 +61,8 @@ async function setupAccounts(): Promise<SimulatedAccount[]> {
 
 async function simulateMarketActions(
   movePrice: MovePrice,
-  lending: Lending,
-  corn: Corn,
+  stablecoinEngine: StablecoinEngine,
+  stablecoin: Stablecoin,
   accounts: SimulatedAccount[],
   deployer: any,
 ) {
@@ -96,16 +96,16 @@ async function simulateMarketActions(
 
       // 3. Random borrowing (30% chance)
       if (Math.random() < CHANCE_TO_BORROW) {
-        await simulateBorrowing(lending, accounts);
+        await simulateBorrowing(stablecoinEngine, accounts);
       }
 
       // 4. Random collateral addition (20% chance)
       if (Math.random() < CHANCE_TO_ADD_COLLATERAL) {
-        await simulateAddCollateral(lending, accounts);
+        await simulateAddCollateral(stablecoinEngine, accounts);
       }
 
       // 5. Check for and perform liquidations
-      await checkAndPerformLiquidations(lending, corn, accounts);
+      await checkAndPerformLiquidations(stablecoinEngine, stablecoin, accounts);
     } catch (error) {
       console.error("Error in market simulation interval");
       if (process.env.DEBUG) {
@@ -115,11 +115,11 @@ async function simulateMarketActions(
   }, 2000); // 2 second interval
 }
 
-async function simulateBorrowing(lending: Lending, accounts: SimulatedAccount[]) {
+async function simulateBorrowing(stablecoinEngine: StablecoinEngine, accounts: SimulatedAccount[]) {
   const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
-  const lendingWithAccount = lending.connect(randomAccount.wallet);
+  const stablecoinEngineWithAccount = stablecoinEngine.connect(randomAccount.wallet);
 
-  const collateralValue = await lending.calculateCollateralValue(randomAccount.wallet.address);
+  const collateralValue = await stablecoinEngine.calculateCollateralValue(randomAccount.wallet.address);
   if (collateralValue <= 0n) return;
 
   const aggressiveBorrower = Math.random() < CHANCE_TO_BORROW;
@@ -133,9 +133,9 @@ async function simulateBorrowing(lending: Lending, accounts: SimulatedAccount[])
 
   if (maxBorrowAmount > 0n) {
     try {
-      await lendingWithAccount.borrowCorn(maxBorrowAmount);
+      await stablecoinEngineWithAccount.borrowStablecoin(maxBorrowAmount);
       console.log(
-        `Account ${randomAccount.wallet.address} borrowed ${ethers.formatEther(maxBorrowAmount)} CORN ` +
+        `Account ${randomAccount.wallet.address} borrowed ${ethers.formatEther(maxBorrowAmount)} MyUSD ` +
           `(${aggressiveBorrower ? "aggressive" : "conservative"}, ` +
           `${((Number(maxBorrowAmount) * 100) / Number(collateralValue)).toFixed(1)}% of collateral)`,
       );
@@ -147,12 +147,12 @@ async function simulateBorrowing(lending: Lending, accounts: SimulatedAccount[])
   }
 }
 
-async function simulateAddCollateral(lending: Lending, accounts: SimulatedAccount[]) {
+async function simulateAddCollateral(stablecoinEngine: StablecoinEngine, accounts: SimulatedAccount[]) {
   const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
-  const lendingWithAccount = lending.connect(randomAccount.wallet);
+  const stablecoinEngineWithAccount = stablecoinEngine.connect(randomAccount.wallet);
 
   const balance = await ethers.provider.getBalance(randomAccount.wallet.address);
-  const currentCollateral = await lending.s_userCollateral(randomAccount.wallet.address);
+  const currentCollateral = await stablecoinEngine.s_userCollateral(randomAccount.wallet.address);
 
   if (balance > ethers.parseEther("3")) {
     const maxPossible = balance - ethers.parseEther("2"); // Keep 2 ETH for operations
@@ -161,7 +161,7 @@ async function simulateAddCollateral(lending: Lending, accounts: SimulatedAccoun
 
     if (amountToAdd > ethers.parseEther("0.1")) {
       try {
-        const tx = await lendingWithAccount.addCollateral({ value: amountToAdd });
+        const tx = await stablecoinEngineWithAccount.addCollateral({ value: amountToAdd });
         await tx.wait();
 
         console.log(
@@ -178,20 +178,24 @@ async function simulateAddCollateral(lending: Lending, accounts: SimulatedAccoun
   }
 }
 
-async function checkAndPerformLiquidations(lending: Lending, corn: Corn, accounts: SimulatedAccount[]) {
-  const cornDEX = await ethers.getContract<CornDEX>("CornDEX");
+async function checkAndPerformLiquidations(
+  stablecoinEngine: StablecoinEngine,
+  stablecoin: Stablecoin,
+  accounts: SimulatedAccount[],
+) {
+  const stablecoinDEX = await ethers.getContract<StablecoinDEX>("StablecoinDEX");
 
-  const filter = lending.filters.CollateralAdded();
-  const events = await lending.queryFilter(filter);
+  const filter = stablecoinEngine.filters.CollateralAdded();
+  const events = await stablecoinEngine.queryFilter(filter);
   const users = [...new Set(events.map(event => event.args[0]))];
 
   for (const user of users) {
     if (liquidationInProgress.has(user.toLowerCase())) continue;
 
-    const amountBorrowed = await lending.s_userBorrowed(user);
+    const amountBorrowed = await stablecoinEngine.s_userBorrowed(user);
     if (amountBorrowed === 0n) continue;
 
-    const isLiquidatable = await lending.isLiquidatable(user);
+    const isLiquidatable = await stablecoinEngine.isLiquidatable(user);
     if (!isLiquidatable) continue;
 
     const eligibleLiquidators = accounts.filter(account => account.wallet.address.toLowerCase() !== user.toLowerCase());
@@ -199,28 +203,28 @@ async function checkAndPerformLiquidations(lending: Lending, corn: Corn, account
     if (eligibleLiquidators.length === 0) {
       const randomAccount = accounts[Math.floor(Math.random() * accounts.length)];
       if (randomAccount.wallet.address.toLowerCase() !== user.toLowerCase()) {
-        const cornDEXWithAccount = cornDEX.connect(randomAccount.wallet);
+        const stablecoinDEXWithAccount = stablecoinDEX.connect(randomAccount.wallet);
 
-        const currentPrice = await cornDEX.currentPrice();
+        const currentPrice = await stablecoinDEX.currentPrice();
         const ethNeeded = (amountBorrowed * currentPrice * 110n) / (1000n * parseEther("1"));
         const balance = await ethers.provider.getBalance(randomAccount.wallet.address);
         const maxETHPossible = ethNeeded > balance ? balance - ethers.parseEther("0.1") : ethNeeded;
         if (maxETHPossible < ethers.parseEther("0.01")) continue;
         try {
-          const swapTx = await cornDEXWithAccount.swap(maxETHPossible, {
+          const swapTx = await stablecoinDEXWithAccount.swap(maxETHPossible, {
             value: maxETHPossible,
           });
           await swapTx.wait();
 
-          const newBalance = await corn.balanceOf(randomAccount.wallet.address);
+          const newBalance = await stablecoin.balanceOf(randomAccount.wallet.address);
           if (newBalance >= amountBorrowed) {
             liquidationInProgress.add(user.toLowerCase());
             console.log(
-              `Account ${randomAccount.wallet.address} swapped ${ethers.formatEther(ethNeeded)} ETH for CORN`,
+              `Account ${randomAccount.wallet.address} swapped ${ethers.formatEther(ethNeeded)} ETH for MyUSD`,
             );
           }
         } catch (error) {
-          console.error(`Failed to swap ETH for CORN`);
+          console.error(`Failed to swap ETH for MyUSD`);
           if (process.env.DEBUG) {
             console.error(error);
           }
@@ -234,20 +238,20 @@ async function checkAndPerformLiquidations(lending: Lending, corn: Corn, account
     liquidationInProgress.add(user.toLowerCase());
     console.log(`Account ${liquidator.wallet.address} found liquidatable position for user: ${user}`);
 
-    const lendingWithLiquidator = lending.connect(liquidator.wallet);
-    const cornWithLiquidator = corn.connect(liquidator.wallet);
+    const stablecoinEngineWithLiquidator = stablecoinEngine.connect(liquidator.wallet);
+    const stablecoinWithLiquidator = stablecoin.connect(liquidator.wallet);
 
     try {
-      const approveTx = await cornWithLiquidator.approve(lending.target, amountBorrowed);
+      const approveTx = await stablecoinWithLiquidator.approve(stablecoinEngine.target, amountBorrowed);
       await approveTx.wait();
 
-      const tx = await lendingWithLiquidator.liquidate(user);
+      const tx = await stablecoinEngineWithLiquidator.liquidate(user);
       await tx.wait();
 
       const balance = await ethers.provider.getBalance(user);
       const twoETH = parseEther("2");
       if (balance > twoETH) {
-        await lendingWithLiquidator.addCollateral({ value: balance - twoETH });
+        await stablecoinEngineWithLiquidator.addCollateral({ value: balance - twoETH });
       }
 
       console.log(`Successfully liquidated position for user ${user}`);
@@ -267,13 +271,13 @@ async function checkAndPerformLiquidations(lending: Lending, corn: Corn, account
 async function main() {
   const [deployer] = await ethers.getSigners();
   const movePriceContract = await ethers.getContract<MovePrice>("MovePrice", deployer);
-  const lending = await ethers.getContract<Lending>("Lending", deployer);
-  const corn = await ethers.getContract<Corn>("Corn", deployer);
+  const stablecoinEngine = await ethers.getContract<StablecoinEngine>("StablecoinEngine", deployer);
+  const stablecoin = await ethers.getContract<Stablecoin>("Stablecoin", deployer);
 
   const accounts = await setupAccounts();
 
   // Start the combined market simulation
-  await simulateMarketActions(movePriceContract, lending, corn, accounts, deployer);
+  await simulateMarketActions(movePriceContract, stablecoinEngine, stablecoin, accounts, deployer);
 
   // Keep the script running
   process.stdin.resume();

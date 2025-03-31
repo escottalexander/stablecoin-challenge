@@ -7,18 +7,18 @@ import { tokenName } from "~~/utils/constant";
 
 const PriceActions = () => {
   const { data: price } = useScaffoldReadContract({
-    contractName: "CornDEX",
+    contractName: "StablecoinDEX",
     functionName: "currentPrice",
   });
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "MovePrice" });
 
-  const priceOfOneCORN = price ? parseEther((1 / Number(formatEther(price))).toString()) : undefined; // Fixed parentheses and added toString()
+  const priceOfOneMyUSD = price ? parseEther((1 / Number(formatEther(price))).toString()) : undefined; // Fixed parentheses and added toString()
   const renderPrice =
-    priceOfOneCORN === undefined ? (
+    priceOfOneMyUSD === undefined ? (
       <div className="mr-1 skeleton w-10 h-4"></div>
     ) : (
-      Number(formatEther(priceOfOneCORN)).toFixed(6)
+      Number(formatEther(priceOfOneMyUSD)).toFixed(6)
     );
   const renderETHPrice = price ? Number(formatEther(price)).toFixed(2) : <div className="mr-1 skeleton w-10 h-4"></div>;
 
@@ -48,7 +48,9 @@ const PriceActions = () => {
           <span className="text-sm font-bold">{tokenName} Price</span>
         </div>
         <span className="flex items-center text-xs">{renderPrice} ETH</span>
-        <span className="flex items-center text-xs">{renderETHPrice} CORN/ETH</span>
+        <span className="flex items-center text-xs">
+          {renderETHPrice} {tokenName}/ETH
+        </span>
         <div className="flex gap-2">
           <button onClick={() => handleClick(false)} className="btn btn-circle btn-xs">
             <MinusIcon className="h-3 w-3" />

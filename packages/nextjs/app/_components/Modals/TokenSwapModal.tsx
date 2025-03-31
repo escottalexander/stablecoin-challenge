@@ -14,24 +14,24 @@ type TokenSwapModalProps = {
 
 export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modalId }: TokenSwapModalProps) => {
   const [loading, setLoading] = useState(false);
-  const [sellToken, setSellToken] = useState<"CORN" | "ETH">("CORN");
+  const [sellToken, setSellToken] = useState<"MyUSD" | "ETH">("MyUSD");
   const [sellValue, setSellValue] = useState("");
   const [buyValue, setBuyValue] = useState("");
 
-  const { data: cornDEXContract } = useDeployedContractInfo({
-    contractName: "CornDEX",
+  const { data: stablecoinDEXContract } = useDeployedContractInfo({
+    contractName: "StablecoinDEX",
   });
 
   const { writeContractAsync: writeDEXContract } = useScaffoldWriteContract({
-    contractName: "CornDEX",
+    contractName: "StablecoinDEX",
   });
 
-  const { writeContractAsync: writeCornContract } = useScaffoldWriteContract({
-    contractName: "Corn",
+  const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
+    contractName: "Stablecoin",
   });
 
   const handleChangeSellToken = () => {
-    setSellToken(sellToken === "CORN" ? "ETH" : "CORN");
+    setSellToken(sellToken === "MyUSD" ? "ETH" : "MyUSD");
     setSellValue("");
     setBuyValue("");
   };
@@ -58,18 +58,18 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
       setBuyValue(tokenAmount);
     } else {
       setBuyValue(newValue);
-      const ethAmount = sellToken === "CORN" ? ethToToken(newValue) : tokenToETH(newValue);
+      const ethAmount = sellToken === "MyUSD" ? ethToToken(newValue) : tokenToETH(newValue);
       setSellValue(ethAmount);
     }
   };
 
   const handleSwap = async () => {
     setLoading(true);
-    if (sellToken === "CORN") {
+    if (sellToken === "MyUSD") {
       try {
-        await writeCornContract({
+        await writeMyUSDContract({
           functionName: "approve",
-          args: [cornDEXContract?.address, parseEther(sellValue)],
+          args: [stablecoinDEXContract?.address, parseEther(sellValue)],
         });
         await writeDEXContract({
           functionName: "swap",
@@ -79,7 +79,7 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
         setSellValue("");
         setBuyValue("");
       } catch (error) {
-        console.error("Error sending corn:", error);
+        console.error("Error sending MyUSD:", error);
       } finally {
         setLoading(false);
       }
@@ -94,7 +94,7 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
         setBuyValue("");
         setSellValue("");
       } catch (error) {
-        console.error("Error borrowing corn:", error);
+        console.error("Error borrowing MyUSD:", error);
       } finally {
         setLoading(false);
       }
@@ -136,7 +136,7 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
                   />
                 </div>
                 <span className="basis-2/12 flex justify-center items-center text-md">
-                  {sellToken === "CORN" ? "CORN" : "ETH"}
+                  {sellToken === "MyUSD" ? "MyUSD" : "ETH"}
                 </span>
               </div>
               <div className="flex justify-center">
@@ -151,12 +151,12 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
                     onChange={newValue => {
                       handleChangeInput(false, newValue);
                     }}
-                    placeholder={`Buy ${sellToken === "CORN" ? "ETH" : "CORN"}`}
+                    placeholder={`Buy ${sellToken === "MyUSD" ? "ETH" : "MyUSD"}`}
                     disableMultiplyBy1e18
                   />
                 </div>
                 <span className="basis-2/12 flex justify-center items-center text-md">
-                  {sellToken === "CORN" ? "ETH" : "CORN"}
+                  {sellToken === "MyUSD" ? "ETH" : "MyUSD"}
                 </span>
               </div>
               <button className="h-10 btn btn-primary btn-sm px-2 rounded-full" onClick={handleSwap} disabled={loading}>

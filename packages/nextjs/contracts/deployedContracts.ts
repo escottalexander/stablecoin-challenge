@@ -6,28 +6,56 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
   31337: {
-    Corn: {
+    MovePrice: {
       address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_stablecoinDex",
+              type: "address",
+            },
+            {
+              internalType: "address",
+              name: "_stablecoinToken",
+              type: "address",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
+        {
+          stateMutability: "payable",
+          type: "fallback",
+        },
+        {
+          inputs: [
+            {
+              internalType: "int256",
+              name: "size",
+              type: "int256",
+            },
+          ],
+          name: "movePrice",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          stateMutability: "payable",
+          type: "receive",
+        },
+      ],
+      inheritedFunctions: {},
+    },
+    Stablecoin: {
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       abi: [
         {
           inputs: [],
           stateMutability: "nonpayable",
           type: "constructor",
-        },
-        {
-          inputs: [],
-          name: "Corn__InsufficientBalance",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Corn__InvalidAddress",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Corn__InvalidAmount",
-          type: "error",
         },
         {
           inputs: [
@@ -135,6 +163,21 @@ const deployedContracts = {
             },
           ],
           name: "OwnableUnauthorizedAccount",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Stablecoin__InsufficientBalance",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Stablecoin__InvalidAddress",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Stablecoin__InvalidAmount",
           type: "error",
         },
         {
@@ -475,8 +518,8 @@ const deployedContracts = {
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
     },
-    CornDEX: {
-      address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    StablecoinDEX: {
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       abi: [
         {
           inputs: [
@@ -782,109 +825,24 @@ const deployedContracts = {
       ],
       inheritedFunctions: {},
     },
-    FlashLoanLiquidator: {
-      address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+    StablecoinEngine: {
+      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
       abi: [
         {
           inputs: [
             {
               internalType: "address",
-              name: "_lending",
+              name: "_stablecoinDEX",
               type: "address",
             },
             {
               internalType: "address",
-              name: "_cornDEX",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "_corn",
+              name: "_stablecoin",
               type: "address",
             },
           ],
           stateMutability: "nonpayable",
           type: "constructor",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-            {
-              internalType: "address",
-              name: "initiator",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "toLiquidate",
-              type: "address",
-            },
-          ],
-          name: "executeOperation",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          stateMutability: "payable",
-          type: "receive",
-        },
-      ],
-      inheritedFunctions: {},
-    },
-    Lending: {
-      address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-      abi: [
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "_cornDEX",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "_corn",
-              type: "address",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "constructor",
-        },
-        {
-          inputs: [],
-          name: "Lending__BorrowingFailed",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Lending__InvalidAmount",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Lending__NotLiquidatable",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Lending__RepayingFailed",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Lending__UnsafePositionRatio",
-          type: "error",
         },
         {
           inputs: [
@@ -906,6 +864,31 @@ const deployedContracts = {
             },
           ],
           name: "OwnableUnauthorizedAccount",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StablecoinEngine__BorrowingFailed",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StablecoinEngine__InvalidAmount",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StablecoinEngine__NotLiquidatable",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StablecoinEngine__RepayingFailed",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "StablecoinEngine__UnsafePositionRatio",
           type: "error",
         },
         {
@@ -1079,7 +1062,7 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          name: "borrowCorn",
+          name: "borrowStablecoin",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -1093,67 +1076,6 @@ const deployedContracts = {
             },
           ],
           name: "calculateCollateralValue",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "contract IFlashLoanRecipient",
-              name: "_recipient",
-              type: "address",
-            },
-            {
-              internalType: "uint256",
-              name: "_amount",
-              type: "uint256",
-            },
-            {
-              internalType: "address",
-              name: "_extraParam",
-              type: "address",
-            },
-          ],
-          name: "flashLoan",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "ethCollateralAmount",
-              type: "uint256",
-            },
-          ],
-          name: "getMaxBorrowAmount",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "user",
-              type: "address",
-            },
-          ],
-          name: "getMaxWithdrawableCollateral",
           outputs: [
             {
               internalType: "uint256",
@@ -1224,7 +1146,7 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          name: "repayCorn",
+          name: "repayStablecoin",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
@@ -1299,165 +1221,6 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-    },
-    Leverage: {
-      address: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
-      abi: [
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "_lending",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "_cornDEX",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "_corn",
-              type: "address",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "constructor",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: false,
-              internalType: "address",
-              name: "user",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "loops",
-              type: "uint256",
-            },
-          ],
-          name: "LeveragedPositionClosed",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: false,
-              internalType: "address",
-              name: "user",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "loops",
-              type: "uint256",
-            },
-          ],
-          name: "LeveragedPositionOpened",
-          type: "event",
-        },
-        {
-          inputs: [],
-          name: "claimOwnership",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "closeLeveragedPosition",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "reserve",
-              type: "uint256",
-            },
-          ],
-          name: "openLeveragedPosition",
-          outputs: [],
-          stateMutability: "payable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "owner",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "withdraw",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          stateMutability: "payable",
-          type: "receive",
-        },
-      ],
-      inheritedFunctions: {},
-    },
-    MovePrice: {
-      address: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-      abi: [
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "_cornDex",
-              type: "address",
-            },
-            {
-              internalType: "address",
-              name: "_cornToken",
-              type: "address",
-            },
-          ],
-          stateMutability: "nonpayable",
-          type: "constructor",
-        },
-        {
-          stateMutability: "payable",
-          type: "fallback",
-        },
-        {
-          inputs: [
-            {
-              internalType: "int256",
-              name: "size",
-              type: "int256",
-            },
-          ],
-          name: "movePrice",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          stateMutability: "payable",
-          type: "receive",
-        },
-      ],
-      inheritedFunctions: {},
     },
   },
 } as const;
