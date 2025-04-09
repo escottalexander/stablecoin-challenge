@@ -13,7 +13,7 @@ error Engine__MintingFailed();
 error Engine__BurningFailed();
 error Engine__PositionSafe();
 error Engine__NotLiquidatable();
-error Engine__InvalidInterestRate();
+error Engine__InvalidSavingsRate();
 
 contract MyUSDEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required
@@ -25,22 +25,32 @@ contract MyUSDEngine is Ownable {
     CoinDEX private i_coinDEX;
     Staking private i_staking;
 
-    uint256 public interestRate; // Annual interest rate in basis points (1% = 100)
+    uint256 public borrowRate; // Annual interest rate for borrowers in basis points (1% = 100)
+    uint256 public myUSDSavingsRate; // Annual interest rate for stakers in basis points (1% = 100)
     uint256 public lastUpdateTime;
-    uint256 public totalDebt;
+
+    // Total debt shares in the pool
+    uint256 public totalDebtShares;
+
+    // Exchange rate between debt shares and MyUSD (1e18 precision)
+    uint256 public debtExchangeRate;
 
     mapping(address => uint256) public s_userCollateral;
-    mapping(address => uint256) public s_userMinted;
+    mapping(address => uint256) public s_userDebtShares;
     mapping(address => uint256) public s_userLastUpdateTime;
 
     event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
     event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
-    event InterestRateUpdated(uint256 newRate);
+    event BorrowRateUpdated(uint256 newRate);
+    event SavingsRateUpdated(uint256 newRate);
     event InterestAccrued(uint256 amount);
+    event DebtSharesMinted(address indexed user, uint256 amount, uint256 shares);
+    event DebtSharesBurned(address indexed user, uint256 amount, uint256 shares);
 
     constructor(address _coinDEX) Ownable(msg.sender) {
         i_coinDEX = CoinDEX(_coinDEX);
         lastUpdateTime = block.timestamp;
+        debtExchangeRate = PRECISION; // 1:1 initially
     }
 
     function setMyUSD(address myUSDAddress) external onlyOwner {
@@ -51,15 +61,21 @@ contract MyUSDEngine is Ownable {
         i_staking = Staking(stakingAddress);
     }
 
-    function setInterestRate(uint256 newRate) external onlyOwner {
-        if (newRate > 2000) revert Engine__InvalidInterestRate(); // Max 20%
+    function setBorrowRate(uint256 newRate) external onlyOwner {
         _accrueInterest();
-        interestRate = newRate;
-        emit InterestRateUpdated(newRate);
+        borrowRate = newRate;
+        emit BorrowRateUpdated(newRate);
+    }
+
+    function setSavingsRate(uint256 newRate) external onlyOwner {
+        if (newRate > borrowRate) revert Engine__InvalidSavingsRate();
+        _accrueInterest();
+        myUSDSavingsRate = newRate;
+        emit SavingsRateUpdated(newRate);
     }
 
     function _accrueInterest() internal {
-        if (totalDebt == 0) {
+        if (totalDebtShares == 0) {
             lastUpdateTime = block.timestamp;
             return;
         }
@@ -67,36 +83,42 @@ contract MyUSDEngine is Ownable {
         uint256 timeElapsed = block.timestamp - lastUpdateTime;
         if (timeElapsed == 0) return;
 
-        uint256 interest = (totalDebt * interestRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
+        // Calculate total debt value
+        uint256 totalDebtValue = (totalDebtShares * debtExchangeRate) / PRECISION;
+
+        // Calculate interest based on total debt value
+        uint256 interest = (totalDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
+
         if (interest > 0) {
-            totalDebt += interest;
+            // Update exchange rate to reflect new value
+            debtExchangeRate += (interest * PRECISION) / totalDebtShares;
 
             // Mint interest to the staking contract
             i_myUSD.mintTo(address(i_staking), interest);
 
             // Update the staking contract's exchange rate to reflect the new interest
-            i_staking.setInterestRate(interestRate);
+            i_staking.setInterestRate(myUSDSavingsRate);
 
             emit InterestAccrued(interest);
         }
         lastUpdateTime = block.timestamp;
     }
 
-    function _updateUserDebt(address user) internal {
-        if (s_userMinted[user] == 0) {
-            s_userLastUpdateTime[user] = block.timestamp;
-            return;
-        }
+    // Calculate the current debt value for a user, including accrued interest
+    function _getCurrentDebtValue(address user) internal view returns (uint256) {
+        if (s_userDebtShares[user] == 0) return 0;
 
+        // Calculate base debt value from shares and exchange rate
+        uint256 baseDebtValue = (s_userDebtShares[user] * debtExchangeRate) / PRECISION;
+
+        // Calculate accrued interest since last update
         uint256 timeElapsed = block.timestamp - s_userLastUpdateTime[user];
-        if (timeElapsed == 0) return;
+        if (timeElapsed == 0) return baseDebtValue;
 
-        uint256 userInterest = (s_userMinted[user] * interestRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
-        if (userInterest > 0) {
-            s_userMinted[user] += userInterest;
-            totalDebt += userInterest;
-        }
-        s_userLastUpdateTime[user] = block.timestamp;
+        // Calculate interest on the base debt value
+        uint256 interest = (baseDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
+
+        return baseDebtValue + interest;
     }
 
     // Allows users to add collateral to their account
@@ -119,7 +141,7 @@ contract MyUSDEngine is Ownable {
         s_userCollateral[msg.sender] = newCollateral;
 
         // Validate the user's position after withdrawal
-        if (s_userMinted[msg.sender] > 0) {
+        if (s_userDebtShares[msg.sender] > 0) {
             _validatePosition(msg.sender);
         }
 
@@ -134,45 +156,62 @@ contract MyUSDEngine is Ownable {
         if (mintAmount == 0) {
             revert Engine__InvalidAmount(); // Revert if mint amount is zero
         }
-        _accrueInterest();
-        _updateUserDebt(msg.sender);
-        s_userMinted[msg.sender] += mintAmount;
-        totalDebt += mintAmount;
+
+        // Calculate debt shares based on current exchange rate
+        uint256 debtShares = (mintAmount * PRECISION) / debtExchangeRate;
+
+        // Update user's debt shares and total debt shares
+        s_userDebtShares[msg.sender] += debtShares;
+        totalDebtShares += debtShares;
+
+        // Update user's last update time
+        s_userLastUpdateTime[msg.sender] = block.timestamp;
+
         _validatePosition(msg.sender);
         bool success = i_myUSD.mintTo(msg.sender, mintAmount);
         if (!success) {
             revert Engine__MintingFailed(); // Revert if minting fails
         }
+
+        emit DebtSharesMinted(msg.sender, mintAmount, debtShares);
     }
 
     // Allows users to burn stablecoins and reduce their debt
     function burnStableCoin(uint256 burnAmount) public {
-        if (burnAmount == 0 || burnAmount > s_userMinted[msg.sender]) {
-            revert Engine__InvalidAmount(); // Revert if burn amount is invalid
+        if (burnAmount == 0) {
+            revert Engine__InvalidAmount(); // Revert if burn amount is zero
         }
-        _accrueInterest();
-        _updateUserDebt(msg.sender);
-        s_userMinted[msg.sender] -= burnAmount;
-        totalDebt -= burnAmount;
+
+        // Calculate current debt value including accrued interest
+        uint256 currentDebtValue = _getCurrentDebtValue(msg.sender);
+
+        // Check if user has enough debt
+        if (burnAmount > currentDebtValue) {
+            revert Engine__InvalidAmount(); // Revert if burn amount is too large
+        }
+
+        // Calculate debt shares to burn based on current exchange rate
+        uint256 debtSharesToBurn = (burnAmount * PRECISION) / debtExchangeRate;
+
+        // Update user's debt shares and total debt shares
+        s_userDebtShares[msg.sender] -= debtSharesToBurn;
+        totalDebtShares -= debtSharesToBurn;
+
+        // Update user's last update time
+        s_userLastUpdateTime[msg.sender] = block.timestamp;
+
         bool success = i_myUSD.burnFrom(msg.sender, burnAmount);
         if (!success) {
             revert Engine__BurningFailed(); // Revert if burning fails
         }
+
+        emit DebtSharesBurned(msg.sender, burnAmount, debtSharesToBurn);
     }
 
     // Retrieves the user's position, including minted amount and collateral value
     function _getUserPosition(address user) private view returns (uint256 mintedAmount, uint256 collateralValue) {
-        mintedAmount = s_userMinted[user]; // Get user's minted amount
-
-        // Calculate accrued interest since last update
-        if (mintedAmount > 0) {
-            uint256 timeElapsed = block.timestamp - s_userLastUpdateTime[user];
-            if (timeElapsed > 0) {
-                uint256 userInterest = (mintedAmount * interestRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
-                mintedAmount += userInterest;
-            }
-        }
-
+        // Calculate current debt value including accrued interest
+        mintedAmount = _getCurrentDebtValue(user);
         collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
         return (mintedAmount, collateralValue); // Return user's position
     }
@@ -210,31 +249,34 @@ contract MyUSDEngine is Ownable {
             revert Engine__NotLiquidatable(); // Revert if position is not liquidatable
         }
 
-        uint256 userDebt = s_userMinted[user]; // Get user's minted amount
+        // Calculate current debt value including accrued interest
+        uint256 userDebtValue = _getCurrentDebtValue(user);
         uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
         uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
 
         // check that liquidator has enough funds to pay back the debt
-        if (i_myUSD.balanceOf(msg.sender) < userDebt) {
+        if (i_myUSD.balanceOf(msg.sender) < userDebtValue) {
             revert MyUSD__InsufficientBalance();
         }
 
         // check that liquidator has approved the engine to transfer the debt
-        if (i_myUSD.allowance(msg.sender, address(this)) < userDebt) {
+        if (i_myUSD.allowance(msg.sender, address(this)) < userDebtValue) {
             revert MyUSD__InsufficientAllowance();
         }
 
         // tranfer value of debt to the contract
-        i_myUSD.transferFrom(msg.sender, address(this), userDebt);
+        i_myUSD.transferFrom(msg.sender, address(this), userDebtValue);
 
         // burn the transfered stablecoins
-        i_myUSD.burnFrom(address(this), userDebt);
+        i_myUSD.burnFrom(address(this), userDebtValue);
 
-        // Clear user's debt
-        s_userMinted[user] = 0;
+        // Clear user's debt shares
+        uint256 userDebtShares = s_userDebtShares[user];
+        s_userDebtShares[user] = 0;
+        totalDebtShares -= userDebtShares;
 
         // calculate collateral to purchase (maintain the ratio of debt to collateral value)
-        uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
+        uint256 collateralPurchased = (userDebtValue * userCollateral) / collateralValue;
         uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
         uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
 

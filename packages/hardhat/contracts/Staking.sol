@@ -45,7 +45,6 @@ contract Staking is Ownable, ReentrancyGuard {
     }
 
     function setInterestRate(uint256 newRate) external onlyOwner {
-        if (newRate > 2000) revert Staking__InvalidInterestRate(); // Max 20%
         _accrueInterest();
         interestRate = newRate;
         emit InterestRateUpdated(newRate);
