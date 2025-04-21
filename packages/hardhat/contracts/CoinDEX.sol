@@ -4,14 +4,14 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @notice Simple DEX contract that allows users to swap ETH for CORN and CORN for ETH
+ * @notice Simple DEX contract that allows users to swap ETH for MyUSD and MyUSD for ETH
  */
 contract CoinDEX {
     /* ========== GLOBAL VARIABLES ========== */
 
     IERC20 token; //instantiates the imported contract
     uint256 public totalLiquidity;
-    mapping (address => uint256) public liquidity;
+    mapping(address => uint256) public liquidity;
 
     /* ========== EVENTS ========== */
 
@@ -26,10 +26,7 @@ contract CoinDEX {
      * @notice Emitted when liquidity removed from DEX and decreases LPT count within DEX.
      */
     event LiquidityRemoved(
-        address liquidityRemover,
-        uint256 liquidityWithdrawn,
-        uint256 tokensOutput,
-        uint256 ethOutput
+        address liquidityRemover, uint256 liquidityWithdrawn, uint256 tokensOutput, uint256 ethOutput
     );
 
     /* ========== CONSTRUCTOR ========== */
@@ -41,7 +38,7 @@ contract CoinDEX {
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /**
-     * @notice initializes amount of tokens that will be transferred to the DEX itself from the erc20 contract. Loads contract up with both ETH and CORN.
+     * @notice initializes amount of tokens that will be transferred to the DEX itself from the erc20 contract. Loads contract up with both ETH and MyUSD.
      * @param tokens amount to be transferred to DEX
      * @return totalLiquidity is the number of LPTs minting as a result of deposits made to DEX contract
      * NOTE: since ratio is 1:1, this is fine to initialize the totalLiquidity as equal to eth balance of contract.
@@ -70,13 +67,17 @@ contract CoinDEX {
         _currentPrice = price(1 ether, address(this).balance, token.balanceOf(address(this)));
     }
 
-        /**
+    /**
      * @notice returns the amount you need to put in (xInput) when given the amount of yOutput you want along with the reserves of both assets in the pool
      */
-    function calculateXInput(uint256 yOutput, uint256 xReserves, uint256 yReserves) public pure returns (uint256 xInput) {
+    function calculateXInput(uint256 yOutput, uint256 xReserves, uint256 yReserves)
+        public
+        pure
+        returns (uint256 xInput)
+    {
         uint256 numerator = yOutput * xReserves;
         uint256 denominator = yReserves - yOutput;
-    
+
         return (numerator / denominator) + 1;
     }
 
@@ -104,7 +105,7 @@ contract CoinDEX {
         uint256 tokenReserve = token.balanceOf(address(this));
         ethOutput = price(tokenInput, tokenReserve, address(this).balance);
         require(token.transferFrom(msg.sender, address(this), tokenInput), "tokenToEth(): reverted swap.");
-        (bool sent, ) = msg.sender.call{ value: ethOutput }("");
+        (bool sent,) = msg.sender.call{value: ethOutput}("");
         require(sent, "tokenToEth: revert in transferring eth to you!");
         emit Swap(msg.sender, address(token), tokenInput, address(0), ethOutput);
         return ethOutput;
@@ -163,7 +164,7 @@ contract CoinDEX {
         tokenAmount = amount * tokenReserve / totalLiquidity;
         liquidity[msg.sender] -= amount;
         totalLiquidity -= amount;
-        (bool sent, ) = payable(msg.sender).call{ value: ethWithdrawn }("");
+        (bool sent,) = payable(msg.sender).call{value: ethWithdrawn}("");
         require(sent, "withdraw(): revert in transferring eth to you!");
         require(token.transfer(msg.sender, tokenAmount));
         emit LiquidityRemoved(msg.sender, amount, tokenAmount, ethWithdrawn);

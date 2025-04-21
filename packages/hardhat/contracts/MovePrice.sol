@@ -5,15 +5,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./CoinDEX.sol";
 
 /**
- * @notice This contract acts as a whale account that moves the price of CORN up and down whenever anyone calls it
+ * @notice This contract acts as a whale account that moves the price of MyUSD up and down whenever anyone calls it
  */
 contract MovePrice {
     CoinDEX coinDex;
 
-    constructor (address _coinDex, address _cornToken) {
+    constructor (address _coinDex, address _MyUSDToken) {
         coinDex = CoinDEX(_coinDex);
-        // Approve the cornDEX to use the cornToken
-        IERC20(_cornToken).approve(address(coinDex), type(uint256).max);
+        // Approve the MyUSDDEX to use the MyUSDToken
+        IERC20(_MyUSDToken).approve(address(coinDex), type(uint256).max);
     }
 
     function movePrice(int256 size) public {

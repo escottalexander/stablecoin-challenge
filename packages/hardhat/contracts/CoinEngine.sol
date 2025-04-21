@@ -59,6 +59,8 @@ contract MyUSDEngine is Ownable {
 
     function setStaking(address stakingAddress) external onlyOwner {
         i_staking = Staking(stakingAddress);
+        // Set the engine address in the staking contract
+        i_staking.setEngine(address(this));
     }
 
     function setBorrowRate(uint256 newRate) external onlyOwner {
@@ -93,10 +95,7 @@ contract MyUSDEngine is Ownable {
             // Update exchange rate to reflect new value
             debtExchangeRate += (interest * PRECISION) / totalDebtShares;
 
-            // Mint interest to the staking contract
-            i_myUSD.mintTo(address(i_staking), interest);
-
-            // Update the staking contract's exchange rate to reflect the new interest
+            // Update the staking contract's interest rate
             i_staking.setInterestRate(myUSDSavingsRate);
 
             emit InterestAccrued(interest);
@@ -113,7 +112,7 @@ contract MyUSDEngine is Ownable {
 
         // Calculate accrued interest since last update
         uint256 timeElapsed = block.timestamp - s_userLastUpdateTime[user];
-        if (timeElapsed == 0) return baseDebtValue;
+        if (timeElapsed == 0 || borrowRate == 0) return baseDebtValue;
 
         // Calculate interest on the base debt value
         uint256 interest = (baseDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
@@ -270,10 +269,9 @@ contract MyUSDEngine is Ownable {
         // burn the transfered stablecoins
         i_myUSD.burnFrom(address(this), userDebtValue);
 
-        // Clear user's debt shares
-        uint256 userDebtShares = s_userDebtShares[user];
+        // Clear user's debt shares - more gas efficient order
+        totalDebtShares -= s_userDebtShares[user];
         s_userDebtShares[user] = 0;
-        totalDebtShares -= userDebtShares;
 
         // calculate collateral to purchase (maintain the ratio of debt to collateral value)
         uint256 collateralPurchased = (userDebtValue * userCollateral) / collateralValue;
@@ -287,5 +285,13 @@ contract MyUSDEngine is Ownable {
         s_userCollateral[user] = userCollateral - amountForLiquidator;
 
         emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_coinDEX.currentPrice()); // Emit event for collateral withdrawal
+    }
+
+    // New function to ensure the staking contract has enough tokens when needed
+    function ensureStakingLiquidity() external {
+        uint256 additionalTokensNeeded = i_staking.additionalTokensNeeded();
+        if (additionalTokensNeeded > 0) {
+            i_myUSD.mintTo(address(i_staking), additionalTokensNeeded);
+        }
     }
 }

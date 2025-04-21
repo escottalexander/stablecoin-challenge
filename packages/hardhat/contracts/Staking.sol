@@ -4,15 +4,18 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./MyUSD.sol";
+import "./CoinEngine.sol";
 
 error Staking__InvalidAmount();
 error Staking__InsufficientBalance();
 error Staking__InsufficientAllowance();
 error Staking__TransferFailed();
 error Staking__InvalidInterestRate();
+error Staking__EngineNotSet();
 
 contract Staking is Ownable, ReentrancyGuard {
     MyUSD public immutable myUSD;
+    MyUSDEngine public engine;
 
     // Total shares in the pool
     uint256 public totalShares;
@@ -29,6 +32,12 @@ contract Staking is Ownable, ReentrancyGuard {
     // User's share balance
     mapping(address => uint256) public userShares;
 
+    // User's last update timestamp
+    mapping(address => uint256) public userLastUpdateTime;
+
+    // Total rewards earned but not yet claimed
+    uint256 public totalRewardsEarned;
+
     // Constants
     uint256 private constant PRECISION = 1e18;
     uint256 private constant SECONDS_PER_YEAR = 365 days;
@@ -44,7 +53,13 @@ contract Staking is Ownable, ReentrancyGuard {
         lastUpdateTime = block.timestamp;
     }
 
-    function setInterestRate(uint256 newRate) external onlyOwner {
+    function setEngine(address _engine) external onlyOwner {
+        engine = MyUSDEngine(_engine);
+    }
+
+    function setInterestRate(uint256 newRate) external {
+        // Only engine can set interest rate
+        require(msg.sender == address(engine) || msg.sender == owner(), "Staking: not authorized");
         _accrueInterest();
         interestRate = newRate;
         emit InterestRateUpdated(newRate);
@@ -66,6 +81,10 @@ contract Staking is Ownable, ReentrancyGuard {
         if (interest > 0) {
             // Update exchange rate to reflect new value
             exchangeRate += (interest * PRECISION) / totalShares;
+
+            // Track total rewards earned
+            totalRewardsEarned += interest;
+
             emit InterestAccrued(interest);
         }
 
@@ -84,6 +103,9 @@ contract Staking is Ownable, ReentrancyGuard {
         userShares[msg.sender] += shares;
         totalShares += shares;
 
+        // Update user's last update time
+        userLastUpdateTime[msg.sender] = block.timestamp;
+
         // Transfer tokens to contract
         bool success = myUSD.transferFrom(msg.sender, address(this), amount);
         if (!success) revert Staking__TransferFailed();
@@ -94,6 +116,7 @@ contract Staking is Ownable, ReentrancyGuard {
     function withdraw(uint256 shareAmount) external nonReentrant {
         if (shareAmount == 0) revert Staking__InvalidAmount();
         if (userShares[msg.sender] < shareAmount) revert Staking__InsufficientBalance();
+        if (address(engine) == address(0)) revert Staking__EngineNotSet();
 
         _accrueInterest();
 
@@ -103,6 +126,19 @@ contract Staking is Ownable, ReentrancyGuard {
         // Update user's shares and total shares
         userShares[msg.sender] -= shareAmount;
         totalShares -= shareAmount;
+
+        // Update user's last update time
+        userLastUpdateTime[msg.sender] = block.timestamp;
+
+        // Ensure we have enough tokens by requesting from engine if needed
+        uint256 contractBalance = myUSD.balanceOf(address(this));
+        if (contractBalance < amount) {
+            // Call engine to mint tokens
+            engine.ensureStakingLiquidity();
+
+            // Verify we now have enough
+            require(myUSD.balanceOf(address(this)) >= amount, "Failed to obtain enough tokens");
+        }
 
         // Transfer tokens to user
         bool success = myUSD.transfer(msg.sender, amount);
@@ -115,18 +151,34 @@ contract Staking is Ownable, ReentrancyGuard {
         if (userShares[user] == 0) return 0;
 
         // Calculate current exchange rate with accrued interest
-        uint256 currentExchangeRate = exchangeRate;
-        if (totalShares > 0) {
-            uint256 timeElapsed = block.timestamp - lastUpdateTime;
-            if (timeElapsed > 0) {
-                uint256 totalValue = (totalShares * exchangeRate) / PRECISION;
-                uint256 interest = (totalValue * interestRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
-                if (interest > 0) {
-                    currentExchangeRate += (interest * PRECISION) / totalShares;
-                }
-            }
-        }
+        uint256 currentExchangeRate = _getCurrentExchangeRate();
 
         return (userShares[user] * currentExchangeRate) / PRECISION;
+    }
+
+    function _getCurrentExchangeRate() internal view returns (uint256) {
+        if (totalShares == 0) return exchangeRate;
+
+        uint256 timeElapsed = block.timestamp - lastUpdateTime;
+        if (timeElapsed == 0) return exchangeRate;
+
+        uint256 totalValue = (totalShares * exchangeRate) / PRECISION;
+        uint256 interest = (totalValue * interestRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
+
+        if (interest == 0) return exchangeRate;
+
+        return exchangeRate + ((interest * PRECISION) / totalShares);
+    }
+
+    // Function to check if additional token minting is needed
+    function additionalTokensNeeded() external view returns (uint256) {
+        uint256 contractBalance = myUSD.balanceOf(address(this));
+        uint256 totalValueWithInterest = (totalShares * _getCurrentExchangeRate()) / PRECISION;
+
+        if (totalValueWithInterest > contractBalance) {
+            return totalValueWithInterest - contractBalance;
+        }
+
+        return 0;
     }
 }
