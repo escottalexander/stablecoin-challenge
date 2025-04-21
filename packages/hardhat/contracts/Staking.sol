@@ -94,8 +94,6 @@ contract Staking is Ownable, ReentrancyGuard {
     function stake(uint256 amount) external nonReentrant {
         if (amount == 0) revert Staking__InvalidAmount();
 
-        _accrueInterest();
-
         // Calculate shares based on current exchange rate
         uint256 shares = (amount * PRECISION) / exchangeRate;
 
@@ -117,8 +115,6 @@ contract Staking is Ownable, ReentrancyGuard {
         if (shareAmount == 0) revert Staking__InvalidAmount();
         if (userShares[msg.sender] < shareAmount) revert Staking__InsufficientBalance();
         if (address(engine) == address(0)) revert Staking__EngineNotSet();
-
-        _accrueInterest();
 
         // Calculate MyUSD amount based on current exchange rate
         uint256 amount = (shareAmount * exchangeRate) / PRECISION;
