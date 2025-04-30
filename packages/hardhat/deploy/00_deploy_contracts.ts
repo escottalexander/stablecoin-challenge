@@ -28,7 +28,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   // Calculate future addresses based on nonce
   const futureEngineAddress = hre.ethers.getCreateAddress({
     from: deployer,
-    nonce: deployerNonce + 3 // +3 because it will be our 4th deployment (after MyUSD, DEX, Staking)
+    nonce: deployerNonce + 3, // +3 because it will be our 4th deployment (after MyUSD, DEX, Staking)
   });
 
   // Deploy contracts knowing the future engine address
@@ -37,7 +37,6 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
     args: [futureEngineAddress],
   });
   const stablecoin = await hre.ethers.getContract<Contract>("MyUSD", deployer);
-
 
   // Continue with other deployments
   await deploy("DEX", {
@@ -48,14 +47,14 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
   await deploy("MyUSDStaking", {
     from: deployer,
-    args: [stablecoin.target, futureEngineAddress]
+    args: [stablecoin.target, futureEngineAddress],
   });
   const staking = await hre.ethers.getContract<Contract>("MyUSDStaking", deployer);
 
   // Finally deploy the engine at exactly the predicted address
   await deploy("MyUSDEngine", {
     from: deployer,
-    args: [DEX.target, stablecoin.target, staking.target]
+    args: [DEX.target, stablecoin.target, staking.target],
   });
   const engine = await hre.ethers.getContract<Contract>("MyUSDEngine", deployer);
 
