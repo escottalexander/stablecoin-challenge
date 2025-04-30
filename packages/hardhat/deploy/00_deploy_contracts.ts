@@ -59,7 +59,9 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   const engine = await hre.ethers.getContract<Contract>("MyUSDEngine", deployer);
 
   if (engine.target !== futureEngineAddress) {
-    throw new Error("Engine address does not match predicted address");
+    throw new Error(
+      "Engine address does not match predicted address, did you add transactions above this line that would skew the nonce set for 'futureEngineAddress'?",
+    );
   }
 
   if (hre.network.name === "localhost") {
