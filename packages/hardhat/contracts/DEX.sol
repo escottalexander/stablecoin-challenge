@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @notice Simple DEX contract that allows users to swap ETH for MyUSD and MyUSD for ETH
  */
-contract CoinDEX {
+contract DEX {
     /* ========== GLOBAL VARIABLES ========== */
 
     IERC20 token; //instantiates the imported contract

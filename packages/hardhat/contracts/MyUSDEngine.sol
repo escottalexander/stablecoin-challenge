@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MyUSD.sol";
-import "./CoinDEX.sol";
-import "./Staking.sol";
+import "./DEX.sol";
+import "./MyUSDStaking.sol";
 
 error Engine__InvalidAmount();
 error Engine__TransferFailed();
@@ -13,7 +13,7 @@ error Engine__MintingFailed();
 error Engine__BurningFailed();
 error Engine__PositionSafe();
 error Engine__NotLiquidatable();
-error Engine__InvalidSavingsRate();
+error Engine__InvalidBorrowRate();
 
 contract MyUSDEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required
@@ -22,11 +22,10 @@ contract MyUSDEngine is Ownable {
     uint256 private constant PRECISION = 1e18;
 
     MyUSD private i_myUSD;
-    CoinDEX private i_coinDEX;
-    Staking private i_staking;
+    DEX private i_DEX;
+    MyUSDStaking private i_staking;
 
     uint256 public borrowRate; // Annual interest rate for borrowers in basis points (1% = 100)
-    uint256 public myUSDSavingsRate; // Annual interest rate for stakers in basis points (1% = 100)
     uint256 public lastUpdateTime;
 
     // Total debt shares in the pool
@@ -37,53 +36,42 @@ contract MyUSDEngine is Ownable {
 
     mapping(address => uint256) public s_userCollateral;
     mapping(address => uint256) public s_userDebtShares;
-    mapping(address => uint256) public s_userLastUpdateTime;
 
     event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
     event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
     event BorrowRateUpdated(uint256 newRate);
     event SavingsRateUpdated(uint256 newRate);
-    event InterestAccrued(uint256 amount);
     event DebtSharesMinted(address indexed user, uint256 amount, uint256 shares);
     event DebtSharesBurned(address indexed user, uint256 amount, uint256 shares);
 
-    constructor(address _coinDEX) Ownable(msg.sender) {
-        i_coinDEX = CoinDEX(_coinDEX);
+    constructor(address _DEX, address _myUSDAddress, address _stakingAddress) Ownable(msg.sender) {
+        i_DEX = DEX(_DEX);
+        i_myUSD = MyUSD(_myUSDAddress);
+        i_staking = MyUSDStaking(_stakingAddress);
         lastUpdateTime = block.timestamp;
         debtExchangeRate = PRECISION; // 1:1 initially
     }
 
-    function setMyUSD(address myUSDAddress) external onlyOwner {
-        i_myUSD = MyUSD(myUSDAddress);
-    }
-
-    function setStaking(address stakingAddress) external onlyOwner {
-        i_staking = Staking(stakingAddress);
-        // Set the engine address in the staking contract
-        i_staking.setEngine(address(this));
-    }
-
     function setBorrowRate(uint256 newRate) external onlyOwner {
+        if (newRate > i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
         _accrueInterest();
         borrowRate = newRate;
         emit BorrowRateUpdated(newRate);
     }
 
-    function setSavingsRate(uint256 newRate) external onlyOwner {
-        if (newRate > borrowRate) revert Engine__InvalidSavingsRate();
-        _accrueInterest();
-        myUSDSavingsRate = newRate;
-        emit SavingsRateUpdated(newRate);
-    }
-
+    /**
+     * @notice Accrues interest on the total debt value so that we only need to track existing debt + new interest
+     * @dev This function is called when the borrow rate is updated - before the rate is applied
+     */
     function _accrueInterest() internal {
         if (totalDebtShares == 0) {
             lastUpdateTime = block.timestamp;
             return;
         }
 
+        // No way to accrue interest if no debt or no borrow rate
         uint256 timeElapsed = block.timestamp - lastUpdateTime;
-        if (timeElapsed == 0) return;
+        if (timeElapsed == 0 || borrowRate == 0) return;
 
         // Calculate total debt value
         uint256 totalDebtValue = (totalDebtShares * debtExchangeRate) / PRECISION;
@@ -94,11 +82,6 @@ contract MyUSDEngine is Ownable {
         if (interest > 0) {
             // Update exchange rate to reflect new value
             debtExchangeRate += (interest * PRECISION) / totalDebtShares;
-
-            // Update the staking contract's interest rate
-            i_staking.setInterestRate(myUSDSavingsRate);
-
-            emit InterestAccrued(interest);
         }
         lastUpdateTime = block.timestamp;
     }
@@ -111,10 +94,10 @@ contract MyUSDEngine is Ownable {
         uint256 baseDebtValue = (s_userDebtShares[user] * debtExchangeRate) / PRECISION;
 
         // Calculate accrued interest since last update
-        uint256 timeElapsed = block.timestamp - s_userLastUpdateTime[user];
+        uint256 timeElapsed = block.timestamp - lastUpdateTime;
         if (timeElapsed == 0 || borrowRate == 0) return baseDebtValue;
 
-        // Calculate interest on the base debt value
+        // Calculate interest since last update
         uint256 interest = (baseDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
 
         return baseDebtValue + interest;
@@ -125,8 +108,9 @@ contract MyUSDEngine is Ownable {
         if (msg.value == 0) {
             revert Engine__InvalidAmount(); // Revert if no collateral is sent
         }
+
         s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
-        emit CollateralAdded(msg.sender, msg.value, i_coinDEX.currentPrice()); // Emit event for collateral addition
+        emit CollateralAdded(msg.sender, msg.value, i_DEX.currentPrice()); // Emit event for collateral addition
     }
 
     // Allows users to withdraw collateral as long as it doesn't make them liquidatable
@@ -147,7 +131,7 @@ contract MyUSDEngine is Ownable {
         // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
 
-        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_coinDEX.currentPrice()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_DEX.currentPrice()); // Emit event for collateral withdrawal
     }
 
     // Allows users to mint stablecoins based on their collateral
@@ -162,9 +146,6 @@ contract MyUSDEngine is Ownable {
         // Update user's debt shares and total debt shares
         s_userDebtShares[msg.sender] += debtShares;
         totalDebtShares += debtShares;
-
-        // Update user's last update time
-        s_userLastUpdateTime[msg.sender] = block.timestamp;
 
         _validatePosition(msg.sender);
         bool success = i_myUSD.mintTo(msg.sender, mintAmount);
@@ -196,9 +177,6 @@ contract MyUSDEngine is Ownable {
         s_userDebtShares[msg.sender] -= debtSharesToBurn;
         totalDebtShares -= debtSharesToBurn;
 
-        // Update user's last update time
-        s_userLastUpdateTime[msg.sender] = block.timestamp;
-
         bool success = i_myUSD.burnFrom(msg.sender, burnAmount);
         if (!success) {
             revert Engine__BurningFailed(); // Revert if burning fails
@@ -218,7 +196,7 @@ contract MyUSDEngine is Ownable {
     // Calculates the total collateral value for a user based on their collateral balance and price point
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_coinDEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
+        return (collateralAmount * i_DEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
     }
 
     // Calculates the position ratio for a user to ensure they are within safe limits
@@ -263,10 +241,10 @@ contract MyUSDEngine is Ownable {
             revert MyUSD__InsufficientAllowance();
         }
 
-        // tranfer value of debt to the contract
+        // transfer value of debt to the contract
         i_myUSD.transferFrom(msg.sender, address(this), userDebtValue);
 
-        // burn the transfered stablecoins
+        // burn the transferred stablecoins
         i_myUSD.burnFrom(address(this), userDebtValue);
 
         // Clear user's debt shares - more gas efficient order
@@ -279,19 +257,11 @@ contract MyUSDEngine is Ownable {
         uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
 
         // transfer 110% of the debt to the liquidator
-        (bool sent, bytes memory data) = payable(msg.sender).call{value: amountForLiquidator}("");
+        (bool sent,) = payable(msg.sender).call{value: amountForLiquidator}("");
         require(sent, "Failed to send Ether");
 
         s_userCollateral[user] = userCollateral - amountForLiquidator;
 
-        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_coinDEX.currentPrice()); // Emit event for collateral withdrawal
-    }
-
-    // New function to ensure the staking contract has enough tokens when needed
-    function ensureStakingLiquidity() external {
-        uint256 additionalTokensNeeded = i_staking.additionalTokensNeeded();
-        if (additionalTokensNeeded > 0) {
-            i_myUSD.mintTo(address(i_staking), additionalTokensNeeded);
-        }
+        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_DEX.currentPrice()); // Emit event for collateral withdrawal
     }
 }
