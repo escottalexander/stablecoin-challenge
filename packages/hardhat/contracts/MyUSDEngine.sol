@@ -40,7 +40,6 @@ contract MyUSDEngine is Ownable {
     event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
     event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
     event BorrowRateUpdated(uint256 newRate);
-    event SavingsRateUpdated(uint256 newRate);
     event DebtSharesMinted(address indexed user, uint256 amount, uint256 shares);
     event DebtSharesBurned(address indexed user, uint256 amount, uint256 shares);
 
@@ -52,7 +51,11 @@ contract MyUSDEngine is Ownable {
         debtExchangeRate = PRECISION; // 1:1 initially
     }
 
-    function setBorrowRate(uint256 newRate) external onlyOwner {
+    /**
+     * @notice Set the borrow rate for the engine - intentionally not onlyOwner so we can call from any address
+     * @param newRate The new borrow rate to set
+     */
+    function setBorrowRate(uint256 newRate) external {
         if (newRate > i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
         _accrueInterest();
         borrowRate = newRate;

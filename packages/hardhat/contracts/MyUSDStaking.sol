@@ -47,7 +47,11 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         lastUpdateTime = block.timestamp;
     }
 
-    function setSavingsRate(uint256 newRate) external onlyOwner {
+    /**
+     * @notice Set the savings rate for the staking contract - intentionally not onlyOwner so we can call from any address
+     * @param newRate The new savings rate to set
+     */
+    function setSavingsRate(uint256 newRate) external {
         if (newRate > engine.borrowRate()) revert Staking__InvalidSavingsRate();
         _accrueInterest();
         savingsRate = newRate;
