@@ -39,7 +39,8 @@ contract MyUSD is ERC20, Ownable {
     }
 
     function mintTo(address to, uint256 amount) external returns (bool) {
-        if (msg.sender != engineContract && msg.sender != owner()) revert MyUSD__NotAuthorized();
+        // Only the engine contract can mint because MyUSD must always have collateral backing it
+        if (msg.sender != engineContract) revert MyUSD__NotAuthorized();
 
         if (to == address(0)) {
             revert MyUSD__InvalidAddress();
@@ -63,5 +64,22 @@ contract MyUSD is ERC20, Ownable {
         // For the staking contract, return the value of the shares
         MyUSDStaking staking = MyUSDStaking(stakingContract);
         return staking.getSharesValue(staking.totalShares());
+    }
+
+    function _update(address from, address to, uint256 value) internal override {
+        // If staking contract is transferring burn or mint since its balance is virtual
+        if (from == stakingContract) {
+            super._mint(to, value);
+        } else if (to == stakingContract) {
+            super._burn(from, value);
+        } else {
+            super._update(from, to, value);
+        }
+    }
+
+    function totalSupply() public view override returns (uint256) {
+        MyUSDStaking staking = MyUSDStaking(stakingContract);
+        uint256 stakedTotalSupply = staking.getSharesValue(staking.totalShares());
+        return super.totalSupply() + stakedTotalSupply;
     }
 }
