@@ -66,6 +66,9 @@ contract MyUSD is ERC20, Ownable {
         return staking.getSharesValue(staking.totalShares());
     }
 
+    /**
+     * @dev Overrides the standard _update function to handle virtual balances for staking
+     */
     function _update(address from, address to, uint256 value) internal override {
         // If staking contract is transferring burn or mint since its balance is virtual
         if (from == stakingContract) {
@@ -77,6 +80,9 @@ contract MyUSD is ERC20, Ownable {
         }
     }
 
+    /**
+     * @dev Overrides the standard totalSupply function to handle virtual balances for staking
+     */
     function totalSupply() public view override returns (uint256) {
         MyUSDStaking staking = MyUSDStaking(stakingContract);
         uint256 stakedTotalSupply = staking.getSharesValue(staking.totalShares());
