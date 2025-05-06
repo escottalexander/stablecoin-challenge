@@ -173,7 +173,7 @@ function getBorrowerStatus(
   const rateFactor =
     1 -
     (Math.min(currentBorrowRate, borrower.maxAcceptableRate) / borrower.maxAcceptableRate) *
-    (borrower.rateSensitivity / 100);
+      (borrower.rateSensitivity / 100);
 
   const borrowingWillingness = (borrower.debtTolerance / 100) * rateFactor;
 
@@ -273,9 +273,9 @@ async function updateUI(
     try {
       systemInfoBox.setContent(
         `MyUSD Price: {yellow-fg}${myUSDPriceInETH.toFixed(6)}{/yellow-fg}  |  ` +
-        `ETH Price: {cyan-fg}${ethToMyUSDPriceNum.toFixed(1)} MyUSD{/cyan-fg} | ` +
-        `Savings Rate: {cyan-fg}${savingsRate > 0 ? savingsRate / 100 : 0}% {/cyan-fg}  |  ` +
-        `Borrow Rate: {magenta-fg}${borrowRate > 0 ? borrowRate / 100 : 0}% {/magenta-fg}`,
+          `ETH Price: {cyan-fg}${ethToMyUSDPriceNum.toFixed(1)} MyUSD{/cyan-fg} | ` +
+          `Savings Rate: {cyan-fg}${savingsRate > 0 ? savingsRate / 100 : 0}% {/cyan-fg}  |  ` +
+          `Borrow Rate: {magenta-fg}${borrowRate > 0 ? borrowRate / 100 : 0}% {/magenta-fg}`,
       );
     } catch (error: any) {
       console.log(`Error updating system info: ${error}`);
@@ -463,7 +463,7 @@ async function simulateBorrowing(
 
             logActivity(
               `Borrower ${borrower.wallet.address.slice(0, 6)}... swapped ${ethers.formatEther(safeEthToSwap).slice(0, 6)} ETH for MyUSD ` +
-              `to repay debt (rate: ${currentBorrowRate} > ${borrower.maxAcceptableRate})`,
+                `to repay debt (rate: ${currentBorrowRate} > ${borrower.maxAcceptableRate})`,
             );
             continue;
           } catch (error: any) {
@@ -479,7 +479,7 @@ async function simulateBorrowing(
       const rateFactor =
         1 -
         (Math.min(currentBorrowRate, borrower.maxAcceptableRate) / borrower.maxAcceptableRate) *
-        (borrower.rateSensitivity / 100);
+          (borrower.rateSensitivity / 100);
 
       // Higher tolerance + lower rate sensitivity = more borrowing
       const borrowingWillingness = (borrower.debtTolerance / 100) * rateFactor;
@@ -582,7 +582,7 @@ async function executeLeveragedBorrowing(
 
     logActivity(
       `Borrower ${borrower.wallet.address.slice(0, 6)}... leveraged borrowed ${ethers.formatEther(borrowAmount).slice(0, 6)} MyUSD ` +
-      `(rate: ${currentBorrowRate} bps, willingness: ${(borrowingWillingness * 100).toFixed(1)}%)`,
+        `(rate: ${currentBorrowRate} bps, willingness: ${(borrowingWillingness * 100).toFixed(1)}%)`,
     );
   } catch (error: any) {
     logActivity(`Leveraged borrowing failed for ${borrower.wallet.address.slice(0, 6)}... Error: ${error}`);
@@ -616,7 +616,7 @@ async function simulateStaking(
 
           logActivity(
             `Staker ${staker.wallet.address.slice(0, 6)}... unstaked ALL shares ` +
-            `(rate: ${currentSavingsRate} bps < min rate: ${staker.minAcceptableRate} bps)`,
+              `(rate: ${currentSavingsRate} bps < min rate: ${staker.minAcceptableRate} bps)`,
           );
         }
       } catch (error: any) {
@@ -636,7 +636,7 @@ async function simulateStaking(
 
             logActivity(
               `Staker ${staker.wallet.address.slice(0, 6)}... sold ALL MyUSD (${ethers.formatEther(sellableBalance).slice(0, 6)}) for ETH ` +
-              `(rate too low: ${currentSavingsRate} < ${staker.minAcceptableRate} bps)`,
+                `(rate too low: ${currentSavingsRate} < ${staker.minAcceptableRate} bps)`,
             );
           }
         } catch (error: any) {
@@ -684,7 +684,7 @@ async function simulateStaking(
           await stakingWithStaker.stake(amountToStake);
           logActivity(
             `Staker ${staker.wallet.address.slice(0, 6)}... staked ${ethers.formatEther(amountToStake).slice(0, 6)} MyUSD ` +
-            `(rate: ${currentSavingsRate} bps, willingness: ${(stakingWillingness * 100).toFixed(1)}%)`,
+              `(rate: ${currentSavingsRate} bps, willingness: ${(stakingWillingness * 100).toFixed(1)}%)`,
           );
         } catch (error: any) {
           logActivity(`Failed to stake for ${staker.wallet.address.slice(0, 6)}...`);
