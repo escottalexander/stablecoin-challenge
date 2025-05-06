@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./MyUSDStaking.sol";
+
+error MyUSD__InvalidAmount();
+error MyUSD__InsufficientBalance();
+error MyUSD__InsufficientAllowance();
+error MyUSD__InvalidAddress();
+error MyUSD__NotStakingEngine();
+error MyUSD__NotAuthorized();
+
+contract MyUSD is ERC20, Ownable {
+    address public stakingContract;
+    address public engineContract;
+
+    constructor(address _engineContract) ERC20("MyUSD", "MyUSD") Ownable(msg.sender) {
+        engineContract = _engineContract;
+    }
+
+    function setStakingContract(address _stakingContract) external onlyOwner {
+        stakingContract = _stakingContract;
+    }
+
+    function burnFrom(address account, uint256 amount) external returns (bool) {
+        if (msg.sender != engineContract && msg.sender != owner()) revert MyUSD__NotAuthorized();
+
+        uint256 balance = balanceOf(account);
+        if (amount == 0) {
+            revert MyUSD__InvalidAmount();
+        }
+        if (balance < amount) {
+            revert MyUSD__InsufficientBalance();
+        }
+        _burn(account, amount);
+        return true;
+    }
+
+    function mintTo(address to, uint256 amount) external returns (bool) {
+        if (msg.sender != engineContract && msg.sender != owner()) revert MyUSD__NotAuthorized();
+
+        if (to == address(0)) {
+            revert MyUSD__InvalidAddress();
+        }
+        if (amount == 0) {
+            revert MyUSD__InvalidAmount();
+        }
+        _mint(to, amount);
+        return true;
+    }
+
+    /**
+     * @dev Overrides the standard balanceOf function to handle virtual balances for staking
+     */
+    function balanceOf(address account) public view override returns (uint256) {
+        // For normal accounts, return standard balance
+        if (account != stakingContract) {
+            return super.balanceOf(account);
+        }
+
+        // For the staking contract, return the value of the shares
+        MyUSDStaking staking = MyUSDStaking(stakingContract);
+        return staking.getSharesValue(staking.totalShares());
+    }
+}
