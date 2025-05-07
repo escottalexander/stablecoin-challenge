@@ -52,7 +52,7 @@ contract MyUSDEngine is Ownable {
     }
 
     /**
-     * @notice Set the borrow rate for the engine - intentionally not onlyOwner so we can call from any address
+     * @notice Set the borrow rate for the engine
      * @param newRate The new borrow rate to set
      */
     function setBorrowRate(uint256 newRate) external onlyOwner {

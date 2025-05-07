@@ -31,7 +31,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   // Calculate future addresses based on nonce
   const futureEngineAddress = hre.ethers.getCreateAddress({
     from: deployer,
-    nonce: deployerNonce + 4, // +3 because it will be our 4th deployment (after MyUSD, DEX, Staking)
+    nonce: deployerNonce + 4, // +4 because it will be our 5th deployment (after MyUSD, DEX, Oracle, Staking)
   });
 
   // Deploy contracts knowing the future engine address
