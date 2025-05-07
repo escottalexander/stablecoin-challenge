@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./MyUSD.sol";
-import "./DEX.sol";
+import "./Oracle.sol";
 import "./MyUSDStaking.sol";
 
 error Engine__InvalidAmount();
@@ -22,7 +22,7 @@ contract MyUSDEngine is Ownable {
     uint256 private constant PRECISION = 1e18;
 
     MyUSD private i_myUSD;
-    DEX private i_DEX;
+    Oracle private i_oracle;
     MyUSDStaking private i_staking;
 
     uint256 public borrowRate; // Annual interest rate for borrowers in basis points (1% = 100)
@@ -43,8 +43,8 @@ contract MyUSDEngine is Ownable {
     event DebtSharesMinted(address indexed user, uint256 amount, uint256 shares);
     event DebtSharesBurned(address indexed user, uint256 amount, uint256 shares);
 
-    constructor(address _DEX, address _myUSDAddress, address _stakingAddress) Ownable(msg.sender) {
-        i_DEX = DEX(_DEX);
+    constructor(address _oracle, address _myUSDAddress, address _stakingAddress) Ownable(msg.sender) {
+        i_oracle = Oracle(_oracle);
         i_myUSD = MyUSD(_myUSDAddress);
         i_staking = MyUSDStaking(_stakingAddress);
         lastUpdateTime = block.timestamp;
@@ -52,11 +52,11 @@ contract MyUSDEngine is Ownable {
     }
 
     /**
-     * @notice Set the borrow rate for the engine - intentionally not onlyOwner so we can call from any address
+     * @notice Set the borrow rate for the engine
      * @param newRate The new borrow rate to set
      */
-    function setBorrowRate(uint256 newRate) external {
-        if (newRate > i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
+    function setBorrowRate(uint256 newRate) external onlyOwner {
+        if (newRate < i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
         _accrueInterest();
         borrowRate = newRate;
         emit BorrowRateUpdated(newRate);
@@ -113,7 +113,7 @@ contract MyUSDEngine is Ownable {
         }
 
         s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
-        emit CollateralAdded(msg.sender, msg.value, i_DEX.currentPrice()); // Emit event for collateral addition
+        emit CollateralAdded(msg.sender, msg.value, i_oracle.getPrice()); // Emit event for collateral addition
     }
 
     // Allows users to withdraw collateral as long as it doesn't make them liquidatable
@@ -134,7 +134,7 @@ contract MyUSDEngine is Ownable {
         // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
 
-        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_DEX.currentPrice()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_oracle.getPrice()); // Emit event for collateral withdrawal
     }
 
     // Allows users to mint stablecoins based on their collateral
@@ -199,7 +199,7 @@ contract MyUSDEngine is Ownable {
     // Calculates the total collateral value for a user based on their collateral balance and price point
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_DEX.currentPrice()) / 1e18; // Calculate collateral value in terms of ETH price
+        return (collateralAmount * i_oracle.getPrice()) / 1e18; // Calculate collateral value in terms of ETH price
     }
 
     // Calculates the position ratio for a user to ensure they are within safe limits
@@ -265,6 +265,6 @@ contract MyUSDEngine is Ownable {
 
         s_userCollateral[user] = userCollateral - amountForLiquidator;
 
-        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_DEX.currentPrice()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_oracle.getPrice()); // Emit event for collateral withdrawal
     }
 }

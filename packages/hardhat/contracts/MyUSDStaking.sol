@@ -40,7 +40,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount, uint256 shares);
     event SavingsRateUpdated(uint256 newRate);
 
-    constructor(address _myUSD, address _engine) Ownable(_engine) {
+    constructor(address _myUSD, address _engine) Ownable(msg.sender) {
         myUSD = MyUSD(_myUSD);
         engine = MyUSDEngine(_engine);
         exchangeRate = PRECISION; // 1:1 initially
@@ -48,10 +48,10 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Set the savings rate for the staking contract - intentionally not onlyOwner so we can call from any address
+     * @notice Set the savings rate for the staking contract
      * @param newRate The new savings rate to set
      */
-    function setSavingsRate(uint256 newRate) external {
+    function setSavingsRate(uint256 newRate) external onlyOwner {
         if (newRate > engine.borrowRate()) revert Staking__InvalidSavingsRate();
         _accrueInterest();
         savingsRate = newRate;
@@ -68,7 +68,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         if (timeElapsed == 0) return;
 
         // Calculate interest based on total shares and exchange rate
-        uint256 totalValue = (totalShares * exchangeRate) / PRECISION;
+        uint256 totalValue = getSharesValue(totalShares);
         uint256 interest = (totalValue * savingsRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
 
         if (interest > 0) {
@@ -83,7 +83,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         if (amount == 0) revert Staking__InvalidAmount();
 
         // Calculate shares based on current exchange rate
-        uint256 shares = (amount * PRECISION) / exchangeRate;
+        uint256 shares = (amount * PRECISION) / _getCurrentExchangeRate();
 
         // Update user's shares and total shares
         userShares[msg.sender] += shares;
@@ -102,7 +102,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         if (address(engine) == address(0)) revert Staking__EngineNotSet();
 
         // Calculate MyUSD amount based on current exchange rate
-        uint256 amount = (shareAmount * exchangeRate) / PRECISION;
+        uint256 amount = getSharesValue(shareAmount);
 
         // Update user's shares
         userShares[msg.sender] -= shareAmount;
@@ -110,7 +110,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         // Transfer tokens to user
         bool success = myUSD.transfer(msg.sender, amount);
         if (!success) revert Staking__TransferFailed();
-        // Now update total shares since MyUSD uses this to determine the this contract's token balance
+        // Now update total shares since MyUSD uses this to determine this contract's token balance
         totalShares -= shareAmount;
 
         emit Withdrawn(msg.sender, amount, shareAmount);
