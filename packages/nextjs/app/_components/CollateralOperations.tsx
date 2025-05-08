@@ -9,7 +9,7 @@ const CollateralOperations = () => {
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
   });
 
   const handleAddCollateral = async () => {

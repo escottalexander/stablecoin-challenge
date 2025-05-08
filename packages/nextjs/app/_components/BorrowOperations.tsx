@@ -14,18 +14,18 @@ const BorrowOperations = () => {
   const { address } = useAccount();
 
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "StablecoinDEX",
-    functionName: "currentPrice",
+    contractName: "Oracle",
+    functionName: "getPrice",
   });
 
   const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
   });
 
   const handleBorrow = async () => {
     try {
       await writeStablecoinEngineContract({
-        functionName: "borrowStablecoin",
+        functionName: "mintStableCoin",
         args: [borrowAmount ? parseEther(borrowAmount) : 0n],
       });
       setBorrowAmount("");
@@ -37,7 +37,7 @@ const BorrowOperations = () => {
   const handleRepay = async () => {
     try {
       await writeStablecoinEngineContract({
-        functionName: "repayStablecoin",
+        functionName: "burnStableCoin",
         args: [repayAmount ? parseEther(repayAmount) : 0n],
       });
       setRepayAmount("");

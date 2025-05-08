@@ -6,38 +6,37 @@ import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaf
 import { tokenName } from "~~/utils/constant";
 
 const PriceActions = () => {
-  const { data: price } = useScaffoldReadContract({
-    contractName: "StablecoinDEX",
-    functionName: "currentPrice",
-  });
+  // const { data: price } = useScaffoldReadContract({
+  //   contractName: "DEX",
+  //   functionName: "currentPrice",
+  // });
 
-  const { writeContractAsync } = useScaffoldWriteContract({ contractName: "MovePrice" });
+  // const { writeContractAsync } = useScaffoldWriteContract({ contractName: "MovePrice" });
 
-  const priceOfOneMyUSD = price ? parseEther((1 / Number(formatEther(price))).toString()) : undefined; // Fixed parentheses and added toString()
-  const renderPrice =
-    priceOfOneMyUSD === undefined ? (
-      <div className="mr-1 skeleton w-10 h-4"></div>
-    ) : (
-      Number(formatEther(priceOfOneMyUSD)).toFixed(6)
-    );
-  const renderETHPrice = price ? Number(formatEther(price)).toFixed(2) : <div className="mr-1 skeleton w-10 h-4"></div>;
+  // const priceOfOneMyUSD = price ? parseEther((1 / Number(formatEther(price))).toString()) : undefined; // Fixed parentheses and added toString()
+  // const renderPrice =
+  //   priceOfOneMyUSD === undefined ? (
+  //     <div className="mr-1 skeleton w-10 h-4"></div>
+  //   ) : (
+  //     Number(formatEther(priceOfOneMyUSD)).toFixed(6)
+  //   );
+  // const renderETHPrice = price ? Number(formatEther(price)).toFixed(2) : <div className="mr-1 skeleton w-10 h-4"></div>;
 
   const handleClick = async (isIncrease: boolean) => {
-    if (price === undefined) {
-      console.error("Price is undefined");
-      return;
-    }
-    const amount = parseEther("50000");
-    const amountToSell = isIncrease ? amount : -amount * 1000n;
-
-    try {
-      await writeContractAsync({
-        functionName: "movePrice",
-        args: [amountToSell],
-      });
-    } catch (e) {
-      console.error("Error setting the price:", e);
-    }
+    // if (price === undefined) {
+    //   console.error("Price is undefined");
+    //   return;
+    // }
+    // const amount = parseEther("50000");
+    // const amountToSell = isIncrease ? amount : -amount * 1000n;
+    // try {
+    //   await writeContractAsync({
+    //     functionName: "movePrice",
+    //     args: [amountToSell],
+    //   });
+    // } catch (e) {
+    //   console.error("Error setting the price:", e);
+    // }
   };
 
   return (
@@ -47,10 +46,10 @@ const PriceActions = () => {
         <div className="flex items-center gap-1">
           <span className="text-sm font-bold">{tokenName} Price</span>
         </div>
-        <span className="flex items-center text-xs">{renderPrice} ETH</span>
+        {/* <span className="flex items-center text-xs">{renderPrice} ETH</span>
         <span className="flex items-center text-xs">
           {renderETHPrice} {tokenName}/ETH
-        </span>
+        </span> */}
         <div className="flex gap-2">
           <button onClick={() => handleClick(false)} className="btn btn-circle btn-xs">
             <MinusIcon className="h-3 w-3" />

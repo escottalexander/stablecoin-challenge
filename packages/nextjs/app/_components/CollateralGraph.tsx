@@ -21,7 +21,7 @@ const CollateralGraph = () => {
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
 
   const { data: addEvents } = useScaffoldEventHistory({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
     eventName: "CollateralAdded",
     fromBlock: 0n,
     watch: true,
@@ -31,7 +31,7 @@ const CollateralGraph = () => {
   });
 
   const { data: withdrawEvents } = useScaffoldEventHistory({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
     eventName: "CollateralWithdrawn",
     fromBlock: 0n,
     watch: true,
@@ -40,9 +40,9 @@ const CollateralGraph = () => {
     receiptData: true,
   });
 
-  const { data: borrowEvents } = useScaffoldEventHistory({
-    contractName: "StablecoinEngine",
-    eventName: "AssetBorrowed",
+  const { data: mintEvents } = useScaffoldEventHistory({
+    contractName: "MyUSDEngine",
+    eventName: "DebtSharesMinted",
     fromBlock: 0n,
     watch: true,
     blockData: true,
@@ -50,9 +50,9 @@ const CollateralGraph = () => {
     receiptData: true,
   });
 
-  const { data: repaidEvents } = useScaffoldEventHistory({
-    contractName: "StablecoinEngine",
-    eventName: "AssetRepaid",
+  const { data: burnEvents } = useScaffoldEventHistory({
+    contractName: "MyUSDEngine",
+    eventName: "DebtSharesBurned",
     fromBlock: 0n,
     watch: true,
     blockData: true,
@@ -61,7 +61,7 @@ const CollateralGraph = () => {
   });
 
   const { data: liquidatedEvents } = useScaffoldEventHistory({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
     eventName: "Liquidation",
     fromBlock: 0n,
     watch: true,
@@ -71,7 +71,7 @@ const CollateralGraph = () => {
   });
 
   const { data: priceEvents } = useScaffoldEventHistory({
-    contractName: "StablecoinDEX",
+    contractName: "Oracle",
     eventName: "PriceUpdated",
     fromBlock: 0n,
     watch: true,
@@ -83,8 +83,8 @@ const CollateralGraph = () => {
   const combinedEvents = [
     ...(addEvents || []),
     ...(withdrawEvents || []),
-    ...(borrowEvents || []),
-    ...(repaidEvents || []),
+    ...(mintEvents || []),
+    ...(burnEvents || []),
     ...(priceEvents || []),
     ...(liquidatedEvents || []),
   ];
@@ -101,8 +101,8 @@ const CollateralGraph = () => {
     const collateralAdded = event.eventName === "CollateralAdded" ? event.args.amount : 0n;
     const collateralWithdrawn = event.eventName === "CollateralWithdrawn" ? event.args.amount : 0n;
     const price = "price" in event.args ? event.args.price : getPriceFromEvent(event.blockNumber, priceEvents);
-    const debtAdded = event.eventName === "AssetBorrowed" ? event.args.amount || 0n : 0n;
-    const debtRepaid = event.eventName === "AssetRepaid" ? event.args.amount || 0n : 0n;
+    const debtMinted = event.eventName === "DebtSharesMinted" ? event.args.amount || 0n : 0n;
+    const debtBurned = event.eventName === "DebtSharesBurned" ? event.args.amount || 0n : 0n;
     const amountForLiquidator = event.eventName === "Liquidation" ? event.args.amountForLiquidator || 0n : 0n;
     const liquidatedDebtAmount = event.eventName === "Liquidation" ? event.args.liquidatedUserDebt || 0n : 0n;
 
@@ -113,7 +113,7 @@ const CollateralGraph = () => {
       prevCollateral + (collateralAdded || 0n) - (collateralWithdrawn || 0n) - (amountForLiquidator || 0n);
     const ethPriceInMyUSD = BigInt(Math.round(Number(formatEther(price || 0n))));
     const collateralInMyUSD = collateralInEth * ethPriceInMyUSD;
-    const debt = prevDebt + (debtAdded || 0n) - (debtRepaid || 0n) - (liquidatedDebtAmount || 0n);
+    const debt = prevDebt + (debtMinted || 0n) - (debtBurned || 0n) - (liquidatedDebtAmount || 0n);
     const ratio = Number(formatEther(collateralInMyUSD) || 1n) / Number(formatEther(debt || collateralInMyUSD) || 1n);
 
     return [

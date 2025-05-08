@@ -13,32 +13,32 @@ type UserPositionProps = {
 
 const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
     functionName: "s_userCollateral",
     args: [user],
   });
 
   const { data: userBorrowed } = useScaffoldReadContract({
-    contractName: "StablecoinEngine",
-    functionName: "s_userBorrowed",
+    contractName: "MyUSDEngine",
+    functionName: "s_userDebtShares",
     args: [user],
   });
 
   const { data: stablecoinEngineContract } = useDeployedContractInfo({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
   });
 
   const { data: allowance } = useScaffoldReadContract({
-    contractName: "Stablecoin",
+    contractName: "MyUSD",
     functionName: "allowance",
     args: [user, stablecoinEngineContract?.address],
   });
 
   const { writeContractAsync: writeStablecoinEngineContract, isPending: isLiquidating } = useScaffoldWriteContract({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
   });
   const { writeContractAsync: writeStablecoinContract } = useScaffoldWriteContract({
-    contractName: "Stablecoin",
+    contractName: "MyUSD",
   });
 
   const borrowedAmount = Number(formatEther(userBorrowed || 0n));

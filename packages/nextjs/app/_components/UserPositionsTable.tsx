@@ -9,7 +9,7 @@ const UserPositionsTable = () => {
   const { address: connectedAddress } = useAccount();
   const [users, setUsers] = useState<string[]>([]);
   const { data: events, isLoading } = useScaffoldEventHistory({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
     eventName: "CollateralAdded",
     fromBlock: 0n, // should be the block number where the contract was deployed
     watch: true,
@@ -18,8 +18,8 @@ const UserPositionsTable = () => {
     receiptData: false,
   });
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "StablecoinDEX",
-    functionName: "currentPrice",
+    contractName: "Oracle",
+    functionName: "getPrice",
   });
 
   useEffect(() => {
