@@ -42,6 +42,13 @@ contract MyUSDEngine is Ownable {
     event BorrowRateUpdated(uint256 newRate);
     event DebtSharesMinted(address indexed user, uint256 amount, uint256 shares);
     event DebtSharesBurned(address indexed user, uint256 amount, uint256 shares);
+    event Liquidation(
+        address indexed user,
+        address indexed liquidator,
+        uint256 amountForLiquidator,
+        uint256 liquidatedUserDebt,
+        uint256 price
+    );
 
     constructor(address _oracle, address _myUSDAddress, address _stakingAddress) Ownable(msg.sender) {
         i_oracle = Oracle(_oracle);
@@ -258,13 +265,14 @@ contract MyUSDEngine is Ownable {
         uint256 collateralPurchased = (userDebtValue * userCollateral) / collateralValue;
         uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
         uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
-
-        // transfer 110% of the debt to the liquidator
-        (bool sent,) = payable(msg.sender).call{value: amountForLiquidator}("");
-        require(sent, "Failed to send Ether");
+        amountForLiquidator = amountForLiquidator > userCollateral ? userCollateral : amountForLiquidator; // Ensure we don't exceed user's collateral
 
         s_userCollateral[user] = userCollateral - amountForLiquidator;
 
-        emit CollateralWithdrawn(user, msg.sender, amountForLiquidator, i_oracle.getPrice()); // Emit event for collateral withdrawal
+        // transfer 110% of the debt to the liquidator
+        (bool sent, ) = payable(msg.sender).call{ value: amountForLiquidator }("");
+        require(sent, "Failed to send Ether");
+
+        emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getPrice());
     }
 }
