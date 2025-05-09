@@ -4,6 +4,7 @@ import BorrowOperations from "./_components/BorrowOperations";
 import CollateralGraph from "./_components/CollateralGraph";
 import CollateralOperations from "./_components/CollateralOperations";
 import PriceActions from "./_components/PriceActions";
+import PriceGraph from "./_components/PriceGraph";
 import TokenActions from "./_components/TokenActions";
 import UserPositionsTable from "./_components/UserPositionsTable";
 import type { NextPage } from "next";
@@ -25,6 +26,7 @@ const Home: NextPage = () => {
             </div>
             <div className="flex flex-col gap-8">
               <UserPositionsTable />
+              <PriceGraph />
               <CollateralGraph />
             </div>
           </div>
