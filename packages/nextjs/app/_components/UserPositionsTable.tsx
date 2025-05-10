@@ -40,7 +40,7 @@ const UserPositionsTable = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This table displays all users with a position in the StablecoinEngine pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
+        infoText="This table displays all users with a position in the MyUSDEngine pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
       />
       <div className="overflow-x-auto">
         <table className="table">

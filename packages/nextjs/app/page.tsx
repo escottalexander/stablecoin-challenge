@@ -24,8 +24,8 @@ const Home: NextPage = () => {
               <BorrowOperations />
             </div>
             <div className="flex flex-col gap-8">
-              <UserPositionsTable />
               <PriceGraph />
+              <UserPositionsTable />
             </div>
           </div>
         </div>

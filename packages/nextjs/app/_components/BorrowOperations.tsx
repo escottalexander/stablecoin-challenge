@@ -51,7 +51,7 @@ const BorrowOperations = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText={`Use these controls to borrow and repay ${tokenName} from the StablecoinEngine pool`}
+        infoText={`Use these controls to borrow and repay ${tokenName} from the MyUSDEngine pool`}
       />
       <div className="card-body">
         <div className="w-full flex justify-between">
