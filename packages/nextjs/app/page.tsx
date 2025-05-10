@@ -1,7 +1,6 @@
 "use client";
 
 import BorrowOperations from "./_components/BorrowOperations";
-import CollateralGraph from "./_components/CollateralGraph";
 import CollateralOperations from "./_components/CollateralOperations";
 import PriceGraph from "./_components/PriceGraph";
 import RateActions from "./_components/RateActions";
@@ -27,7 +26,6 @@ const Home: NextPage = () => {
             <div className="flex flex-col gap-8">
               <UserPositionsTable />
               <PriceGraph />
-              <CollateralGraph />
             </div>
           </div>
         </div>

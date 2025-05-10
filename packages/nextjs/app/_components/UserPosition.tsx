@@ -1,5 +1,5 @@
 import React from "react";
-import { formatEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { collateralRatio, tokenName } from "~~/utils/constant";
@@ -65,6 +65,8 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       console.error("Error liquidating position:", e);
     }
   };
+
+  if (userCollateral === parseEther("10000000000000000000")) return null;
 
   return (
     <tr key={user} className={`${connectedAddress === user ? "bg-blue-100 dark:bg-blue-900" : ""}`}>

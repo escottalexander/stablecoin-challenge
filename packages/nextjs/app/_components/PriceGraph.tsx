@@ -29,13 +29,15 @@ const PriceGraph = () => {
     })
     .reverse();
 
+  const priceInitial = [{ blockNumber: 0, price: 1 }];
+
   return (
     <div className="card bg-base-100 w-full shadow-xl indicator">
       <TooltipInfo top={3} right={3} infoText="This graph shows the price of the stabletoken over time" />
       <div className="card-body h-96 w-full">
         <h2 className="card-title">Price Graph</h2>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart width={500} height={300} data={priceEventsArray}>
+          <LineChart width={500} height={300} data={priceEventsArray?.length ? priceEventsArray : priceInitial}>
             <XAxis
               domain={["auto", "auto"]}
               dataKey="blockNumber"
@@ -49,7 +51,10 @@ const PriceGraph = () => {
               stroke={strokeColor}
               tick={{ fill: strokeColor }}
             />
-            <Tooltip />
+            <Tooltip
+              labelFormatter={(value: number) => `Block: ${value}`}
+              formatter={(value: number) => [`$${value.toFixed(6)}`]}
+            />
             <ReferenceLine y={1.0} stroke="#ff4d4d" strokeDasharray="3 3" />
             <Line type="monotone" dataKey="price" stroke="#82ca9d" dot={false} strokeWidth={2} />
           </LineChart>
