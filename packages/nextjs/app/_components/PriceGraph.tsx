@@ -43,7 +43,7 @@ const PriceGraph = () => {
               dataKey="blockNumber"
               stroke={strokeColor}
               tick={false}
-              label={{ value: "Time", position: "insideBottom", fill: strokeColor }}
+              label={{ value: "Time (Blocks)", position: "insideBottom", fill: strokeColor }}
             />
             <YAxis
               scale="linear"
