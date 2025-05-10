@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { CheckIcon, PencilIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { IntegerInput } from "~~/components/scaffold-eth";
+import { SmallInputBase } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 interface RateInputProps {
@@ -33,7 +33,7 @@ const RateInput: React.FC<RateInputProps> = ({
       {isEditing ? (
         <div className="flex items-center gap-1 px-4">
           <div className="max-h-8">
-            <IntegerInput value={newValue} onChange={onNewValueChange} disableMultiplyBy1e18 />
+            <SmallInputBase value={newValue} onChange={onNewValueChange} />
           </div>
           <label className="btn btn-circle btn-xs" onClick={() => onSave(newValue)}>
             <CheckIcon className="h-3 w-3" />
@@ -44,8 +44,8 @@ const RateInput: React.FC<RateInputProps> = ({
         </div>
       ) : (
         <span className="flex items-center text-xs">
-          <span className="text-xs">{formattedValue}%</span>
-          <label className="btn btn-circle btn-xs" onClick={onEdit}>
+          <span className="text-sm">{formattedValue}%</span>
+          <label className="btn btn-circle btn-xs ml-1" onClick={onEdit}>
             <PencilIcon className="h-3 w-3" />
           </label>
         </span>
@@ -55,8 +55,8 @@ const RateInput: React.FC<RateInputProps> = ({
 };
 
 const RateActions: React.FC = () => {
-  const [newBorrowRate, setNewBorrowRate] = useState<string>("0");
-  const [newSavingsRate, setNewSavingsRate] = useState<string>("0");
+  const [newBorrowRate, setNewBorrowRate] = useState<string>("");
+  const [newSavingsRate, setNewSavingsRate] = useState<string>("");
   const [isEditingBR, setIsEditingBR] = useState<boolean>(false);
   const [isEditingSR, setIsEditingSR] = useState<boolean>(false);
 
@@ -84,7 +84,7 @@ const RateActions: React.FC = () => {
       try {
         await writeStakingContractAsync({
           functionName: "setSavingsRate",
-          args: [BigInt(Number(value) * 100)],
+          args: [BigInt(Math.round(Number(value) * 100))],
         });
         setIsEditingSR(false);
       } catch (error) {
@@ -99,7 +99,7 @@ const RateActions: React.FC = () => {
       try {
         await writeEngineContractAsync({
           functionName: "setBorrowRate",
-          args: [BigInt(Number(value) * 100)],
+          args: [BigInt(Math.round(Number(value) * 100))],
         });
         setIsEditingBR(false);
       } catch (error) {
@@ -119,7 +119,10 @@ const RateActions: React.FC = () => {
           value={borrowRate}
           isEditing={isEditingBR}
           onEdit={() => setIsEditingBR(true)}
-          onCancel={() => setIsEditingBR(false)}
+          onCancel={() => {
+            setIsEditingBR(false);
+            setNewBorrowRate("");
+          }}
           onSave={handleSaveBorrowRate}
           newValue={newBorrowRate}
           onNewValueChange={setNewBorrowRate}
@@ -130,7 +133,10 @@ const RateActions: React.FC = () => {
           value={savingsRate}
           isEditing={isEditingSR}
           onEdit={() => setIsEditingSR(true)}
-          onCancel={() => setIsEditingSR(false)}
+          onCancel={() => {
+            setIsEditingSR(false);
+            setNewSavingsRate("");
+          }}
           onSave={handleSaveSavingsRate}
           newValue={newSavingsRate}
           onNewValueChange={setNewSavingsRate}
