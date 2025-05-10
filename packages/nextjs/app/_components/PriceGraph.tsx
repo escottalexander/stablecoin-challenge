@@ -23,7 +23,7 @@ const PriceGraph = () => {
   const priceEventsArray = priceEvents
     ?.map(event => {
       return {
-        blockNumber: event.blockNumber,
+        blockNumber: Number(event.blockNumber),
         price: 1 / (Number(formatEther(event.args.price || 0n)) / 1800),
       };
     })
