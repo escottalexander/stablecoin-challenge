@@ -72,8 +72,7 @@ const UserPositionsTable = () => {
                   <div className="skeleton w-24 h-6"></div>
                 </td>
               </tr>
-              // Only deployer account is has a position, but we hide it
-            ) : users.length === 1 ? (
+            ) : users.length === 1 ? ( // Only deployer account is has a position, but we hide it
               <tr>
                 <td colSpan={5} className="text-center">
                   No user positions available.
