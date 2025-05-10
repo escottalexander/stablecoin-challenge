@@ -19,15 +19,15 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
   const [buyValue, setBuyValue] = useState("");
 
   const { data: stablecoinDEXContract } = useDeployedContractInfo({
-    contractName: "StablecoinDEX",
+    contractName: "DEX",
   });
 
   const { writeContractAsync: writeDEXContract } = useScaffoldWriteContract({
-    contractName: "StablecoinDEX",
+    contractName: "DEX",
   });
 
   const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
-    contractName: "Stablecoin",
+    contractName: "MyUSD",
   });
 
   const handleChangeSellToken = () => {

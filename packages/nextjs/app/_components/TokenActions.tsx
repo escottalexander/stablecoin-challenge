@@ -25,16 +25,21 @@ const TokenActions = () => {
     functionName: "getPrice",
   });
 
+  const myUSDPrice = 1 / (Number(formatEther(ethPrice || 0n)) / 1800);
+
   const tokenBalance = `${Math.floor(Number(formatEther(stablecoinBalance || 0n)) * 100) / 100}`;
 
   return (
-    <div className="absolute mt-3 top-[100px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
+    <div className="absolute mt-3 top-[110px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl">
       <div className="w-[150px] py-5 flex flex-col items-center gap-1 indicator">
-        <TooltipInfo top={3} right={3} infoText={`Here you can send ${tokenName} to any address or swap it`} />
+        <TooltipInfo top={3} right={3} infoText={`Here you can set the savings rate and borrow rate`} />
         <div className="flex flex-col items-center gap-1">
           <span className="text-sm font-bold">{tokenName} Wallet</span>
           <span className="text-sm">
             {tokenBalance} {tokenName}
+          </span>
+          <span className="flex items-center text-xs">
+            1 {tokenName} = ${myUSDPrice.toFixed(5)}
           </span>
           <div className="flex gap-2">
             <label htmlFor={`${transferModalId}`} className="btn btn-circle btn-xs">

@@ -18,7 +18,7 @@ export const TokenTransferModal = ({ tokenBalance, connectedAddress, modalId }: 
   const [inputAddress, setInputAddress] = useState<AddressType>();
 
   const { writeContractAsync: writeStablecoinContract } = useScaffoldWriteContract({
-    contractName: "Stablecoin",
+    contractName: "MyUSD",
   });
 
   const handleSend = async () => {
