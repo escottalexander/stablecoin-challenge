@@ -19,7 +19,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
     args: [user],
   });
 
-  const { data: userBorrowed } = useScaffoldReadContract({
+  const { data: userMinted } = useScaffoldReadContract({
     contractName: "MyUSDEngine",
     functionName: "s_userDebtShares",
     args: [user],
@@ -42,37 +42,37 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
     contractName: "MyUSD",
   });
 
-  const borrowedAmount = Number(formatEther(userBorrowed || 0n));
+  const mintedAmount = Number(formatEther(userMinted || 0n));
   const ratio =
-    borrowedAmount === 0
+    mintedAmount === 0
       ? "N/A"
-      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), borrowedAmount, ethPrice).toFixed(1);
+      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice).toFixed(1);
 
   const isPositionSafe = ratio == "N/A" || Number(ratio) >= collateralRatio;
   const liquidatePosition = async () => {
-    if (allowance === undefined || userBorrowed === undefined || stablecoinEngineContract === undefined) return;
+    if (allowance === undefined || userMinted === undefined || stablecoinEngineContract === undefined) return;
     try {
-      if (allowance < userBorrowed) {
+      if (allowance < userMinted) {
         await writeStablecoinContract({
           functionName: "approve",
-          args: [stablecoinEngineContract?.address, userBorrowed],
+          args: [stablecoinEngineContract?.address, userMinted],
         });
       }
       await writeStablecoinEngineContract({
         functionName: "liquidate",
         args: [user],
       });
-      const borrowedValue = Number(formatEther(userBorrowed || 0n)) / ethPrice;
+      const mintedValue = Number(formatEther(userMinted || 0n)) / ethPrice;
       const totalCollateral = Number(formatEther(userCollateral || 0n));
       const rewardValue =
-        borrowedValue * 1.1 > totalCollateral ? totalCollateral.toFixed(2) : (borrowedValue * 1.1).toFixed(2);
+        mintedValue * 1.1 > totalCollateral ? totalCollateral.toFixed(2) : (mintedValue * 1.1).toFixed(2);
       const shortAddress = user.slice(0, 6) + "..." + user.slice(-4);
       notification.success(
         <>
           <p className="font-bold mt-0 mb-1">Liquidation successful</p>
           <p className="m-0">You liquidated {shortAddress}&apos;s position.</p>
           <p className="m-0">
-            You repaid {Number(formatEther(userBorrowed)).toFixed(2)} {tokenName} and received {rewardValue} in ETH
+            You repaid {Number(formatEther(userMinted)).toFixed(2)} {tokenName} and received {rewardValue} in ETH
             collateral.
           </p>
         </>,
@@ -91,7 +91,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       </td>
       <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)} ETH</td>
       <td>
-        {Number(formatEther(userBorrowed || 0n)).toFixed(2)} {tokenName}
+        {Number(formatEther(userMinted || 0n)).toFixed(2)} {tokenName}
       </td>
       <td className={getRatioColorClass(ratio)}>{ratio === "N/A" ? "N/A" : `${ratio}%`}</td>
       <td className="flex justify-center">

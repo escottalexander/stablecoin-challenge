@@ -94,7 +94,7 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
         setBuyValue("");
         setSellValue("");
       } catch (error) {
-        console.error("Error borrowing MyUSD:", error);
+        console.error("Error minting MyUSD:", error);
       } finally {
         setLoading(false);
       }

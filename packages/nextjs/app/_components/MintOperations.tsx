@@ -7,9 +7,9 @@ import { IntegerInput } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { tokenName } from "~~/utils/constant";
 
-const BorrowOperations = () => {
-  const [borrowAmount, setBorrowAmount] = useState("");
-  const [repayAmount, setRepayAmount] = useState("");
+const MintOperations = () => {
+  const [mintAmount, setMintAmount] = useState("");
+  const [burnAmount, setBurnAmount] = useState("");
 
   const { address } = useAccount();
 
@@ -22,27 +22,27 @@ const BorrowOperations = () => {
     contractName: "MyUSDEngine",
   });
 
-  const handleBorrow = async () => {
+  const handleMint = async () => {
     try {
       await writeStablecoinEngineContract({
         functionName: "mintStableCoin",
-        args: [borrowAmount ? parseEther(borrowAmount) : 0n],
+        args: [mintAmount ? parseEther(mintAmount) : 0n],
       });
-      setBorrowAmount("");
+      setMintAmount("");
     } catch (error) {
-      console.error("Error borrowing MyUSD:", error);
+      console.error("Error minting MyUSD:", error);
     }
   };
 
-  const handleRepay = async () => {
+  const handleBurn = async () => {
     try {
       await writeStablecoinEngineContract({
         functionName: "burnStableCoin",
-        args: [repayAmount ? parseEther(repayAmount) : 0n],
+        args: [burnAmount ? parseEther(burnAmount) : 0n],
       });
-      setRepayAmount("");
+      setBurnAmount("");
     } catch (error) {
-      console.error("Error repaying MyUSD:", error);
+      console.error("Error burning MyUSD:", error);
     }
   };
 
@@ -51,47 +51,47 @@ const BorrowOperations = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText={`Use these controls to borrow and repay ${tokenName} from the MyUSDEngine pool`}
+        infoText={`Use these controls to mint and burn ${tokenName} from the MyUSDEngine pool`}
       />
       <div className="card-body">
         <div className="w-full flex justify-between">
-          <h2 className="card-title">Borrow Operations</h2>
+          <h2 className="card-title">Mint Operations</h2>
         </div>
 
         <div className="form-control">
           <label className="label flex justify-between">
-            <span className="label-text">Borrow {tokenName}</span>{" "}
+            <span className="label-text">Mint {tokenName}</span>{" "}
             {address && (
               <RatioChange
                 user={address}
                 ethPrice={Number(formatEther(ethPrice || 0n))}
-                inputAmount={Number(borrowAmount)}
+                inputAmount={Number(mintAmount)}
               />
             )}
           </label>
           <div className="flex gap-2 items-center">
-            <IntegerInput value={borrowAmount} onChange={setBorrowAmount} placeholder="Amount" disableMultiplyBy1e18 />
-            <button className="btn btn-sm btn-primary" onClick={handleBorrow} disabled={!borrowAmount}>
-              Borrow
+            <IntegerInput value={mintAmount} onChange={setMintAmount} placeholder="Amount" disableMultiplyBy1e18 />
+            <button className="btn btn-sm btn-primary" onClick={handleMint} disabled={!mintAmount}>
+              Mint
             </button>
           </div>
         </div>
 
         <div className="form-control">
           <label className="label flex justify-between">
-            <span className="label-text">Repay Debt</span>
+            <span className="label-text">Burn Debt</span>
             {address && (
               <RatioChange
                 user={address}
                 ethPrice={Number(formatEther(ethPrice || 0n))}
-                inputAmount={-Number(repayAmount)}
+                inputAmount={-Number(burnAmount)}
               />
             )}
           </label>
           <div className="flex gap-2 items-center">
-            <IntegerInput value={repayAmount} onChange={setRepayAmount} placeholder="Amount" disableMultiplyBy1e18 />
-            <button className="btn btn-sm btn-primary" onClick={handleRepay} disabled={!repayAmount}>
-              Repay
+            <IntegerInput value={burnAmount} onChange={setBurnAmount} placeholder="Amount" disableMultiplyBy1e18 />
+            <button className="btn btn-sm btn-primary" onClick={handleBurn} disabled={!burnAmount}>
+              Burn
             </button>
           </div>
         </div>
@@ -100,4 +100,4 @@ const BorrowOperations = () => {
   );
 };
 
-export default BorrowOperations;
+export default MintOperations;

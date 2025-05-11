@@ -1,7 +1,7 @@
 "use client";
 
-import BorrowOperations from "./_components/BorrowOperations";
 import CollateralOperations from "./_components/CollateralOperations";
+import MintOperations from "./_components/MintOperations";
 import PriceGraph from "./_components/PriceGraph";
 import RateActions from "./_components/RateActions";
 import TokenActions from "./_components/TokenActions";
@@ -21,7 +21,7 @@ const Home: NextPage = () => {
           <div className="flex flex-wrap gap-8 justify-center">
             <div className="flex flex-col gap-8">
               <CollateralOperations />
-              <BorrowOperations />
+              <MintOperations />
             </div>
             <div className="flex flex-col gap-8">
               <PriceGraph />

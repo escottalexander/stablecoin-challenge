@@ -7,8 +7,8 @@ export function getRatioColorClass(ratio: number | string): string {
   return "dark:text-[#00FF7F] text-[#008000]";
 }
 
-export function calculatePositionRatio(userCollateral: number, borrowedAmount: number, ethPrice: number): number {
+export function calculatePositionRatio(userCollateral: number, mintedAmount: number, ethPrice: number): number {
   const collateralValue = userCollateral * ethPrice;
-  if (borrowedAmount === 0) return Number.MAX_SAFE_INTEGER; // Return max if no tokens are borrowed
-  return (collateralValue / borrowedAmount) * 100; // Calculate position ratio
+  if (mintedAmount === 0) return Number.MAX_SAFE_INTEGER; // Return max if no tokens are minted
+  return (collateralValue / mintedAmount) * 100; // Calculate position ratio
 }
