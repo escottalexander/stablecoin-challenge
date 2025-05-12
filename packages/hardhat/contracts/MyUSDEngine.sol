@@ -14,7 +14,7 @@ error Engine__BurningFailed();
 error Engine__PositionSafe();
 error Engine__NotLiquidatable();
 error Engine__InvalidBorrowRate();
-
+error Engine__NotRateController();
 contract MyUSDEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required
     uint256 private constant LIQUIDATOR_REWARD = 10; // 10% reward for liquidators
@@ -24,6 +24,7 @@ contract MyUSDEngine is Ownable {
     MyUSD private i_myUSD;
     Oracle private i_oracle;
     MyUSDStaking private i_staking;
+    address private i_rateController;
 
     uint256 public borrowRate; // Annual interest rate for borrowers in basis points (1% = 100)
     uint256 public lastUpdateTime;
@@ -50,10 +51,16 @@ contract MyUSDEngine is Ownable {
         uint256 price
     );
 
-    constructor(address _oracle, address _myUSDAddress, address _stakingAddress) Ownable(msg.sender) {
+    modifier onlyRateController() {
+        if (msg.sender != i_rateController) revert Engine__NotRateController();
+        _;
+    }
+
+    constructor(address _oracle, address _myUSDAddress, address _stakingAddress, address _rateController) Ownable(msg.sender) {
         i_oracle = Oracle(_oracle);
         i_myUSD = MyUSD(_myUSDAddress);
         i_staking = MyUSDStaking(_stakingAddress);
+        i_rateController = _rateController;
         lastUpdateTime = block.timestamp;
         debtExchangeRate = PRECISION; // 1:1 initially
     }
@@ -62,7 +69,7 @@ contract MyUSDEngine is Ownable {
      * @notice Set the borrow rate for the engine
      * @param newRate The new borrow rate to set
      */
-    function setBorrowRate(uint256 newRate) external onlyOwner {
+    function setBorrowRate(uint256 newRate) external onlyRateController {
         if (newRate < i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
         _accrueInterest();
         borrowRate = newRate;

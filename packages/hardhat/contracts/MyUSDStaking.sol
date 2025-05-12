@@ -12,10 +12,11 @@ error Staking__InsufficientAllowance();
 error Staking__TransferFailed();
 error Staking__InvalidSavingsRate();
 error Staking__EngineNotSet();
-
+error Staking__NotRateController();
 contract MyUSDStaking is Ownable, ReentrancyGuard {
     MyUSD public immutable myUSD;
     MyUSDEngine public engine;
+    address private i_rateController;   
 
     // Total shares in the pool
     uint256 public totalShares;
@@ -40,9 +41,15 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount, uint256 shares);
     event SavingsRateUpdated(uint256 newRate);
 
-    constructor(address _myUSD, address _engine) Ownable(msg.sender) {
+    modifier onlyRateController() {
+        if (msg.sender != i_rateController) revert Staking__NotRateController();
+        _;
+    }
+
+    constructor(address _myUSD, address _engine, address _rateController) Ownable(msg.sender) {
         myUSD = MyUSD(_myUSD);
         engine = MyUSDEngine(_engine);
+        i_rateController = _rateController;
         exchangeRate = PRECISION; // 1:1 initially
         lastUpdateTime = block.timestamp;
     }
@@ -51,7 +58,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
      * @notice Set the savings rate for the staking contract
      * @param newRate The new savings rate to set
      */
-    function setSavingsRate(uint256 newRate) external onlyOwner {
+    function setSavingsRate(uint256 newRate) external onlyRateController {
         if (newRate > engine.borrowRate()) revert Staking__InvalidSavingsRate();
         _accrueInterest();
         savingsRate = newRate;
