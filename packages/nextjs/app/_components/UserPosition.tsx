@@ -1,9 +1,10 @@
 import React from "react";
-import { formatEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { collateralRatio, tokenName } from "~~/utils/constant";
 import { calculatePositionRatio, getRatioColorClass } from "~~/utils/helpers";
+import { notification } from "~~/utils/scaffold-eth";
 
 type UserPositionProps = {
   user: string;
@@ -13,58 +14,75 @@ type UserPositionProps = {
 
 const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) => {
   const { data: userCollateral } = useScaffoldReadContract({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
     functionName: "s_userCollateral",
     args: [user],
   });
 
-  const { data: userBorrowed } = useScaffoldReadContract({
-    contractName: "StablecoinEngine",
-    functionName: "s_userBorrowed",
+  const { data: userMinted } = useScaffoldReadContract({
+    contractName: "MyUSDEngine",
+    functionName: "s_userDebtShares",
     args: [user],
   });
 
   const { data: stablecoinEngineContract } = useDeployedContractInfo({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
   });
 
   const { data: allowance } = useScaffoldReadContract({
-    contractName: "Stablecoin",
+    contractName: "MyUSD",
     functionName: "allowance",
     args: [user, stablecoinEngineContract?.address],
   });
 
   const { writeContractAsync: writeStablecoinEngineContract, isPending: isLiquidating } = useScaffoldWriteContract({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
   });
   const { writeContractAsync: writeStablecoinContract } = useScaffoldWriteContract({
-    contractName: "Stablecoin",
+    contractName: "MyUSD",
   });
 
-  const borrowedAmount = Number(formatEther(userBorrowed || 0n));
+  const mintedAmount = Number(formatEther(userMinted || 0n));
   const ratio =
-    borrowedAmount === 0
+    mintedAmount === 0
       ? "N/A"
-      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), borrowedAmount, ethPrice).toFixed(1);
+      : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice).toFixed(1);
 
   const isPositionSafe = ratio == "N/A" || Number(ratio) >= collateralRatio;
   const liquidatePosition = async () => {
-    if (allowance === undefined || userBorrowed === undefined || stablecoinEngineContract === undefined) return;
+    if (allowance === undefined || userMinted === undefined || stablecoinEngineContract === undefined) return;
     try {
-      if (allowance < userBorrowed) {
+      if (allowance < userMinted) {
         await writeStablecoinContract({
           functionName: "approve",
-          args: [stablecoinEngineContract?.address, userBorrowed],
+          args: [stablecoinEngineContract?.address, userMinted],
         });
       }
       await writeStablecoinEngineContract({
         functionName: "liquidate",
         args: [user],
       });
+      const mintedValue = Number(formatEther(userMinted || 0n)) / ethPrice;
+      const totalCollateral = Number(formatEther(userCollateral || 0n));
+      const rewardValue =
+        mintedValue * 1.1 > totalCollateral ? totalCollateral.toFixed(2) : (mintedValue * 1.1).toFixed(2);
+      const shortAddress = user.slice(0, 6) + "..." + user.slice(-4);
+      notification.success(
+        <>
+          <p className="font-bold mt-0 mb-1">Liquidation successful</p>
+          <p className="m-0">You liquidated {shortAddress}&apos;s position.</p>
+          <p className="m-0">
+            You repaid {Number(formatEther(userMinted)).toFixed(2)} {tokenName} and received {rewardValue} in ETH
+            collateral.
+          </p>
+        </>,
+      );
     } catch (e) {
       console.error("Error liquidating position:", e);
     }
   };
+
+  if (userCollateral === parseEther("10000000000000000000")) return null;
 
   return (
     <tr key={user} className={`${connectedAddress === user ? "bg-blue-100 dark:bg-blue-900" : ""}`}>
@@ -73,7 +91,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       </td>
       <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)} ETH</td>
       <td>
-        {Number(formatEther(userBorrowed || 0n)).toFixed(2)} {tokenName}
+        {Number(formatEther(userMinted || 0n)).toFixed(2)} {tokenName}
       </td>
       <td className={getRatioColorClass(ratio)}>{ratio === "N/A" ? "N/A" : `${ratio}%`}</td>
       <td className="flex justify-center">

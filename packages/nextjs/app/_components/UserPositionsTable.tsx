@@ -9,7 +9,7 @@ const UserPositionsTable = () => {
   const { address: connectedAddress } = useAccount();
   const [users, setUsers] = useState<string[]>([]);
   const { data: events, isLoading } = useScaffoldEventHistory({
-    contractName: "StablecoinEngine",
+    contractName: "MyUSDEngine",
     eventName: "CollateralAdded",
     fromBlock: 0n, // should be the block number where the contract was deployed
     watch: true,
@@ -18,8 +18,8 @@ const UserPositionsTable = () => {
     receiptData: false,
   });
   const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "StablecoinDEX",
-    functionName: "currentPrice",
+    contractName: "Oracle",
+    functionName: "getPrice",
   });
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const UserPositionsTable = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This table displays all users with a position in the StablecoinEngine pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
+        infoText="This table displays all users with a position in the MyUSDEngine pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
       />
       <div className="overflow-x-auto">
         <table className="table">
@@ -72,7 +72,7 @@ const UserPositionsTable = () => {
                   <div className="skeleton w-24 h-6"></div>
                 </td>
               </tr>
-            ) : users.length === 0 ? (
+            ) : users.length === 1 ? ( // Only deployer account is has a position, but we hide it
               <tr>
                 <td colSpan={5} className="text-center">
                   No user positions available.
