@@ -1,11 +1,10 @@
 import React, { useCallback, useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { CheckIcon, PencilIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { SmallInputBase } from "~~/components/scaffold-eth";
+import { IntegerInput } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 interface RateInputProps {
-  label: string;
   value: bigint | undefined;
   isEditing: boolean;
   onEdit: () => void;
@@ -16,7 +15,6 @@ interface RateInputProps {
 }
 
 const RateInput: React.FC<RateInputProps> = ({
-  label,
   value,
   isEditing,
   onEdit,
@@ -28,33 +26,34 @@ const RateInput: React.FC<RateInputProps> = ({
   const formattedValue = Number(value || 0n) / 100;
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="text-sm font-bold">{label}</span>
+    <div className="flex justify-center gap-2 w-full h-10">
       {isEditing ? (
-        <div className="flex items-center gap-1 px-4">
-          <div className="max-h-8">
-            <SmallInputBase value={newValue} onChange={onNewValueChange} />
+        <div className="flex gap-1 w-full items-center">
+          <div className="w-3/5">
+            <IntegerInput value={newValue} onChange={onNewValueChange} placeholder="Rate" disableMultiplyBy1e18 />
           </div>
-          <label className="btn btn-circle btn-xs" onClick={() => onSave(newValue)}>
-            <CheckIcon className="h-3 w-3" />
-          </label>
-          <label className="btn btn-circle btn-xs" onClick={onCancel}>
-            <XMarkIcon className="h-3 w-3" />
-          </label>
+          <div className="flex gap-1">
+            <label className="btn btn-sm btn-circle" onClick={() => onSave(newValue)}>
+              <CheckIcon className="h-3 w-3" />
+            </label>
+            <label className="btn btn-sm btn-circle" onClick={onCancel}>
+              <XMarkIcon className="h-3 w-3" />
+            </label>
+          </div>
         </div>
       ) : (
-        <span className="flex items-center text-xs">
-          <span className="text-sm">{formattedValue}%</span>
-          <label className="btn btn-circle btn-xs ml-1" onClick={onEdit}>
-            <PencilIcon className="h-3 w-3" />
-          </label>
-        </span>
+        <div className="flex w-full justify-between items-center">
+          <span className="flex px-2 w-1/2 font-medium">{formattedValue.toFixed(2)}%</span>
+          <button className="w-1/3 btn btn-sm" onClick={onEdit} aria-label="Edit rate">
+            <PencilIcon className="h-3 w-3" /> Edit
+          </button>
+        </div>
       )}
     </div>
   );
 };
 
-const RateActions: React.FC = () => {
+const RateControls: React.FC = () => {
   const [newBorrowRate, setNewBorrowRate] = useState<string>("");
   const [newSavingsRate, setNewSavingsRate] = useState<string>("");
   const [isEditingBR, setIsEditingBR] = useState<boolean>(false);
@@ -110,40 +109,50 @@ const RateActions: React.FC = () => {
   );
 
   return (
-    <div className="absolute mt-14 right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-10">
-      <div className="w-[150px] py-5 flex flex-col items-center gap-2 indicator">
-        <TooltipInfo top={3} right={3} infoText="Set the borrow rate and savings rate for the engine in %" />
+    <div className="card bg-base-100 w-96 shadow-xl indicator">
+      <TooltipInfo top={3} right={3} infoText="Set the borrow rate and savings rate for the engine in %" />
 
-        <RateInput
-          label="Borrow Rate"
-          value={borrowRate}
-          isEditing={isEditingBR}
-          onEdit={() => setIsEditingBR(true)}
-          onCancel={() => {
-            setIsEditingBR(false);
-            setNewBorrowRate("");
-          }}
-          onSave={handleSaveBorrowRate}
-          newValue={newBorrowRate}
-          onNewValueChange={setNewBorrowRate}
-        />
+      <div className="card-body">
+        <h2 className="card-title">Rate Controls</h2>
 
-        <RateInput
-          label="Savings Rate"
-          value={savingsRate}
-          isEditing={isEditingSR}
-          onEdit={() => setIsEditingSR(true)}
-          onCancel={() => {
-            setIsEditingSR(false);
-            setNewSavingsRate("");
-          }}
-          onSave={handleSaveSavingsRate}
-          newValue={newSavingsRate}
-          onNewValueChange={setNewSavingsRate}
-        />
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Borrow Rate</span>
+          </label>
+          <RateInput
+            value={borrowRate}
+            isEditing={isEditingBR}
+            onEdit={() => setIsEditingBR(true)}
+            onCancel={() => {
+              setIsEditingBR(false);
+              setNewBorrowRate("");
+            }}
+            onSave={handleSaveBorrowRate}
+            newValue={newBorrowRate}
+            onNewValueChange={setNewBorrowRate}
+          />
+        </div>
+
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Savings Rate</span>
+          </label>
+          <RateInput
+            value={savingsRate}
+            isEditing={isEditingSR}
+            onEdit={() => setIsEditingSR(true)}
+            onCancel={() => {
+              setIsEditingSR(false);
+              setNewSavingsRate("");
+            }}
+            onSave={handleSaveSavingsRate}
+            newValue={newSavingsRate}
+            onNewValueChange={setNewSavingsRate}
+          />
+        </div>
       </div>
     </div>
   );
 };
 
-export default RateActions;
+export default RateControls;

@@ -79,7 +79,7 @@ const MintOperations = () => {
 
         <div className="form-control">
           <label className="label flex justify-between">
-            <span className="label-text">Burn Debt</span>
+            <span className="label-text">Burn {tokenName}</span>
             {address && (
               <RatioChange
                 user={address}
