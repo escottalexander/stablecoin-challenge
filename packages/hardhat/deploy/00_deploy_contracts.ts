@@ -47,7 +47,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
   await deploy("MyUSD", {
     from: deployer,
-    args: [futureEngineAddress],
+    args: [futureEngineAddress, futureStakingAddress],
   });
   const stablecoin = await hre.ethers.getContract<Contract>("MyUSD", deployer);
 
@@ -83,9 +83,6 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   }
 
   if (hre.network.name === "localhost") {
-    // Set the staking contract in the MyUSD contract
-    await stablecoin.setStakingContract(staking.target);
-
     // Set deployer ETH balance
     await hre.ethers.provider.send("hardhat_setBalance", [
       deployer,

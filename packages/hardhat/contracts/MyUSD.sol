@@ -16,11 +16,8 @@ contract MyUSD is ERC20, Ownable {
     address public stakingContract;
     address public engineContract;
 
-    constructor(address _engineContract) ERC20("MyUSD", "MyUSD") Ownable(msg.sender) {
+    constructor(address _engineContract, address _stakingContract) ERC20("MyUSD", "MyUSD") Ownable(msg.sender) {
         engineContract = _engineContract;
-    }
-
-    function setStakingContract(address _stakingContract) external onlyOwner {
         stakingContract = _stakingContract;
     }
 

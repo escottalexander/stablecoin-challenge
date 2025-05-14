@@ -103,21 +103,30 @@ contract MyUSDEngine is Ownable {
         lastUpdateTime = block.timestamp;
     }
 
-    // Calculate the current debt value for a user, including accrued interest
-    function _getCurrentDebtValue(address user) internal view returns (uint256) {
-        if (s_userDebtShares[user] == 0) return 0;
-
-        // Calculate base debt value from shares and exchange rate
-        uint256 baseDebtValue = (s_userDebtShares[user] * debtExchangeRate) / PRECISION;
-
-        // Calculate accrued interest since last update
+    // Internal helper to get the up-to-date exchange rate including accrued interest
+    function _getUpdatedExchangeRate() internal view returns (uint256) {
         uint256 timeElapsed = block.timestamp - lastUpdateTime;
-        if (timeElapsed == 0 || borrowRate == 0) return baseDebtValue;
+        if (timeElapsed == 0 || borrowRate == 0 || totalDebtShares == 0) {
+            return debtExchangeRate;
+        }
+        // Calculate total debt value
+        uint256 totalDebtValue = (totalDebtShares * debtExchangeRate) / PRECISION;
+        // Calculate interest based on total debt value
+        uint256 interest = (totalDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
+        // Update exchange rate to reflect new value
+        return debtExchangeRate + (interest * PRECISION) / totalDebtShares;
+    }
 
-        // Calculate interest since last update
-        uint256 interest = (baseDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
+    // Calculate the current debt value for a user, including accrued interest
+    function getCurrentDebtValue(address user) public view returns (uint256) {
+        if (s_userDebtShares[user] == 0) return 0;
+        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
+        return (s_userDebtShares[user] * updatedExchangeRate) / PRECISION;
+    }
 
-        return baseDebtValue + interest;
+    function getMyUSDToShares(uint256 amount) public view returns (uint256) {
+        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
+        return (amount * PRECISION) / updatedExchangeRate;
     }
 
     // Allows users to add collateral to their account
@@ -158,7 +167,7 @@ contract MyUSDEngine is Ownable {
         }
 
         // Calculate debt shares based on current exchange rate
-        uint256 debtShares = (mintAmount * PRECISION) / debtExchangeRate;
+        uint256 debtShares = getMyUSDToShares(mintAmount);
 
         // Update user's debt shares and total debt shares
         s_userDebtShares[msg.sender] += debtShares;
@@ -179,33 +188,28 @@ contract MyUSDEngine is Ownable {
             revert Engine__InvalidAmount(); // Revert if burn amount is zero
         }
 
-        // Calculate current debt value including accrued interest
-        uint256 currentDebtValue = _getCurrentDebtValue(msg.sender);
-
+        uint256 amountInShares = getMyUSDToShares(burnAmount);
         // Check if user has enough debt
-        if (burnAmount > currentDebtValue) {
+        if (amountInShares > s_userDebtShares[msg.sender]) {
             revert Engine__InvalidAmount(); // Revert if burn amount is too large
         }
 
-        // Calculate debt shares to burn based on current exchange rate
-        uint256 debtSharesToBurn = (burnAmount * PRECISION) / debtExchangeRate;
-
         // Update user's debt shares and total debt shares
-        s_userDebtShares[msg.sender] -= debtSharesToBurn;
-        totalDebtShares -= debtSharesToBurn;
+        s_userDebtShares[msg.sender] -= amountInShares;
+        totalDebtShares -= amountInShares;
 
         bool success = i_myUSD.burnFrom(msg.sender, burnAmount);
         if (!success) {
             revert Engine__BurningFailed(); // Revert if burning fails
         }
 
-        emit DebtSharesBurned(msg.sender, burnAmount, debtSharesToBurn);
+        emit DebtSharesBurned(msg.sender, burnAmount, amountInShares);
     }
 
     // Retrieves the user's position, including minted amount and collateral value
     function _getUserPosition(address user) private view returns (uint256 mintedAmount, uint256 collateralValue) {
         // Calculate current debt value including accrued interest
-        mintedAmount = _getCurrentDebtValue(user);
+        mintedAmount = getCurrentDebtValue(user);
         collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
         return (mintedAmount, collateralValue); // Return user's position
     }
@@ -244,7 +248,7 @@ contract MyUSDEngine is Ownable {
         }
 
         // Calculate current debt value including accrued interest
-        uint256 userDebtValue = _getCurrentDebtValue(user);
+        uint256 userDebtValue = getCurrentDebtValue(user);
         uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
         uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
 
