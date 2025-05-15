@@ -88,7 +88,11 @@ const PriceGraph = () => {
 
   return (
     <div className="card bg-base-100 w-full shadow-xl indicator">
-      <TooltipInfo top={3} right={3} infoText="This graph shows the price of the stabletoken over time" />
+      <TooltipInfo
+        top={3}
+        right={3}
+        infoText="This graph displays the stablecoin price (yellow), borrow rate (red), and savings rate (green) over time. Toggle rates visibility using the button."
+      />
       <div className="card-body h-96 w-full">
         <div className="flex justify-between items-center mb-4">
           <h2 className="card-title">Price Graph</h2>
