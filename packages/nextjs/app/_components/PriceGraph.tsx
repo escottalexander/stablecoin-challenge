@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { useTheme } from "next-themes";
-import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -118,9 +118,9 @@ const PriceGraph = () => {
                 yAxisId="left"
                 scale="linear"
                 domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
-                stroke={yellowColor}
-                tick={{ fill: yellowColor, fontSize: 12 }}
-                label={{ value: "Price", angle: -90, position: "insideLeft", fill: yellowColor }}
+                stroke={strokeColor}
+                tick={{ fill: strokeColor, fontSize: 12 }}
+                label={{ value: "Price", angle: -90, position: "insideLeft", fill: strokeColor, dx: -2 }}
               />
               {showRates && (
                 <YAxis
@@ -128,12 +128,20 @@ const PriceGraph = () => {
                   orientation="right"
                   scale="linear"
                   domain={[(dataMin: number) => dataMin - 0.5, (dataMax: number) => dataMax + 0.5]}
-                  stroke={redColor}
-                  tick={{ fill: redColor, fontSize: 12 }}
-                  label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: redColor }}
+                  stroke={strokeColor}
+                  tick={{ fill: strokeColor, fontSize: 12 }}
+                  label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: strokeColor, dx: -15 }}
                 />
               )}
-              <Line yAxisId="left" type="monotone" dataKey="price" stroke={yellowColor} dot={false} strokeWidth={2} />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="price"
+                stroke={yellowColor}
+                dot={false}
+                strokeWidth={2}
+                name="Price"
+              />
               {showRates && (
                 <>
                   <Line
@@ -143,6 +151,7 @@ const PriceGraph = () => {
                     stroke={redColor}
                     dot={false}
                     strokeWidth={2}
+                    name="Borrow Rate"
                   />
                   <Line
                     yAxisId="right"
@@ -151,9 +160,11 @@ const PriceGraph = () => {
                     stroke={greenColor}
                     dot={false}
                     strokeWidth={2}
+                    name="Savings Rate"
                   />
                 </>
               )}
+              <Legend verticalAlign="top" formatter={value => <span style={{ color: strokeColor }}>{value}</span>} />
             </LineChart>
           </ResponsiveContainer>
         )}
