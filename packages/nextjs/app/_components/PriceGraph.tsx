@@ -10,8 +10,11 @@ const PriceGraph = () => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
+  const yellowColor = "#f9a73e";
+  const redColor = "#bf212f";
+  const greenColor = "#27b376";
 
-  const { data: priceEvents } = useScaffoldEventHistory({
+  const { data: priceEvents, isLoading: isPriceLoading } = useScaffoldEventHistory({
     contractName: "DEX",
     eventName: "PriceUpdated",
     fromBlock: 0n,
@@ -21,7 +24,7 @@ const PriceGraph = () => {
     receiptData: false,
   });
 
-  const { data: borrowRateUpdatedEvents } = useScaffoldEventHistory({
+  const { data: borrowRateUpdatedEvents, isLoading: isBorrowRateLoading } = useScaffoldEventHistory({
     contractName: "MyUSDEngine",
     eventName: "BorrowRateUpdated",
     fromBlock: 0n,
@@ -31,7 +34,7 @@ const PriceGraph = () => {
     receiptData: false,
   });
 
-  const { data: savingsRateUpdatedEvents } = useScaffoldEventHistory({
+  const { data: savingsRateUpdatedEvents, isLoading: isSavingsRateLoading } = useScaffoldEventHistory({
     contractName: "MyUSDStaking",
     eventName: "SavingsRateUpdated",
     fromBlock: 0n,
@@ -40,6 +43,14 @@ const PriceGraph = () => {
     transactionData: false,
     receiptData: false,
   });
+
+  const isLoading =
+    isPriceLoading ||
+    isBorrowRateLoading ||
+    isSavingsRateLoading ||
+    !priceEvents ||
+    !borrowRateUpdatedEvents ||
+    !savingsRateUpdatedEvents;
 
   const combinedEvents = [
     ...(priceEvents || []),
@@ -75,8 +86,6 @@ const PriceGraph = () => {
     ];
   }, []);
 
-  const priceInitial = [{ blockNumber: 0, price: 1, savingsRate: 0, borrowRate: 0 }];
-
   return (
     <div className="card bg-base-100 w-full shadow-xl indicator">
       <TooltipInfo top={3} right={3} infoText="This graph shows the price of the stabletoken over time" />
@@ -87,57 +96,67 @@ const PriceGraph = () => {
             {showRates ? "Hide Rates" : "Show Rates"}
           </button>
         </div>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart width={500} height={300} data={priceData.length > 0 ? priceData : priceInitial}>
-            <XAxis
-              domain={["auto", "auto"]}
-              dataKey="blockNumber"
-              stroke={strokeColor}
-              tick={false}
-              label={{ value: "Time (Blocks)", position: "insideBottom", fill: strokeColor }}
-            />
-            <YAxis
-              yAxisId="left"
-              scale="linear"
-              domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
-              stroke="#f9a73e"
-              tick={{ fill: "#f9a73e", fontSize: 12 }}
-              label={{ value: "Price", angle: -90, position: "insideLeft", fill: "#f9a73e" }}
-            />
-            {showRates && (
+        {isLoading ? (
+          <div className="flex items-center text-center justify-center h-full">
+            <span className="loading loading-spinner loading-lg"></span>
+          </div>
+        ) : priceData.length === 0 ? (
+          <div className="flex items-center text-center justify-center h-full">
+            <p className="text-lg text-gray-500">No data</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart width={500} height={300} data={priceData}>
+              <XAxis
+                domain={["auto", "auto"]}
+                dataKey="blockNumber"
+                stroke={strokeColor}
+                tick={false}
+                label={{ value: "Time (Blocks)", position: "insideBottom", fill: strokeColor }}
+              />
               <YAxis
-                yAxisId="right"
-                orientation="right"
+                yAxisId="left"
                 scale="linear"
                 domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
-                stroke="#bf212f"
-                tick={{ fill: "#bf212f", fontSize: 12 }}
-                label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: "#bf212f" }}
+                stroke={yellowColor}
+                tick={{ fill: yellowColor, fontSize: 12 }}
+                label={{ value: "Price", angle: -90, position: "insideLeft", fill: yellowColor }}
               />
-            )}
-            <Line yAxisId="left" type="monotone" dataKey="price" stroke="#f9a73e" dot={false} strokeWidth={2} />
-            {showRates && (
-              <>
-                <Line
+              {showRates && (
+                <YAxis
                   yAxisId="right"
-                  type="monotone"
-                  dataKey="borrowRate"
-                  stroke="#bf212f"
-                  dot={false}
-                  strokeWidth={2}
+                  orientation="right"
+                  scale="linear"
+                  domain={[(dataMin: number) => dataMin - 0.5, (dataMax: number) => dataMax + 0.5]}
+                  stroke={redColor}
+                  tick={{ fill: redColor, fontSize: 12 }}
+                  label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: redColor }}
                 />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="savingsRate"
-                  stroke="#27b376"
-                  dot={false}
-                  strokeWidth={2}
-                />
-              </>
-            )}
-          </LineChart>
-        </ResponsiveContainer>
+              )}
+              <Line yAxisId="left" type="monotone" dataKey="price" stroke={yellowColor} dot={false} strokeWidth={2} />
+              {showRates && (
+                <>
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="borrowRate"
+                    stroke={redColor}
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="savingsRate"
+                    stroke={greenColor}
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                </>
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
