@@ -37,7 +37,7 @@ const UserPositionsTable = () => {
   }, [events, users]);
 
   return (
-    <div className="card bg-base-100 w-full shadow-xl indicator">
+    <div className="card bg-base-100 w-[630px] shadow-xl indicator">
       <TooltipInfo
         top={3}
         right={3}
@@ -70,7 +70,7 @@ const UserPositionsTable = () => {
                   <div className="skeleton w-16 h-6"></div>
                 </td>
                 <td>
-                  <div className="skeleton w-24 h-6"></div>
+                  <div className="skeleton w-20 h-6"></div>
                 </td>
               </tr>
             ) : users.length === 1 ? ( // Only deployer account is has a position, but we hide it
