@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { useTheme } from "next-themes";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
@@ -6,6 +6,7 @@ import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
 const PriceGraph = () => {
+  const [showRates, setShowRates] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
@@ -80,7 +81,12 @@ const PriceGraph = () => {
     <div className="card bg-base-100 w-full shadow-xl indicator">
       <TooltipInfo top={3} right={3} infoText="This graph shows the price of the stabletoken over time" />
       <div className="card-body h-96 w-full">
-        <h2 className="card-title">Price Graph</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="card-title">Price Graph</h2>
+          <button className="btn btn-sm btn-outline" onClick={() => setShowRates(!showRates)}>
+            {showRates ? "Hide Rates" : "Show Rates"}
+          </button>
+        </div>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart width={500} height={300} data={priceData.length > 0 ? priceData : priceInitial}>
             <XAxis
@@ -94,22 +100,42 @@ const PriceGraph = () => {
               yAxisId="left"
               scale="linear"
               domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
-              stroke="#ebc034"
-              tick={{ fill: "#ebc034", fontSize: 12 }}
-              label={{ value: "Price", angle: -90, position: "insideLeft", fill: "#ebc034" }}
+              stroke="#f9a73e"
+              tick={{ fill: "#f9a73e", fontSize: 12 }}
+              label={{ value: "Price", angle: -90, position: "insideLeft", fill: "#f9a73e" }}
             />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              scale="linear"
-              domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
-              stroke="#e33030"
-              tick={{ fill: "#e33030", fontSize: 12 }}
-              label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: "#e33030" }}
-            />
-            <Line yAxisId="left" type="monotone" dataKey="price" stroke="#ebc034" dot={false} strokeWidth={2} />
-            <Line yAxisId="right" type="monotone" dataKey="borrowRate" stroke="#e33030" dot={false} strokeWidth={2} />
-            <Line yAxisId="right" type="monotone" dataKey="savingsRate" stroke="#25cf0e" dot={false} strokeWidth={2} />
+            {showRates && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                scale="linear"
+                domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
+                stroke="#bf212f"
+                tick={{ fill: "#bf212f", fontSize: 12 }}
+                label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: "#bf212f" }}
+              />
+            )}
+            <Line yAxisId="left" type="monotone" dataKey="price" stroke="#f9a73e" dot={false} strokeWidth={2} />
+            {showRates && (
+              <>
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="borrowRate"
+                  stroke="#bf212f"
+                  dot={false}
+                  strokeWidth={2}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="savingsRate"
+                  stroke="#27b376"
+                  dot={false}
+                  strokeWidth={2}
+                />
+              </>
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
