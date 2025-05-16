@@ -263,7 +263,7 @@ contract MyUSDEngine is Ownable {
         // burn the transferred stablecoins
         i_myUSD.burnFrom(address(this), userDebtValue);
 
-        // Clear user's debt shares - more gas efficient order
+        // Clear user's debt shares
         totalDebtShares -= s_userDebtShares[user];
         s_userDebtShares[user] = 0;
 

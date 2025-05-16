@@ -58,7 +58,10 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       if (allowance < userMinted) {
         await writeStablecoinContract({
           functionName: "approve",
-          args: [stablecoinEngineContract?.address, userMinted],
+          args: [
+            stablecoinEngineContract?.address,
+            BigInt("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+          ],
         });
       }
       await writeStablecoinEngineContract({
