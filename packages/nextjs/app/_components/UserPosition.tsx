@@ -21,7 +21,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
 
   const { data: userMinted } = useScaffoldReadContract({
     contractName: "MyUSDEngine",
-    functionName: "s_userDebtShares",
+    functionName: "getCurrentDebtValue",
     args: [user],
   });
 
