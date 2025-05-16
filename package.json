@@ -45,7 +45,8 @@
     "vercel:login": "yarn workspace @se-2/nextjs vercel:login",
     "vercel:yolo": "yarn workspace @se-2/nextjs vercel:yolo",
     "verify": "yarn hardhat:verify",
-    "simulate": "yarn workspace @se-2/hardhat simulate"
+    "simulate": "yarn workspace @se-2/hardhat simulate",
+    "interest-rate-controller": "yarn workspace @se-2/hardhat interest-rate-controller"
   },
   "devDependencies": {
     "husky": "~8.0.3",
