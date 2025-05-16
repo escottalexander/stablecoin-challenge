@@ -124,7 +124,7 @@ contract MyUSDEngine is Ownable {
         return ((s_userDebtShares[user] * updatedExchangeRate) / PRECISION) + 1;
     }
 
-    function getMyUSDToShares(uint256 amount) public view returns (uint256) {
+    function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
         uint256 updatedExchangeRate = _getUpdatedExchangeRate();
         return (amount * PRECISION) / updatedExchangeRate;
     }
@@ -167,7 +167,7 @@ contract MyUSDEngine is Ownable {
         }
 
         // Calculate debt shares based on current exchange rate
-        uint256 debtShares = getMyUSDToShares(mintAmount);
+        uint256 debtShares = _getMyUSDToShares(mintAmount);
 
         // Update user's debt shares and total debt shares
         s_userDebtShares[msg.sender] += debtShares;
@@ -188,7 +188,7 @@ contract MyUSDEngine is Ownable {
             revert Engine__InvalidAmount(); // Revert if burn amount is zero
         }
 
-        uint256 amountInShares = getMyUSDToShares(amount);
+        uint256 amountInShares = _getMyUSDToShares(amount);
         // Check if user has enough debt
         if (amountInShares > s_userDebtShares[msg.sender]) {
             // will only use the max amount of MyUSD that can be repaid
