@@ -99,7 +99,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     // Borrow stablecoins
     await engine.addCollateral({ value: ethCollateralAmount });
-    await engine.mintStableCoin(myUSDAmount);
+    await engine.mintMyUSD(myUSDAmount);
 
     const confirmedBalance = await stablecoin.balanceOf(deployer);
     // Don't add DEX liquidity if the deployer account doesn't have the stablecoins
