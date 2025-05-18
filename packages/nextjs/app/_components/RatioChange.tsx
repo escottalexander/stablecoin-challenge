@@ -18,7 +18,7 @@ const RatioChange = ({ user, ethPrice, inputAmount }: UserPositionProps) => {
 
   const { data: userMinted } = useScaffoldReadContract({
     contractName: "MyUSDEngine",
-    functionName: "s_userDebtShares",
+    functionName: "getCurrentDebtValue",
     args: [user],
   });
 
