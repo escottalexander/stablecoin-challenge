@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CollateralOperations from "./CollateralOperations";
 import MintOperations from "./MintOperations";
+import StakeOperations from "./StakeOperations";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
-import { ChartBarIcon, CurrencyDollarIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { ChartBarIcon, CurrencyDollarIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { tokenName } from "~~/utils/constant";
 
@@ -18,7 +19,7 @@ interface ButtonConfig {
 const BUTTONS: ButtonConfig[] = [
   { id: "collateral", icon: ChartBarIcon, title: "Collateral" },
   { id: "mint", icon: CurrencyDollarIcon, title: "Mint" },
-  { id: "stake", icon: PaperAirplaneIcon, title: "Stake" },
+  { id: "stake", icon: LockClosedIcon, title: "Stake" },
 ];
 
 const HOVER_DELAY = 100;
@@ -120,7 +121,7 @@ const SideButtons: React.FC = () => {
         return <MintOperations />;
       case "stake":
         // TODO: Add stake operations
-        return <MintOperations />;
+        return <StakeOperations />;
       default:
         return null;
     }
