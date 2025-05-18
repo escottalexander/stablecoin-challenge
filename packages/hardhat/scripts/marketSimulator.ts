@@ -27,9 +27,10 @@ interface StakerProfile {
 type SimulatedAccount = BorrowerProfile | StakerProfile;
 
 // Configuration
+const ETH_PRICE_USD = 1800; // Hardcoded ETH price in USD
 const NUM_BORROWERS = 5;
 const NUM_STAKERS = 5;
-const SIMULATION_INTERVAL_MS = 3000;
+const SIMULATION_INTERVAL_MS = 2000;
 const UI_REFRESH_MS = 500;
 
 // UI global variables
@@ -139,8 +140,6 @@ function initializeUI() {
   logActivity("Market simulator started");
   screen.render();
 }
-
-const ETH_PRICE_USD = 1800; // Hardcoded ETH price in USD
 
 // Get borrower status description based on conditions
 function getBorrowerStatus(
@@ -331,8 +330,9 @@ async function updateUI(
 
       stakersTable.setData({
         headers: ["Address", "MyUSD Bal", "Staked", "Min Rate", "Status"],
-        data: stakerRows,
+        data: stakerRows.length > 0 ? stakerRows : [["-", "-", "-", "-", "No stakers"]],
       });
+      stakersTable.show();
     } catch (error: any) {
       console.log(`Error updating stakers table: ${error}`);
     }
@@ -351,9 +351,11 @@ async function fundAccountsIfNeeded(accounts: SimulatedAccount[], deployer: any)
 
     // Fund if balance drops below 2 ETH
     if (currentBalance < ethers.parseEther("2")) {
-      // Random amount between 3-13 ETH
+      // Random amount between 30-130 ETH
       const randomEth = 30 + Math.random() * 100;
-      const topUpAmount = ethers.parseEther(randomEth.toString());
+      // Stakers receive more since they can't use leverage to have a compounded effect on the price.
+      const multiplier = account.type === "staker" ? 1.66 : 1;
+      const topUpAmount = ethers.parseEther((randomEth * multiplier).toString());
 
       const tx = await deployer.sendTransaction({
         to: account.wallet.address,
@@ -424,9 +426,7 @@ async function simulateBorrowing(
 
     // Get current debt and collateral
     const collateralValue = await engine.calculateCollateralValue(borrower.wallet.address);
-    const currentDebtShares = await engine.s_userDebtShares(borrower.wallet.address);
-    const debtExchangeRate = await engine.debtExchangeRate();
-    const currentDebt = (currentDebtShares * debtExchangeRate) / BigInt(1e18);
+    const currentDebt = await engine.getCurrentDebtValue(borrower.wallet.address);
 
     // Check if borrower should pay down debt due to high rates
     if (currentDebt > 0n && currentBorrowRate > borrower.maxAcceptableRate) {
@@ -434,14 +434,14 @@ async function simulateBorrowing(
 
       if (myUSDBalance > 0n) {
         try {
-          let amountToBurn = currentDebt;
-          if (currentDebt > myUSDBalance) {
+          let amountToBurn = currentDebt + ethers.parseEther("0.01");
+          if (amountToBurn > myUSDBalance) {
             amountToBurn = myUSDBalance;
           }
 
           // Approve and burn debt
           await myUSDWithBorrower.approve(engine.target, amountToBurn);
-          await engineWithBorrower.burnStableCoin(amountToBurn);
+          await engineWithBorrower.repayUpTo(amountToBurn);
 
           logActivity(
             `Borrower ${borrower.wallet.address.slice(0, 6)}... repaid ${ethers.formatEther(amountToBurn).slice(0, 6)} MyUSD `,
@@ -517,15 +517,7 @@ async function simulateBorrowing(
       if (borrowAmount > 0n) {
         try {
           // Leveraged borrowing strategy - performs one leverage cycle each time
-          await executeLeveragedBorrowing(
-            borrower,
-            engine,
-            myUSD,
-            dex,
-            borrowAmount,
-            borrowingWillingness,
-            currentBorrowRate,
-          );
+          await executeBorrowing(borrower, engine, myUSD, dex, borrowAmount, borrowingWillingness, currentBorrowRate);
         } catch (error: any) {
           logActivity(
             `Failed to execute leveraged borrowing for ${borrower.wallet.address.slice(0, 6)}... Error: ${error}`,
@@ -539,7 +531,7 @@ async function simulateBorrowing(
 }
 
 // Execute single-cycle leveraged borrowing strategy
-async function executeLeveragedBorrowing(
+async function executeBorrowing(
   borrower: BorrowerProfile,
   engine: MyUSDEngine,
   myUSD: MyUSD,
@@ -559,11 +551,15 @@ async function executeLeveragedBorrowing(
 
   try {
     // 1. Borrow MyUSD
-    await engineWithBorrower.mintStableCoin(borrowAmount);
+    await engineWithBorrower.mintMyUSD(borrowAmount);
 
-    // 2. Approve and swap MyUSD for ETH
-    await myUSDWithBorrower.approve(dex.target, borrowAmount);
-    const swapTx = await dexWithBorrower.swap(borrowAmount);
+    // 2. Approve and swap MyUSD for ETH (percent based on risk appetite)
+    let percentToSwapNum = 60 + borrower.debtTolerance * 0.3 - borrower.rateSensitivity * 0.2;
+    percentToSwapNum = Math.max(10, Math.min(100, percentToSwapNum));
+    const percentToSwap = BigInt(Math.round(percentToSwapNum));
+    const myUSDToSwap = (borrowAmount * percentToSwap) / 100n;
+    await myUSDWithBorrower.approve(dex.target, myUSDToSwap);
+    const swapTx = await dexWithBorrower.swap(myUSDToSwap);
     await swapTx.wait();
 
     // 3. Add the ETH as collateral (use 90% of balance above 1 ETH safety margin)
@@ -648,13 +644,13 @@ async function simulateStaking(
     }
 
     // Determine if staker should acquire MyUSD
-    if (myUSDBalance < ethers.parseEther("1") && currentSavingsRate >= staker.minAcceptableRate) {
+    const ethReserve = ethers.parseEther("0.1"); // For gas
+    if (myUSDBalance < ethReserve && currentSavingsRate >= staker.minAcceptableRate) {
       const ethBalance = await ethers.provider.getBalance(staker.wallet.address);
-
-      if (ethBalance > ethers.parseEther("1")) {
+      if (ethBalance > ethReserve) {
         try {
           // Swap ETH for MyUSD
-          const ethToSwap = ethBalance - ethers.parseEther("1");
+          const ethToSwap = ethBalance - ethReserve;
           await dexWithStaker.swap(ethToSwap, { value: ethToSwap });
           logActivity(
             `Staker ${staker.wallet.address.slice(0, 6)}... swapped ${ethers.formatEther(ethToSwap).slice(0, 6)} ETH for MyUSD`,

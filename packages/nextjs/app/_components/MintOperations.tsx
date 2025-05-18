@@ -25,7 +25,7 @@ const MintOperations = () => {
   const handleMint = async () => {
     try {
       await writeStablecoinEngineContract({
-        functionName: "mintStableCoin",
+        functionName: "mintMyUSD",
         args: [mintAmount ? parseEther(mintAmount) : 0n],
       });
       setMintAmount("");
@@ -37,7 +37,7 @@ const MintOperations = () => {
   const handleBurn = async () => {
     try {
       await writeStablecoinEngineContract({
-        functionName: "burnStableCoin",
+        functionName: "repayUpTo",
         args: [burnAmount ? parseEther(burnAmount) : 0n],
       });
       setBurnAmount("");

@@ -69,19 +69,15 @@ const RateControls: React.FC = () => {
     functionName: "borrowRate",
   });
 
-  const { writeContractAsync: writeStakingContractAsync } = useScaffoldWriteContract({
-    contractName: "MyUSDStaking",
-  });
-
-  const { writeContractAsync: writeEngineContractAsync } = useScaffoldWriteContract({
-    contractName: "MyUSDEngine",
+  const { writeContractAsync: writeRateControllerContractAsync } = useScaffoldWriteContract({
+    contractName: "RateController",
   });
 
   const handleSaveSavingsRate = useCallback(
     async (value: string) => {
       console.log(value);
       try {
-        await writeStakingContractAsync({
+        await writeRateControllerContractAsync({
           functionName: "setSavingsRate",
           args: [BigInt(Math.round(Number(value) * 100))],
         });
@@ -90,13 +86,13 @@ const RateControls: React.FC = () => {
         console.error("Failed to update savings rate:", error);
       }
     },
-    [writeStakingContractAsync],
+    [writeRateControllerContractAsync],
   );
 
   const handleSaveBorrowRate = useCallback(
     async (value: string) => {
       try {
-        await writeEngineContractAsync({
+        await writeRateControllerContractAsync({
           functionName: "setBorrowRate",
           args: [BigInt(Math.round(Number(value) * 100))],
         });
@@ -105,7 +101,7 @@ const RateControls: React.FC = () => {
         console.error("Failed to update borrow rate:", error);
       }
     },
-    [writeEngineContractAsync],
+    [writeRateControllerContractAsync],
   );
 
   return (

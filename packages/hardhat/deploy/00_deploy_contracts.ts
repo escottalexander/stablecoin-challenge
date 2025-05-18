@@ -29,19 +29,28 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   const deployerNonce = await hre.ethers.provider.getTransactionCount(deployer);
 
   // Calculate future addresses based on nonce
-  const futureEngineAddress = hre.ethers.getCreateAddress({
+  const futureStakingAddress = hre.ethers.getCreateAddress({
     from: deployer,
-    nonce: deployerNonce + 4, // +4 because it will be our 5th deployment (after MyUSD, DEX, Oracle, Staking)
+    nonce: deployerNonce + 4, // +4 because it will be our fifth deployment (after MyUSD, DEX, Oracle, RateController)
   });
 
-  // Deploy contracts knowing the future engine address
+  const futureEngineAddress = hre.ethers.getCreateAddress({
+    from: deployer,
+    nonce: deployerNonce + 5, // +5 because it will be our sixth deployment (after MyUSD, DEX, Oracle, Staking, RateController)
+  });
+
+  await deploy("RateController", {
+    from: deployer,
+    args: [futureEngineAddress, futureStakingAddress],
+  });
+  const rateController = await hre.ethers.getContract<Contract>("RateController", deployer);
+
   await deploy("MyUSD", {
     from: deployer,
-    args: [futureEngineAddress],
+    args: [futureEngineAddress, futureStakingAddress],
   });
   const stablecoin = await hre.ethers.getContract<Contract>("MyUSD", deployer);
 
-  // Continue with other deployments
   await deploy("DEX", {
     from: deployer,
     args: [stablecoin.target],
@@ -56,14 +65,14 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
   await deploy("MyUSDStaking", {
     from: deployer,
-    args: [stablecoin.target, futureEngineAddress],
+    args: [stablecoin.target, futureEngineAddress, rateController.target],
   });
   const staking = await hre.ethers.getContract<Contract>("MyUSDStaking", deployer);
 
   // Finally deploy the engine at the predicted address
   await deploy("MyUSDEngine", {
     from: deployer,
-    args: [oracle.target, stablecoin.target, staking.target],
+    args: [oracle.target, stablecoin.target, staking.target, rateController.target],
   });
   const engine = await hre.ethers.getContract<Contract>("MyUSDEngine", deployer);
 
@@ -74,9 +83,6 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   }
 
   if (hre.network.name === "localhost") {
-    // Set the staking contract in the MyUSD contract
-    await stablecoin.setStakingContract(staking.target);
-
     // Set deployer ETH balance
     await hre.ethers.provider.send("hardhat_setBalance", [
       deployer,
@@ -93,7 +99,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     // Borrow stablecoins
     await engine.addCollateral({ value: ethCollateralAmount });
-    await engine.mintStableCoin(myUSDAmount);
+    await engine.mintMyUSD(myUSDAmount);
 
     const confirmedBalance = await stablecoin.balanceOf(deployer);
     // Don't add DEX liquidity if the deployer account doesn't have the stablecoins
