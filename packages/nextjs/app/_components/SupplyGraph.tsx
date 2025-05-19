@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+import { INITIAL_DEX_SUPPLY } from "~~/utils/constant";
 
 const toPercent = (decimal: number, fixed = 0) => `${(decimal * 100).toFixed(fixed)}%`;
 
@@ -50,7 +51,9 @@ const PriceGraph = () => {
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
   const yellowColor = "#f9a73e";
   const redColor = "#bf212f";
-  const greenColor = "#27b376";
+  //   const greenColor = "#27b376";
+  const purpleColor = "#8884d8";
+  const greenColor = "#82ca9d";
 
   const { data: debtSharesMintedEvents, isLoading: isDebtSharesMintedLoading } = useScaffoldEventHistory({
     contractName: "MyUSDEngine",
@@ -92,15 +95,23 @@ const PriceGraph = () => {
     receiptData: false,
   });
 
-  const initialDexSupply = 18000000000;
+  const { data: swapEvents, isLoading: isSwapLoading } = useScaffoldEventHistory({
+    contractName: "DEX",
+    eventName: "Swap",
+    fromBlock: 0n,
+    watch: true,
+    blockData: true,
+  });
 
-  const isLoading = isDebtSharesMintedLoading || isDebtSharesBurnedLoading || isStakedLoading || isWithdrawnLoading;
+  const isLoading =
+    isDebtSharesMintedLoading || isDebtSharesBurnedLoading || isStakedLoading || isWithdrawnLoading || isSwapLoading;
 
   const combinedEvents = [
     ...(debtSharesMintedEvents || []),
     ...(debtSharesBurnedEvents || []),
     ...(stakedEvents || []),
     ...(withdrawnEvents || []),
+    ...(swapEvents || []),
   ];
   const sortedEvents = combinedEvents.sort((a, b) => Number(a.blockNumber - b.blockNumber));
 
@@ -118,11 +129,22 @@ const PriceGraph = () => {
     const burned = event.eventName === "DebtSharesBurned" ? Number(formatEther(event.args.amount || 0n)) : 0;
     const staked = event.eventName === "Staked" ? Number(formatEther(event.args.amount || 0n)) : 0;
     const withdrawn = event.eventName === "Withdrawn" ? Number(formatEther(event.args.amount || 0n)) : 0;
-    if (minted >= initialDexSupply) {
+
+    let dexSentMyUSDAmount = 0;
+    let dexReceivedMyUSDAmount = 0;
+    if (event.eventName === "Swap") {
+      if (event.args?.inputToken === "0x0000000000000000000000000000000000000000") {
+        dexSentMyUSDAmount = Number(formatEther(event.args.outputAmount || 0n));
+      } else {
+        dexReceivedMyUSDAmount = Number(formatEther(event.args.inputAmount || 0n));
+      }
+    }
+    if (minted >= INITIAL_DEX_SUPPLY) {
       minted = 0;
     }
-    //
-    const circulatingSupply = prevCirculatingSupply + minted - burned - staked + withdrawn;
+
+    const circulatingSupply =
+      prevCirculatingSupply + minted - burned - staked + withdrawn + dexSentMyUSDAmount - dexReceivedMyUSDAmount;
     const stakedSupply = prevStakedSupply + staked - withdrawn;
 
     return [
@@ -151,18 +173,14 @@ const PriceGraph = () => {
           <div className="flex items-center text-center justify-center h-full">
             <span className="loading loading-spinner loading-lg"></span>
           </div>
-        ) : false ? ( // TODO: Add data
-          <div className="flex items-center text-center justify-center h-full">
-            <p className="text-lg text-gray-500">No data</p>
-          </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart width={500} height={300} data={supplyData} stackOffset="expand">
               <CartesianGrid strokeDasharray="3 3" />
               <YAxis tickFormatter={value => toPercent(value, 0)} />
               <Tooltip content={renderTooltipContent} />
-              <Area type="monotone" dataKey="circulatingSupply" stackId="1" stroke="#8884d8" fill="#8884d8" />
-              <Area type="monotone" dataKey="stakedSupply" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+              <Area type="monotone" dataKey="circulatingSupply" stackId="1" stroke={purpleColor} fill={purpleColor} />
+              <Area type="monotone" dataKey="stakedSupply" stackId="1" stroke={greenColor} fill={greenColor} />
               <XAxis
                 domain={["auto", "auto"]}
                 dataKey="blockNumber"
