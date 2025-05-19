@@ -12,6 +12,7 @@ interface RateInputProps {
   onSave: (value: string) => Promise<void>;
   newValue: string;
   onNewValueChange: (value: string) => void;
+  label: string;
 }
 
 const RateInput: React.FC<RateInputProps> = ({
@@ -22,11 +23,14 @@ const RateInput: React.FC<RateInputProps> = ({
   onSave,
   newValue,
   onNewValueChange,
+  label,
 }) => {
   const formattedValue = Number(value || 0n) / 100;
 
   return (
-    <div className="flex justify-center gap-2 w-full h-10">
+    <div className="flex justify-center items-center gap-2 w-full h-10">
+      <span className="label-text text-base whitespace-nowrap">{label}</span>
+
       {isEditing ? (
         <div className="flex gap-1 w-full items-center">
           <div className="w-3/5">
@@ -42,8 +46,8 @@ const RateInput: React.FC<RateInputProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex w-full justify-between items-center">
-          <span className="flex px-2 w-1/2 font-medium">{formattedValue.toFixed(2)}%</span>
+        <div className="flex w-full items-center">
+          <span className="flex px-2 justify-end w-1/2 font-medium">{formattedValue.toFixed(2)}%</span>
           <button className="w-1/3 btn btn-sm" onClick={onEdit} aria-label="Edit rate">
             <PencilIcon className="h-3 w-3" /> Edit
           </button>
@@ -105,46 +109,44 @@ const RateControls: React.FC = () => {
   );
 
   return (
-    <div className="card bg-base-100 w-96 shadow-xl indicator">
+    <div className="card bg-base-100 w-full shadow-xl indicator">
       <TooltipInfo top={3} right={3} infoText="Set the borrow rate and savings rate for the engine in %" />
 
-      <div className="card-body">
-        <h2 className="card-title">Rate Controls</h2>
+      <div className="card-body p-5">
+        <h2 className="card-title my-0">Rate Controls</h2>
 
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Borrow Rate</span>
-          </label>
-          <RateInput
-            value={borrowRate}
-            isEditing={isEditingBR}
-            onEdit={() => setIsEditingBR(true)}
-            onCancel={() => {
-              setIsEditingBR(false);
-              setNewBorrowRate("");
-            }}
-            onSave={handleSaveBorrowRate}
-            newValue={newBorrowRate}
-            onNewValueChange={setNewBorrowRate}
-          />
-        </div>
+        <div className="flex justify-between">
+          <div className="flex w-1/2 items-center gap-2">
+            <RateInput
+              label="Borrow Rate"
+              value={borrowRate}
+              isEditing={isEditingBR}
+              onEdit={() => setIsEditingBR(true)}
+              onCancel={() => {
+                setIsEditingBR(false);
+                setNewBorrowRate("");
+              }}
+              onSave={handleSaveBorrowRate}
+              newValue={newBorrowRate}
+              onNewValueChange={setNewBorrowRate}
+            />
+          </div>
 
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Savings Rate</span>
-          </label>
-          <RateInput
-            value={savingsRate}
-            isEditing={isEditingSR}
-            onEdit={() => setIsEditingSR(true)}
-            onCancel={() => {
-              setIsEditingSR(false);
-              setNewSavingsRate("");
-            }}
-            onSave={handleSaveSavingsRate}
-            newValue={newSavingsRate}
-            onNewValueChange={setNewSavingsRate}
-          />
+          <div className="flex w-1/2 items-center gap-2">
+            <RateInput
+              label="Savings Rate"
+              value={savingsRate}
+              isEditing={isEditingSR}
+              onEdit={() => setIsEditingSR(true)}
+              onCancel={() => {
+                setIsEditingSR(false);
+                setNewSavingsRate("");
+              }}
+              onSave={handleSaveSavingsRate}
+              newValue={newSavingsRate}
+              onNewValueChange={setNewSavingsRate}
+            />
+          </div>
         </div>
       </div>
     </div>

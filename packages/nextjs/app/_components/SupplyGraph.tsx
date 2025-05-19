@@ -45,7 +45,7 @@ const renderTooltipContent = (props: TooltipProps<number, string>) => {
   );
 };
 
-const PriceGraph = () => {
+const SupplyGraph = () => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
@@ -197,4 +197,4 @@ const PriceGraph = () => {
   );
 };
 
-export default PriceGraph;
+export default SupplyGraph;

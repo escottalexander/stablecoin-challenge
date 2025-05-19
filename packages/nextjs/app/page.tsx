@@ -1,7 +1,5 @@
 "use client";
 
-import CollateralOperations from "./_components/CollateralOperations";
-import MintOperations from "./_components/MintOperations";
 import PriceGraph from "./_components/PriceGraph";
 import RateControls from "./_components/RateControls";
 import SideButtons from "./_components/SideButtons";
@@ -20,16 +18,16 @@ const Home: NextPage = () => {
             <TokenActions />
             <SideButtons />
           </div>
-          <div className="flex flex-wrap gap-8 justify-center">
-            <div className="flex flex-col gap-8">
-              <PriceGraph />
-              <UserPositionsTable />
-            </div>
-            <div className="flex flex-col gap-8">
-              <SupplyGraph />
-              <RateControls />
-              <CollateralOperations />
-              <MintOperations />
+          <div className="flex w-full max-w-7xl px-[120px] mx-auto flex-col gap-8">
+            <RateControls />
+            <div className="flex w-full gap-8 justify-center">
+              <div className="flex flex-col gap-8 w-3/5">
+                <PriceGraph />
+                <UserPositionsTable />
+              </div>
+              <div className="flex flex-col gap-8 w-2/5">
+                <SupplyGraph />
+              </div>
             </div>
           </div>
         </div>
