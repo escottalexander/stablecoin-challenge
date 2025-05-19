@@ -98,8 +98,8 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)}</td>
       <td>{Number(formatEther(userMinted || 0n)).toFixed(2)}</td>
       <td className={getRatioColorClass(ratio)}>{formattedRatio === "N/A" ? "N/A" : `${formattedRatio}%`}</td>
-      <td className="flex justify-center">
-        <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-sm btn-ghost">
+      <td className="text-center p-1">
+        <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-xs btn-ghost">
           {isLiquidating ? <span className="loading loading-spinner loading-sm"></span> : "Liquidate"}
         </button>
       </td>

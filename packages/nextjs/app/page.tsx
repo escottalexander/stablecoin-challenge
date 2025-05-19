@@ -7,7 +7,7 @@ import SupplyGraph from "./_components/SupplyGraph";
 import TokenActions from "./_components/TokenActions";
 import UserPositionsTable from "./_components/UserPositionsTable";
 import type { NextPage } from "next";
-
+import StakersStable from "./_components/StakersStable";
 const Home: NextPage = () => {
   return (
     <>
@@ -27,6 +27,7 @@ const Home: NextPage = () => {
               </div>
               <div className="flex flex-col gap-8 w-2/5">
                 <SupplyGraph />
+                <StakersStable />
               </div>
             </div>
           </div>
