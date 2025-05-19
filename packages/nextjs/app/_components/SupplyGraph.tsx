@@ -167,7 +167,7 @@ const SupplyGraph = () => {
       />
       <div className="card-body h-96 w-full">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Price Graph</h2>
+          <h2 className="card-title">Supply Graph</h2>
         </div>
         {isLoading ? (
           <div className="flex items-center text-center justify-center h-full">
@@ -179,8 +179,22 @@ const SupplyGraph = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <YAxis tickFormatter={value => toPercent(value, 0)} />
               <Tooltip content={renderTooltipContent} />
-              <Area type="monotone" dataKey="circulatingSupply" stackId="1" stroke={purpleColor} fill={purpleColor} />
-              <Area type="monotone" dataKey="stakedSupply" stackId="1" stroke={greenColor} fill={greenColor} />
+              <Area
+                type="monotone"
+                dataKey="circulatingSupply"
+                name="Circulating"
+                stackId="1"
+                stroke={purpleColor}
+                fill={purpleColor}
+              />
+              <Area
+                type="monotone"
+                dataKey="stakedSupply"
+                name="Staked"
+                stackId="1"
+                stroke={greenColor}
+                fill={greenColor}
+              />
               <XAxis
                 domain={["auto", "auto"]}
                 dataKey="blockNumber"
