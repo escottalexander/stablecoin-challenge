@@ -24,7 +24,6 @@ const StakerRow = ({ staker, connectedAddress }: { staker: string; connectedAddr
         <AddressBlock address={staker} disableAddressLink format="short" size="sm" />
       </td>
       <td>{Number(formatEther(stakedAmount || 0n)).toFixed(2)}</td>
-      <td>{Number(formatEther(userShares || 0n)).toFixed(2)}</td>
     </tr>
   );
 };
@@ -68,7 +67,6 @@ const StakersStable = () => {
             <tr>
               <th>Address</th>
               <th>Staked</th>
-              <th>Shares</th>
             </tr>
           </thead>
           <tbody>
@@ -80,18 +78,11 @@ const StakersStable = () => {
                 <td>
                   <div className="skeleton w-16 h-6"></div>
                 </td>
-                <td>
-                  <div className="skeleton w-16 h-6"></div>
-                </td>
-              </tr>
-            ) : stakers.length === 0 ? ( // Only deployer account is has a position, but we hide it
-              <tr>
-                <td colSpan={5} className="text-center">
-                  No stakers available.
-                </td>
               </tr>
             ) : (
-              stakers.map(staker => <StakerRow key={staker} staker={staker} connectedAddress={connectedAddress || ""} />)
+              stakers.map(staker => (
+                <StakerRow key={staker} staker={staker} connectedAddress={connectedAddress || ""} />
+              ))
             )}
           </tbody>
         </table>

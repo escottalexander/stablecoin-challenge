@@ -7,7 +7,7 @@ import SupplyGraph from "./_components/SupplyGraph";
 import TokenActions from "./_components/TokenActions";
 import UserPositionsTable from "./_components/UserPositionsTable";
 import type { NextPage } from "next";
-import StakersStable from "./_components/StakersStable";
+import StakersStable from "./_components/StakersTable";
 const Home: NextPage = () => {
   return (
     <>

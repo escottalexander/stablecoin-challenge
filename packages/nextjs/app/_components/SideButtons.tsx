@@ -128,7 +128,7 @@ const SideButtons: React.FC = () => {
   }, [hoveredButton, tokenBalance, address, ethPrice, myUSDPrice, transferModalId, swapModalId]);
 
   return (
-    <div className="absolute top-[120px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-10">
+    <div className="absolute top-[120px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-5">
       <div className="relative">
         <div className="p-4 flex flex-col items-center gap-2">
           {BUTTONS.map(config => (
@@ -144,7 +144,7 @@ const SideButtons: React.FC = () => {
 
         {/* Hover Windows */}
         <div
-          className={`absolute top-0 right-full mr-4 transition-all duration-300 ease-in-out ${hoveredButton ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}`}
+          className={`absolute top-0 right-full mr-4 transition-all duration-300 z-10 ease-in-out ${hoveredButton ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}`}
           onMouseEnter={handleModalHover}
           onMouseLeave={handleModalLeave}
           style={{ top: modalPosition }}

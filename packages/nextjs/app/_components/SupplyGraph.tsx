@@ -1,49 +1,10 @@
 import React from "react";
 import TooltipInfo from "./TooltipInfo";
 import { useTheme } from "next-themes";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  TooltipProps,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { INITIAL_DEX_SUPPLY } from "~~/utils/constant";
-
-const toPercent = (decimal: number, fixed = 0) => `${(decimal * 100).toFixed(fixed)}%`;
-
-const getPercent = (value: number, total: number) => {
-  const ratio = total > 0 ? value / total : 0;
-
-  return toPercent(ratio, 2);
-};
-
-const renderTooltipContent = (props: TooltipProps<number, string>) => {
-  const { payload, label } = props;
-  if (!payload || !payload.length) return null;
-
-  const total = payload.reduce((result, entry) => result + (entry.value || 0), 0);
-
-  return (
-    <div className="customized-tooltip-content">
-      <ul className="list text-sm">
-        <li className="">{`Blocknumber: ${label}`}</li>
-        <li className="">{`Total: ${total.toFixed(2)}`}</li>
-        {payload.map((entry, index) => (
-          <li
-            key={`item-${index}`}
-          >{`${entry.name}: ${entry.value?.toFixed(2)}(${getPercent(entry.value || 0, total)})`}</li>
-        ))}
-      </ul>
-    </div>
-  );
-};
 
 const SupplyGraph = () => {
   const { resolvedTheme } = useTheme();
@@ -163,7 +124,7 @@ const SupplyGraph = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This graph displays the stablecoin price (yellow), borrow rate (red), and savings rate (green) over time. Toggle rates visibility using the button."
+        infoText="This graph displays the circulating supply (purple) and staked supply (green) over time."
       />
       <div className="card-body h-96 w-full">
         <div className="flex justify-between items-center mb-4">
@@ -175,10 +136,20 @@ const SupplyGraph = () => {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart width={500} height={300} data={supplyData} stackOffset="expand">
-              <CartesianGrid strokeDasharray="3 3" />
-              <YAxis tickFormatter={value => toPercent(value, 0)} />
-              <Tooltip content={renderTooltipContent} />
+            <AreaChart width={500} height={300} data={supplyData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <YAxis
+                tickFormatter={value => {
+                  if (value > 1000000) {
+                    return `${(value / 1000000).toFixed(2)}M`;
+                  }
+                  if (value > 1000) {
+                    return `${(value / 1000).toFixed(2)}k`;
+                  }
+                  return value;
+                }}
+                tick={{ fill: strokeColor, fontSize: 12 }}
+              />
               <Area
                 type="monotone"
                 dataKey="circulatingSupply"
