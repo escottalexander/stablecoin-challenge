@@ -37,14 +37,14 @@ const UserPositionsTable = () => {
   }, [events, users]);
 
   return (
-    <div className="card bg-base-100 w-[630px] shadow-xl indicator">
+    <div className="card bg-base-100 w-full shadow-xl indicator">
       <TooltipInfo
         top={3}
         right={3}
         infoText="This table displays all users with a position in the MyUSDEngine pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
       />
-      <div className="overflow-x-auto">
-        <table className="table">
+      <div className="overflow-x-scroll">
+        <table className="table table-md lg:table-sm xl:table-md">
           <thead>
             <tr>
               <th>Address</th>

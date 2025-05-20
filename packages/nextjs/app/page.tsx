@@ -18,14 +18,14 @@ const Home: NextPage = () => {
             <TokenActions />
             <SideButtons />
           </div>
-          <div className="flex w-full max-w-7xl px-[120px] mx-auto flex-col gap-8">
+          <div className="flex w-full max-w-7xl px-[150px] mx-auto flex-col gap-8">
             <RateControls />
-            <div className="flex w-full gap-8 justify-center">
-              <div className="flex flex-col gap-8 w-3/5">
+            <div className="flex flex-col lg:flex-row w-full gap-8 justify-center">
+              <div className="flex flex-col gap-8 w-full lg:w-3/5">
                 <PriceGraph />
                 <UserPositionsTable />
               </div>
-              <div className="flex flex-col gap-8 w-2/5">
+              <div className="flex flex-col gap-8 w-full lg:w-2/5">
                 <SupplyGraph />
                 <StakersStable />
               </div>

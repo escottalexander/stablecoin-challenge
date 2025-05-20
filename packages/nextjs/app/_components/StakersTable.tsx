@@ -66,7 +66,7 @@ const StakersStable = () => {
           <thead>
             <tr>
               <th>Address</th>
-              <th>Staked</th>
+              <th>Staked (MyUSD)</th>
             </tr>
           </thead>
           <tbody>

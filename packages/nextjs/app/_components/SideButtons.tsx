@@ -128,7 +128,7 @@ const SideButtons: React.FC = () => {
   }, [hoveredButton, tokenBalance, address, ethPrice, myUSDPrice, transferModalId, swapModalId]);
 
   return (
-    <div className="absolute top-[120px] right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-5">
+    <div className="absolute top-[120px] right-0 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-5">
       <div className="relative">
         <div className="p-4 flex flex-col items-center gap-2">
           {BUTTONS.map(config => (

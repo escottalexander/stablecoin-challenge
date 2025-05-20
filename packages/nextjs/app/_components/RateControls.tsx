@@ -30,18 +30,18 @@ const RateInput: React.FC<RateInputProps> = ({
   const formattedValue = Number(value ?? 0n) / 100;
 
   return (
-    <div className="flex justify-end items-center gap-2 w-full h-10">
-      {alignRight && <div className="w-1/5"></div>}
+    <div className="flex justify-end items-center w-full h-10">
+      {alignRight && <div className="w-0 lg:w-1/5"></div>}
       <span className="w-1/5 label-text text-base whitespace-nowrap">{label}</span>
 
-      <div className="w-3/5">
+      <div className="ml-2 w-3/5">
         {isEditing ? (
           <IntegerInput value={newValue} onChange={onNewValueChange} placeholder="Rate" disableMultiplyBy1e18 />
         ) : (
           <span className="flex px-2 justify-center font-medium">{formattedValue.toFixed(2)}%</span>
         )}
       </div>
-      <div className="flex w-1/5 gap-1">
+      <div className="flex mx-2 w-1/5 gap-1">
         {isEditing ? (
           <>
             <label className="btn btn-sm btn-circle" onClick={() => onSave(newValue)}>
@@ -53,13 +53,13 @@ const RateInput: React.FC<RateInputProps> = ({
           </>
         ) : (
           <div className="flex w-full items-center">
-            <button className=" btn btn-sm" onClick={onEdit} aria-label="Edit rate">
+            <button className="btn btn-sm" onClick={onEdit} aria-label="Edit rate">
               <PencilIcon className="h-3 w-3" /> Edit
             </button>
           </div>
         )}
       </div>
-      {!alignRight && <div className="w-1/5"></div>}
+      {!alignRight && <div className="lg:w-1/5"></div>}
     </div>
   );
 };
@@ -122,8 +122,8 @@ const RateControls: React.FC = () => {
       <div className="card-body p-5">
         <h2 className="card-title my-0">Rate Controls</h2>
 
-        <div className="flex justify-between">
-          <div className="flex w-1/2 items-center gap-2">
+        <div className="flex flex-col lg:flex-row justify-between">
+          <div className="flex w-full lg:w-1/2 items-center gap-2">
             <RateInput
               label="Borrow Rate"
               value={borrowRate}
@@ -139,7 +139,7 @@ const RateControls: React.FC = () => {
             />
           </div>
 
-          <div className="flex w-1/2 items-center gap-2">
+          <div className="flex w-full lg:w-1/2 items-center gap-2">
             <RateInput
               label="Savings Rate"
               value={savingsRate}
