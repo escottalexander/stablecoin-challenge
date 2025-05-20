@@ -94,8 +94,8 @@ const PriceGraph = () => {
         infoText="This graph displays the stablecoin price (yellow), borrow rate (red), and savings rate (green) over time. Toggle rates visibility using the button."
       />
       <div className="card-body h-96 w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Price Graph</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="card-title mb-0">Price Graph</h2>
           <button className="btn btn-sm btn-outline" onClick={() => setShowRates(!showRates)}>
             {showRates ? "Hide Rates" : "Show Rates"}
           </button>
@@ -134,7 +134,7 @@ const PriceGraph = () => {
                   domain={[(dataMin: number) => dataMin - 0.5, (dataMax: number) => dataMax + 0.5]}
                   stroke={strokeColor}
                   tick={{ fill: strokeColor, fontSize: 12 }}
-                  label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: strokeColor, dx: -15 }}
+                  label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: strokeColor, dy: 15, dx: -15 }}
                 />
               )}
               <Line
@@ -168,7 +168,11 @@ const PriceGraph = () => {
                   />
                 </>
               )}
-              <Legend verticalAlign="top" formatter={value => <span style={{ color: strokeColor }}>{value}</span>} />
+              <Legend
+                verticalAlign="top"
+                wrapperStyle={{ paddingBottom: 10 }}
+                formatter={value => <span style={{ color: strokeColor }}>{value}</span>}
+              />
             </LineChart>
           </ResponsiveContainer>
         )}

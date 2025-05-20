@@ -127,8 +127,8 @@ const SupplyGraph = () => {
         infoText="This graph displays the circulating supply (purple) and staked supply (green) over time."
       />
       <div className="card-body h-96 w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Supply Graph</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="card-title mb-0">Supply Graph</h2>
         </div>
         {isLoading ? (
           <div className="flex items-center text-center justify-center h-full">
@@ -147,6 +147,13 @@ const SupplyGraph = () => {
                     return `${(value / 1000).toFixed(2)}k`;
                   }
                   return value;
+                }}
+                label={{ 
+                  value: "MyUSD Amount", 
+                  angle: -90, 
+                  position: "insideLeft", 
+                  fill: strokeColor,
+                  dy: 50,
                 }}
                 tick={{ fill: strokeColor, fontSize: 12 }}
               />
@@ -173,7 +180,11 @@ const SupplyGraph = () => {
                 tick={false}
                 label={{ value: "Time (Blocks)", position: "insideBottom", fill: strokeColor }}
               />
-              <Legend verticalAlign="top" formatter={value => <span style={{ color: strokeColor }}>{value}</span>} />
+              <Legend 
+                verticalAlign="top" 
+                wrapperStyle={{ paddingBottom: 10 }}
+                formatter={value => <span style={{ color: strokeColor }}>{value}</span>} 
+              />
             </AreaChart>
           </ResponsiveContainer>
         )}
