@@ -2,11 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import CollateralOperations from "./CollateralOperations";
 import MintOperations from "./MintOperations";
 import StakeOperations from "./StakeOperations";
-import { formatEther } from "viem";
-import { useAccount } from "wagmi";
 import { ChartBarIcon, CurrencyDollarIcon, LockClosedIcon } from "@heroicons/react/24/outline";
-import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
-import { tokenName } from "~~/utils/constant";
 
 type ButtonType = "collateral" | "mint" | "stake";
 
@@ -27,6 +23,7 @@ const HOVER_DELAY = 100;
 const SideButton: React.FC<{
   config: ButtonConfig;
   isHovered: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onHover: (id: ButtonType) => void;
   onLeave: () => void;
 }> = React.memo(({ config, isHovered, onHover, onLeave }) => {
@@ -45,30 +42,9 @@ const SideButton: React.FC<{
 SideButton.displayName = "SideButton";
 
 const SideButtons: React.FC = () => {
-  const { address } = useAccount();
-  const transferModalId = `${tokenName}-transfer-modal`;
-  const swapModalId = `${tokenName}-swap-modal`;
   const [hoveredButton, setHoveredButton] = useState<ButtonType | null>(null);
   const [isHoveringModal, setIsHoveringModal] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
-
-  const { data: stablecoinBalance } = useScaffoldReadContract({
-    contractName: "MyUSD",
-    functionName: "balanceOf",
-    args: [address],
-  });
-
-  const { data: ethPrice } = useScaffoldReadContract({
-    contractName: "Oracle",
-    functionName: "getPrice",
-  });
-
-  const myUSDPrice = useMemo(() => 1 / (Number(formatEther(ethPrice || 0n)) / 1800), [ethPrice]);
-
-  const tokenBalance = useMemo(
-    () => `${Math.floor(Number(formatEther(stablecoinBalance || 0n)) * 100) / 100}`,
-    [stablecoinBalance],
-  );
 
   const handleButtonHover = useCallback((buttonId: ButtonType) => {
     if (timeoutRef.current) {
@@ -126,7 +102,7 @@ const SideButtons: React.FC = () => {
       default:
         return null;
     }
-  }, [hoveredButton, tokenBalance, address, ethPrice, myUSDPrice, transferModalId, swapModalId]);
+  }, [hoveredButton]);
 
   return (
     <div className="absolute top-[120px] right-0 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-5">
