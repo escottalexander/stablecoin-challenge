@@ -36,7 +36,7 @@ const RatioChange = ({ user, ethPrice, inputAmount }: UserPositionProps) => {
       return <span className={getRatioColorClass(1000)}>∞</span>;
     }
     const newRatio = calculatePositionRatio(Number(formatEther(userCollateral || 0n)), newMintedAmount, ethPrice);
-    return <span className={getRatioColorClass(newRatio)}>{newRatio.toFixed(2)}%</span>;
+    return <span className={getRatioColorClass(newRatio)}>{newRatio > 9999 ? ">9999" : newRatio.toFixed(2)}%</span>;
   };
 
   if (inputAmount === 0 || isNaN(inputAmount)) {
@@ -48,7 +48,7 @@ const RatioChange = ({ user, ethPrice, inputAmount }: UserPositionProps) => {
       {ratio === "N/A" ? (
         <span className={`${getRatioColorClass(1000)}`}>∞</span>
       ) : (
-        <span className={`${getRatioColorClass(ratio)} mx-0`}>{ratio.toFixed(2)}%</span>
+        <span className={`${getRatioColorClass(ratio)} mx-0`}>{ratio > 9999 ? ">9999" : ratio.toFixed(2)}%</span>
       )}{" "}
       → {getNewRatio(mintedAmount, inputAmount)}
     </div>

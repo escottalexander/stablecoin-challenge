@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { useTheme } from "next-themes";
-import { Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -137,6 +137,7 @@ const PriceGraph = () => {
                   label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: strokeColor, dy: 15, dx: -15 }}
                 />
               )}
+              <ReferenceLine yAxisId="left" y={1.0} stroke="#71717b" strokeDasharray="5 5" strokeWidth={2} />
               <Line
                 yAxisId="left"
                 type="monotone"

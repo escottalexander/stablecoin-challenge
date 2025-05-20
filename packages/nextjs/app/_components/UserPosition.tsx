@@ -49,7 +49,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice);
 
   const formattedRatio =
-    ratio === "N/A" ? "N/A" : typeof ratio === "number" && ratio >= 10000 ? ratio.toExponential(2) : ratio.toFixed(2);
+    ratio === "N/A" ? "N/A" : typeof ratio === "number" && ratio >= 9999 ? ">9999" : ratio.toFixed(2);
 
   const isPositionSafe = ratio == "N/A" || Number(ratio) >= collateralRatio;
   const liquidatePosition = async () => {
