@@ -2,18 +2,34 @@ import React, { useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { parseEther } from "viem";
 import { IntegerInput } from "~~/components/scaffold-eth";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { notification } from "~~/utils/scaffold-eth";
 
 const StakeOperations = () => {
   const [stakeAmount, setStakeAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+
+  const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
+    contractName: "MyUSD",
+  });
+
+  const { data: myUSDCStakingContract } = useScaffoldContract({ contractName: "MyUSDStaking" });
 
   const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
     contractName: "MyUSDStaking",
   });
 
   const handleStake = async () => {
+    if (!myUSDCStakingContract) {
+      notification.error("MyUSDStaking contract not found");
+      return;
+    }
     try {
+      await writeMyUSDContract({
+        functionName: "approve",
+        args: [myUSDCStakingContract.address, stakeAmount ? parseEther(stakeAmount) : 0n],
+      });
+
       await writeStablecoinEngineContract({
         functionName: "stake",
         args: [stakeAmount ? parseEther(stakeAmount) : 0n],

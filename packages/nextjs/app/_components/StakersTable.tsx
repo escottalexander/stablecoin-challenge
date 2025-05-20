@@ -6,16 +6,10 @@ import { Address as AddressBlock } from "~~/components/scaffold-eth";
 import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const StakerRow = ({ staker, connectedAddress }: { staker: string; connectedAddress: string }) => {
-  const { data: userShares } = useScaffoldReadContract({
-    contractName: "MyUSDStaking",
-    functionName: "userShares",
-    args: [staker],
-  });
-
   const { data: stakedAmount } = useScaffoldReadContract({
     contractName: "MyUSDStaking",
-    functionName: "getSharesValue",
-    args: [userShares],
+    functionName: "getBalance",
+    args: [staker],
   });
 
   return (
