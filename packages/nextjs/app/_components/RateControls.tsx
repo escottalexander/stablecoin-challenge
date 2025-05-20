@@ -13,6 +13,7 @@ interface RateInputProps {
   newValue: string;
   onNewValueChange: (value: string) => void;
   label: string;
+  alignRight?: boolean;
 }
 
 const RateInput: React.FC<RateInputProps> = ({
@@ -24,35 +25,41 @@ const RateInput: React.FC<RateInputProps> = ({
   newValue,
   onNewValueChange,
   label,
+  alignRight = false,
 }) => {
-  const formattedValue = Number(value || 0n) / 100;
+  const formattedValue = Number(value ?? 0n) / 100;
 
   return (
-    <div className="flex justify-center items-center gap-2 w-full h-10">
-      <span className="label-text text-base whitespace-nowrap">{label}</span>
+    <div className="flex justify-end items-center gap-2 w-full h-10">
+      {alignRight && <div className="w-1/5"></div>}
+      <span className="w-1/5 label-text text-base whitespace-nowrap">{label}</span>
 
-      {isEditing ? (
-        <div className="flex gap-1 w-full items-center">
-          <div className="w-3/5">
-            <IntegerInput value={newValue} onChange={onNewValueChange} placeholder="Rate" disableMultiplyBy1e18 />
-          </div>
-          <div className="flex gap-1">
+      <div className="w-3/5">
+        {isEditing ? (
+          <IntegerInput value={newValue} onChange={onNewValueChange} placeholder="Rate" disableMultiplyBy1e18 />
+        ) : (
+          <span className="flex px-2 justify-center font-medium">{formattedValue.toFixed(2)}%</span>
+        )}
+      </div>
+      <div className="flex w-1/5 gap-1">
+        {isEditing ? (
+          <>
             <label className="btn btn-sm btn-circle" onClick={() => onSave(newValue)}>
               <CheckIcon className="h-3 w-3" />
             </label>
             <label className="btn btn-sm btn-circle" onClick={onCancel}>
               <XMarkIcon className="h-3 w-3" />
             </label>
+          </>
+        ) : (
+          <div className="flex w-full items-center">
+            <button className=" btn btn-sm" onClick={onEdit} aria-label="Edit rate">
+              <PencilIcon className="h-3 w-3" /> Edit
+            </button>
           </div>
-        </div>
-      ) : (
-        <div className="flex w-full items-center">
-          <span className="flex px-2 justify-end w-1/2 font-medium">{formattedValue.toFixed(2)}%</span>
-          <button className="w-1/3 btn btn-sm" onClick={onEdit} aria-label="Edit rate">
-            <PencilIcon className="h-3 w-3" /> Edit
-          </button>
-        </div>
-      )}
+        )}
+      </div>
+      {!alignRight && <div className="w-1/5"></div>}
     </div>
   );
 };
@@ -145,6 +152,7 @@ const RateControls: React.FC = () => {
               onSave={handleSaveSavingsRate}
               newValue={newSavingsRate}
               onNewValueChange={setNewSavingsRate}
+              alignRight={true}
             />
           </div>
         </div>
