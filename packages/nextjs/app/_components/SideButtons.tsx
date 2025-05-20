@@ -42,6 +42,8 @@ const SideButton: React.FC<{
   );
 });
 
+SideButton.displayName = "SideButton";
+
 const SideButtons: React.FC = () => {
   const { address } = useAccount();
   const transferModalId = `${tokenName}-transfer-modal`;
@@ -120,7 +122,6 @@ const SideButtons: React.FC = () => {
       case "mint":
         return <MintOperations />;
       case "stake":
-        // TODO: Add stake operations
         return <StakeOperations />;
       default:
         return null;

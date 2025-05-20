@@ -10,9 +10,6 @@ const SupplyGraph = () => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
-  const yellowColor = "#f9a73e";
-  const redColor = "#bf212f";
-  //   const greenColor = "#27b376";
   const purpleColor = "#8884d8";
   const greenColor = "#82ca9d";
 
@@ -148,10 +145,10 @@ const SupplyGraph = () => {
                   }
                   return value;
                 }}
-                label={{ 
-                  value: "MyUSD Amount", 
-                  angle: -90, 
-                  position: "insideLeft", 
+                label={{
+                  value: "MyUSD Amount",
+                  angle: -90,
+                  position: "insideLeft",
                   fill: strokeColor,
                   dy: 50,
                 }}
@@ -180,10 +177,10 @@ const SupplyGraph = () => {
                 tick={false}
                 label={{ value: "Time (Blocks)", position: "insideBottom", fill: strokeColor }}
               />
-              <Legend 
-                verticalAlign="top" 
+              <Legend
+                verticalAlign="top"
                 wrapperStyle={{ paddingBottom: 10 }}
-                formatter={value => <span style={{ color: strokeColor }}>{value}</span>} 
+                formatter={value => <span style={{ color: strokeColor }}>{value}</span>}
               />
             </AreaChart>
           </ResponsiveContainer>

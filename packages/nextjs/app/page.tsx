@@ -3,11 +3,12 @@
 import PriceGraph from "./_components/PriceGraph";
 import RateControls from "./_components/RateControls";
 import SideButtons from "./_components/SideButtons";
+import StakersStable from "./_components/StakersTable";
 import SupplyGraph from "./_components/SupplyGraph";
 import TokenActions from "./_components/TokenActions";
 import UserPositionsTable from "./_components/UserPositionsTable";
 import type { NextPage } from "next";
-import StakersStable from "./_components/StakersTable";
+
 const Home: NextPage = () => {
   return (
     <>
