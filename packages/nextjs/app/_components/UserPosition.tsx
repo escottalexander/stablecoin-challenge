@@ -49,7 +49,7 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       : calculatePositionRatio(Number(formatEther(userCollateral || 0n)), mintedAmount, ethPrice);
 
   const formattedRatio =
-    ratio === "N/A" ? "N/A" : typeof ratio === "number" && ratio >= 10000 ? ratio.toExponential(2) : ratio.toFixed(2);
+    ratio === "N/A" ? "N/A" : typeof ratio === "number" && ratio >= 9999 ? ">9999" : ratio.toFixed(2);
 
   const isPositionSafe = ratio == "N/A" || Number(ratio) >= collateralRatio;
   const liquidatePosition = async () => {
@@ -98,8 +98,8 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)}</td>
       <td>{Number(formatEther(userMinted || 0n)).toFixed(2)}</td>
       <td className={getRatioColorClass(ratio)}>{formattedRatio === "N/A" ? "N/A" : `${formattedRatio}%`}</td>
-      <td className="flex justify-center">
-        <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-sm btn-ghost">
+      <td className="text-center p-1">
+        <button onClick={liquidatePosition} disabled={isPositionSafe} className="btn btn-xs btn-ghost">
           {isLiquidating ? <span className="loading loading-spinner loading-sm"></span> : "Liquidate"}
         </button>
       </td>

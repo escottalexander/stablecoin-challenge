@@ -30,7 +30,7 @@ const TokenActions = () => {
   const tokenBalance = `${Math.floor(Number(formatEther(stablecoinBalance || 0n)) * 100) / 100}`;
 
   return (
-    <div className="absolute mt-10 right-5 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-10">
+    <div className="absolute mt-10 right-0 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-10">
       <div className="w-[150px] py-5 flex flex-col items-center gap-1 indicator">
         <TooltipInfo top={3} right={3} infoText={`Here you can set the savings rate and borrow rate`} />
         <div className="flex flex-col items-center gap-1">

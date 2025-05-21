@@ -6,6 +6,7 @@ import { useAccount } from "wagmi";
 import { IntegerInput } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { tokenName } from "~~/utils/constant";
+import { notification } from "~~/utils/scaffold-eth";
 
 const MintOperations = () => {
   const [mintAmount, setMintAmount] = useState("");
@@ -20,6 +21,12 @@ const MintOperations = () => {
 
   const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
     contractName: "MyUSDEngine",
+  });
+
+  const { data: currentDebtValue } = useScaffoldReadContract({
+    contractName: "MyUSDEngine",
+    functionName: "getCurrentDebtValue",
+    args: [address],
   });
 
   const handleMint = async () => {
@@ -46,6 +53,23 @@ const MintOperations = () => {
     }
   };
 
+  const handleRepayAll = async () => {
+    if (!currentDebtValue) {
+      notification.error("No debt value found");
+      return;
+    }
+    const extraRepayment = currentDebtValue + parseEther("0.1");
+    try {
+      await writeStablecoinEngineContract({
+        functionName: "repayUpTo",
+        args: [extraRepayment],
+      });
+      setBurnAmount("");
+    } catch (error) {
+      console.error("Error repaying all:", error);
+    }
+  };
+
   return (
     <div className="card bg-base-100 w-96 shadow-xl indicator">
       <TooltipInfo
@@ -55,12 +79,12 @@ const MintOperations = () => {
       />
       <div className="card-body">
         <div className="w-full flex justify-between">
-          <h2 className="card-title">Mint Operations</h2>
+          <h2 className="card-title">Mint Operations ({tokenName})</h2>
         </div>
 
         <div className="form-control">
           <label className="label flex justify-between">
-            <span className="label-text">Mint {tokenName}</span>{" "}
+            <span className="label-text">Mint</span>{" "}
             {address && (
               <RatioChange
                 user={address}
@@ -78,8 +102,17 @@ const MintOperations = () => {
         </div>
 
         <div className="form-control">
-          <label className="label flex justify-between">
-            <span className="label-text">Burn {tokenName}</span>
+          <div className="label flex justify-between">
+            <div className="flex gap-2 items-center">
+              <span className="label-text">Repay</span>
+              <button
+                className="btn btn-sm btn-primary text-xs font-medium"
+                disabled={!currentDebtValue}
+                onClick={handleRepayAll}
+              >
+                Repay All
+              </button>
+            </div>
             {address && (
               <RatioChange
                 user={address}
@@ -87,7 +120,7 @@ const MintOperations = () => {
                 inputAmount={-Number(burnAmount)}
               />
             )}
-          </label>
+          </div>
           <div className="flex gap-2 items-center">
             <IntegerInput value={burnAmount} onChange={setBurnAmount} placeholder="Amount" disableMultiplyBy1e18 />
             <button className="btn btn-sm btn-primary" onClick={handleBurn} disabled={!burnAmount}>
