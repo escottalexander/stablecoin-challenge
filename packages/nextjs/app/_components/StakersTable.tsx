@@ -73,6 +73,12 @@ const StakersStable = () => {
                   <div className="skeleton w-16 h-6"></div>
                 </td>
               </tr>
+            ) : stakers.length === 0 ? (
+              <tr>
+                <td colSpan={2} className="text-center">
+                  No stakers found
+                </td>
+              </tr>
             ) : (
               stakers.map(staker => (
                 <StakerRow key={staker} staker={staker} connectedAddress={connectedAddress || ""} />

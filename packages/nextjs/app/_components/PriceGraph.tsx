@@ -93,8 +93,8 @@ const PriceGraph = () => {
         right={3}
         infoText="This graph displays the stablecoin price (yellow), borrow rate (red), and savings rate (green) over time. Toggle rates visibility using the button."
       />
-      <div className="card-body h-96 w-full">
-        <div className="flex justify-between items-center">
+      <div className="card-body p-0 h-96 w-full">
+        <div className="flex justify-between items-center pt-5 px-5">
           <h2 className="card-title mb-0">Price Graph</h2>
           <button className="btn btn-sm btn-outline" onClick={() => setShowRates(!showRates)}>
             {showRates ? "Hide Rates" : "Show Rates"}
@@ -110,7 +110,7 @@ const PriceGraph = () => {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart width={500} height={300} data={priceData}>
+            <LineChart width={500} height={300} data={priceData} margin={{ top: 10, right: 25, bottom: 20, left: 30 }}>
               <XAxis
                 domain={["auto", "auto"]}
                 dataKey="blockNumber"
@@ -124,7 +124,7 @@ const PriceGraph = () => {
                 domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
                 stroke={strokeColor}
                 tick={{ fill: strokeColor, fontSize: 12 }}
-                label={{ value: "Price", angle: -90, position: "insideLeft", fill: strokeColor, dx: -2 }}
+                label={{ value: "Price", angle: -90, position: "insideLeft", fill: strokeColor, offset: -10 }}
               />
               {showRates && (
                 <YAxis

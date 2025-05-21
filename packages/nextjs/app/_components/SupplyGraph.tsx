@@ -123,8 +123,8 @@ const SupplyGraph = () => {
         right={3}
         infoText="This graph displays the circulating supply (purple) and staked supply (green) over time."
       />
-      <div className="card-body h-96 w-full">
-        <div className="flex justify-between items-center">
+      <div className="card-body p-0 h-96 w-full">
+        <div className="flex justify-between items-center pt-5 px-5">
           <h2 className="card-title mb-0">Supply Graph</h2>
         </div>
         {isLoading ? (
@@ -133,7 +133,7 @@ const SupplyGraph = () => {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart width={500} height={300} data={supplyData}>
+            <AreaChart width={500} height={300} data={supplyData} margin={{ top: 10, right: 25, bottom: 20, left: 30 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <YAxis
                 tickFormatter={value => {
@@ -151,6 +151,7 @@ const SupplyGraph = () => {
                   position: "insideLeft",
                   fill: strokeColor,
                   dy: 50,
+                  offset: -10,
                 }}
                 tick={{ fill: strokeColor, fontSize: 12 }}
               />
