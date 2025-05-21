@@ -86,7 +86,6 @@ const RateControls: React.FC = () => {
 
   const handleSaveSavingsRate = useCallback(
     async (value: string) => {
-      console.log(value);
       try {
         await writeRateControllerContractAsync({
           functionName: "setSavingsRate",

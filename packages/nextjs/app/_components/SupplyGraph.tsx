@@ -6,6 +6,20 @@ import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 import { INITIAL_DEX_SUPPLY } from "~~/utils/constant";
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+const calculateDexSwapAmounts = (event: any) => {
+  if (event.eventName !== "Swap") return { sent: 0, received: 0 };
+
+  const { inputToken, inputAmount, outputAmount } = event.args || {};
+  const isEthToMyUSD = inputToken === ZERO_ADDRESS;
+
+  return {
+    sent: isEthToMyUSD ? Number(formatEther(outputAmount || 0n)) : 0,
+    received: !isEthToMyUSD ? Number(formatEther(inputAmount || 0n)) : 0,
+  };
+};
+
 const SupplyGraph = () => {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
@@ -88,15 +102,8 @@ const SupplyGraph = () => {
     const staked = event.eventName === "Staked" ? Number(formatEther(event.args.amount || 0n)) : 0;
     const withdrawn = event.eventName === "Withdrawn" ? Number(formatEther(event.args.amount || 0n)) : 0;
 
-    let dexSentMyUSDAmount = 0;
-    let dexReceivedMyUSDAmount = 0;
-    if (event.eventName === "Swap") {
-      if (event.args?.inputToken === "0x0000000000000000000000000000000000000000") {
-        dexSentMyUSDAmount = Number(formatEther(event.args.outputAmount || 0n));
-      } else {
-        dexReceivedMyUSDAmount = Number(formatEther(event.args.inputAmount || 0n));
-      }
-    }
+    const { sent: dexSentMyUSDAmount, received: dexReceivedMyUSDAmount } = calculateDexSwapAmounts(event);
+
     if (minted >= INITIAL_DEX_SUPPLY) {
       minted = 0;
     }
