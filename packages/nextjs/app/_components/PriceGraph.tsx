@@ -91,7 +91,7 @@ const PriceGraph = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This graph displays the stablecoin price (yellow), borrow rate (red), and savings rate (green) over time. Toggle rates visibility using the button."
+        infoText="Monitor MyUSD's price dynamics alongside its borrowing and savings interest rates. Toggle rates visibility using the button"
       />
       <div className="card-body p-0 h-96 w-full">
         <div className="flex justify-between items-center pt-5 px-5">

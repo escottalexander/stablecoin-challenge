@@ -41,7 +41,7 @@ const UserPositionsTable = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This table displays all users with a position in the MyUSDEngine pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
+        infoText="Monitor all MyUSDEngine positions and liquidate undercollateralized accounts"
       />
       <div className="overflow-x-scroll">
         <table className="table table-md lg:table-sm xl:table-md">
@@ -76,7 +76,7 @@ const UserPositionsTable = () => {
             ) : users.length === 1 ? ( // Only deployer account is has a position, but we hide it
               <tr>
                 <td colSpan={5} className="text-center">
-                  No user positions available.
+                  No user positions available
                 </td>
               </tr>
             ) : (

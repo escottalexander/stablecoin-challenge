@@ -121,7 +121,7 @@ const SupplyGraph = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This graph displays the circulating supply (purple) and staked supply (green) over time."
+        infoText="Visualize MyUSD's total circulation (purple) and staked tokens (green) across time"
       />
       <div className="card-body p-0 h-96 w-full">
         <div className="flex justify-between items-center pt-5 px-5">
