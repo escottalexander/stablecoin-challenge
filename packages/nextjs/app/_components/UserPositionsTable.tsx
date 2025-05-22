@@ -43,12 +43,11 @@ const UserPositionsTable = () => {
         right={3}
         infoText="Monitor all MyUSDEngine positions and liquidate undercollateralized accounts"
       />
-      <div className="overflow-x-scroll">
-        <table className="table table-md lg:table-sm xl:table-md">
+      <div className="overflow-x-auto">
+        <table className="table">
           <thead>
             <tr>
               <th>Address</th>
-              <th>Collateral (ETH)</th>
               <th>Debt ({tokenName})</th>
               <th>Ratio</th>
               <th></th>
@@ -67,13 +66,10 @@ const UserPositionsTable = () => {
                   <div className="skeleton w-16 h-6"></div>
                 </td>
                 <td>
-                  <div className="skeleton w-16 h-6"></div>
-                </td>
-                <td>
                   <div className="skeleton w-20 h-6"></div>
                 </td>
               </tr>
-            ) : users.length === 1 ? ( // Only deployer account is has a position, but we hide it
+            ) : users.length < 2 ? ( // Only deployer account is has a position, but we hide it
               <tr>
                 <td colSpan={5} className="text-center">
                   No user positions available
