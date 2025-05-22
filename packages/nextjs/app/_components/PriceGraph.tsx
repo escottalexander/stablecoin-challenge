@@ -68,8 +68,8 @@ const PriceGraph = () => {
 
   const priceData = sortedEvents.reduce<DataPoint[]>((acc, event, idx) => {
     const price = event.eventName === "PriceUpdated" ? 1 / (Number(formatEther(event.args.price || 0n)) / 1800) : 0;
-    const borrowRate = event.eventName === "BorrowRateUpdated" ? Number(event.args.newRate || 0n) / 100 : 0;
-    const savingsRate = event.eventName === "SavingsRateUpdated" ? Number(event.args.newRate || 0n) / 100 : 0;
+    const borrowRate = event.eventName === "BorrowRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
+    const savingsRate = event.eventName === "SavingsRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
 
     const prevPrice = acc[idx - 1]?.price || 1;
     const prevBorrowRate = acc[idx - 1]?.borrowRate || 0;
@@ -80,8 +80,8 @@ const PriceGraph = () => {
       {
         blockNumber: Number(event.blockNumber) || 0,
         price: price && Number.isFinite(price) ? price : prevPrice,
-        borrowRate: borrowRate && Number.isFinite(borrowRate) ? borrowRate : prevBorrowRate,
-        savingsRate: savingsRate && Number.isFinite(savingsRate) ? savingsRate : prevSavingsRate,
+        borrowRate: borrowRate >= 0 && Number.isFinite(borrowRate) ? borrowRate : prevBorrowRate,
+        savingsRate: savingsRate >= 0 && Number.isFinite(savingsRate) ? savingsRate : prevSavingsRate,
       },
     ];
   }, []);
@@ -91,7 +91,7 @@ const PriceGraph = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This graph displays the stablecoin price (yellow), borrow rate (red), and savings rate (green) over time. Toggle rates visibility using the button."
+        infoText="Monitor MyUSD's price dynamics alongside its borrowing and savings interest rates. Toggle rates visibility using the button"
       />
       <div className="card-body p-0 h-96 w-full">
         <div className="flex justify-between items-center pt-5 px-5">

@@ -95,7 +95,6 @@ const UserPosition = ({ user, ethPrice, connectedAddress }: UserPositionProps) =
       <td>
         <AddressBlock address={user} disableAddressLink format="short" size="sm" />
       </td>
-      <td>{Number(formatEther(userCollateral || 0n)).toFixed(2)}</td>
       <td>{Number(formatEther(userMinted || 0n)).toFixed(2)}</td>
       <td className={getRatioColorClass(ratio)}>{formattedRatio === "N/A" ? "N/A" : `${formattedRatio}%`}</td>
       <td className="text-center p-1">

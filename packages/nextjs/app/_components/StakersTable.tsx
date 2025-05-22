@@ -50,11 +50,7 @@ const StakersStable = () => {
 
   return (
     <div className="card bg-base-100 w-full shadow-xl indicator">
-      <TooltipInfo
-        top={3}
-        right={3}
-        infoText="This table displays all staked users with their staked amount and shares."
-      />
+      <TooltipInfo top={3} right={3} infoText="Monitor all active stakers and their MyUSD token contributions" />
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
