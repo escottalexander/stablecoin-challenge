@@ -435,7 +435,7 @@ async function simulateBorrowing(
     if (currentDebt > amountToKeep && currentBorrowRate > borrower.maxAcceptableRate) {
       const myUSDBalance = await myUSD.balanceOf(borrower.wallet.address);
 
-      if (myUSDBalance > 0n) {
+      if (myUSDBalance > ethers.parseEther("10")) {
         try {
           // Calculate amount to burn (current debt - amount to keep)
           let amountToBurn = currentDebt - amountToKeep;
@@ -612,7 +612,7 @@ async function simulateStaking(
         // Unstake ALL shares when rate is below minimum acceptable rate
         if (stakedShares > 0n) {
           // Unstake all shares
-          await stakingWithStaker.withdraw(stakedShares);
+          await stakingWithStaker.withdraw();
 
           logActivity(
             `Staker ${staker.wallet.address.slice(0, 6)}... unstaked ALL shares ` +

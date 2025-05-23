@@ -5,7 +5,7 @@ const ethers = hre.ethers;
 
 // --- Config ---
 const TARGET_PRICE = 1;
-const PRICE_TOLERANCE = 0.000005; // 0.01%
+const PRICE_TOLERANCE = 0.000005;
 const RATE_ADJUSTMENT_INTERVAL = 2000; // ms
 const BORROW_RATE_MIN = 200; // 2%
 const BORROW_RATE_MAX = 3000; // 30%
@@ -14,6 +14,7 @@ const PRICE_WINDOW = 10;
 const RATE_CHANGE_DELAY = 10; // Number of iterations to wait before changing rate again
 const PEG_HIT_THRESHOLD = 2; // Number of peg hits required to activate growth mode
 const RATE_SPREAD = 100; // 1% spread between borrow and savings rate
+
 // --- State ---
 const priceHistory: number[] = [];
 let iterationsSinceLastChange = 0;
@@ -40,11 +41,15 @@ function priceDeviation(price: number): number {
 }
 
 interface BinarySearchState {
-  low: number;
-  high: number;
+  absoluteBounds: {
+    min: number;
+    max: number;
+  };
+  searchBounds: {
+    low: number;
+    high: number;
+  };
   lastRate: number;
-  effectiveLow: number; // Last rate that was too low
-  effectiveHigh: number; // Last rate that was too high
 }
 
 function getNextRate(
@@ -52,40 +57,38 @@ function getNextRate(
   direction: "UP" | "DOWN" | "FLAT",
   isPriceStable: boolean,
 ): { newRate: number; newState: BinarySearchState } {
-  const { low, high, lastRate, effectiveLow, effectiveHigh } = state;
+  const { absoluteBounds, searchBounds, lastRate } = state;
 
-  // Reset effective bounds if price is stable
+  // Reset search bounds if price is stable
   if (isPriceStable) {
     return {
       newRate: lastRate,
       newState: {
-        low,
-        high,
+        absoluteBounds,
+        searchBounds: {
+          low: absoluteBounds.min,
+          high: absoluteBounds.max,
+        },
         lastRate,
-        effectiveLow: low,
-        effectiveHigh: high,
       },
     };
   }
 
-  // Use effective bounds if they exist, otherwise use min/max
-  const searchLow = effectiveLow > 0 ? effectiveLow : low;
-  const searchHigh = effectiveHigh > 0 ? effectiveHigh : high;
-
   // If bounds are too tight (less than 10 bps apart), reset them with 100 bps margin
-  if (searchHigh - searchLow < 10) {
-    const midPoint = Math.floor((searchLow + searchHigh) / 2);
-    const newLow = Math.max(midPoint - 50, low);
-    const newHigh = Math.min(midPoint + 50, high);
+  if (searchBounds.high - searchBounds.low < 10) {
+    const midPoint = Math.floor((searchBounds.low + searchBounds.high) / 2);
+    const newLow = Math.max(midPoint - 50, absoluteBounds.min);
+    const newHigh = Math.min(midPoint + 50, absoluteBounds.max);
 
     return {
       newRate: lastRate,
       newState: {
-        low,
-        high,
+        absoluteBounds,
+        searchBounds: {
+          low: newLow,
+          high: newHigh,
+        },
         lastRate,
-        effectiveLow: newLow,
-        effectiveHigh: newHigh,
       },
     };
   }
@@ -93,28 +96,30 @@ function getNextRate(
   // Determine if we need to adjust the bounds
   if (direction === "UP" || direction === "FLAT") {
     // Price is too high, need lower rate
-    const newRate = Math.floor((searchLow + lastRate) / 2);
+    const newRate = Math.floor((searchBounds.low + lastRate) / 2);
     return {
       newRate,
       newState: {
-        low,
-        high,
+        absoluteBounds,
+        searchBounds: {
+          low: searchBounds.low,
+          high: Math.min(lastRate + 100, absoluteBounds.max), // Current rate was too high
+        },
         lastRate: newRate,
-        effectiveLow: searchLow,
-        effectiveHigh: lastRate, // Current rate was too high
       },
     };
   } else {
     // Price is too low, need higher rate
-    const newRate = Math.floor((lastRate + searchHigh) / 2);
+    const newRate = Math.floor((lastRate + searchBounds.high) / 2);
     return {
       newRate,
       newState: {
-        low,
-        high,
+        absoluteBounds,
+        searchBounds: {
+          low: Math.max(lastRate - 100, absoluteBounds.min), // Current rate was too low
+          high: searchBounds.high,
+        },
         lastRate: newRate,
-        effectiveLow: lastRate, // Current rate was too low
-        effectiveHigh: searchHigh,
       },
     };
   }
@@ -147,19 +152,27 @@ async function main() {
 
   // Initialize binary search states
   const borrowState: BinarySearchState = {
-    low: BORROW_RATE_MIN,
-    high: BORROW_RATE_MAX,
+    absoluteBounds: {
+      min: BORROW_RATE_MIN,
+      max: BORROW_RATE_MAX,
+    },
+    searchBounds: {
+      low: BORROW_RATE_MIN,
+      high: BORROW_RATE_MAX,
+    },
     lastRate: Number(startBorrowRate),
-    effectiveLow: BORROW_RATE_MIN,
-    effectiveHigh: BORROW_RATE_MAX,
   };
 
   const savingsState: BinarySearchState = {
-    low: SAVINGS_RATE_MIN,
-    high: Number(startBorrowRate),
+    absoluteBounds: {
+      min: SAVINGS_RATE_MIN,
+      max: Number(startBorrowRate),
+    },
+    searchBounds: {
+      low: SAVINGS_RATE_MIN,
+      high: Number(startBorrowRate),
+    },
     lastRate: Number(startSavingsRate),
-    effectiveLow: SAVINGS_RATE_MIN,
-    effectiveHigh: Number(startBorrowRate),
   };
 
   setInterval(async () => {
@@ -188,19 +201,22 @@ async function main() {
       const isMovingTowardsPeg =
         (TARGET_PRICE > currentPriceEth && direction === "UP") ||
         (TARGET_PRICE < currentPriceEth && direction === "DOWN");
-      let shouldChangeRate =
+      const shouldChangeRate =
         Math.abs(deviation) > PRICE_TOLERANCE && !isMovingTowardsPeg && iterationsSinceLastChange >= RATE_CHANGE_DELAY;
 
       // Activate growth mode after stable peg detection
       if (iterationsSinceLastChange > RATE_CHANGE_DELAY * 2 && isPriceStable && !isGrowthMode) {
         isGrowthMode = true;
         logChange("Activating GROWTH mode after stable peg detection!");
-        borrowState.effectiveLow = BORROW_RATE_MIN;
-        shouldChangeRate = true;
+
+        // Increase the savings rate dramatically
+        const initialSavingsRate = borrowState.lastRate - RATE_SPREAD;
+        await rateController.setSavingsRate(initialSavingsRate);
+        Object.assign(borrowState.searchBounds, { low: initialSavingsRate });
       }
-      const totalShares = await staking.totalShares();
-      if (shouldChangeRate || (isGrowthMode && totalShares === 0n)) {
-        // Check for peg hit
+
+      if (shouldChangeRate) {
+        // Check for peg crossed over
         if (!isGrowthMode && checkPegHit(direction)) {
           // Only count as a new peg hit if it's been a while since the last one
           pegHits++;
@@ -210,14 +226,14 @@ async function main() {
           if (pegHits >= PEG_HIT_THRESHOLD) {
             isGrowthMode = true;
             logChange("Activating GROWTH mode after stable peg detection!");
-            borrowState.effectiveLow = BORROW_RATE_MIN;
+            borrowState.searchBounds.low = BORROW_RATE_MIN;
           }
         }
 
         const { newRate, newState } = getNextRate(borrowState, direction, isPriceStable);
         logChange(
           `Price ${currentPriceEth.toFixed(6)} ${currentPriceEth > TARGET_PRICE ? "above" : "below"} peg, ` +
-            `adjusting borrow rate to ${newRate}bps [${newState.effectiveLow}, ${newState.effectiveHigh}]`,
+            `adjusting borrow rate to ${newRate}bps [${newState.searchBounds.low}, ${newState.searchBounds.high}]`,
         );
         await rateController.setBorrowRate(newRate);
         Object.assign(borrowState, newState);
@@ -226,26 +242,21 @@ async function main() {
         // --- Savings rate logic (only in growth mode) ---
         if (isGrowthMode) {
           const maximumRate = Math.max(borrowState.lastRate - RATE_SPREAD, SAVINGS_RATE_MIN);
-          // Set new borrow rate as the upper bound for savings rate
-          Object.assign(savingsState, { ...savingsState, high: maximumRate });
+          // Update savings rate absolute bounds
+          Object.assign(savingsState.absoluteBounds, { max: maximumRate });
+          Object.assign(savingsState.searchBounds, { high: maximumRate });
 
           const { newRate, newState } = getNextRate(savingsState, direction, isPriceStable);
           // Ensure savings rate stays within bounds and doesn't exceed current borrow rate
           const boundedRate = Math.min(Math.max(newRate, SAVINGS_RATE_MIN), maximumRate);
           logChange(
             `Price ${currentPriceEth.toFixed(6)} ${currentPriceEth > TARGET_PRICE ? "above" : "below"} peg, ` +
-              `adjusting savings rate to ${boundedRate}bps [${newState.effectiveLow}, ${maximumRate}]`,
+              `adjusting savings rate to ${boundedRate}bps [${newState.searchBounds.low}, ${maximumRate}]`,
           );
           await rateController.setSavingsRate(boundedRate);
-          Object.assign(savingsState, {
-            ...newState,
-            high: maximumRate,
-            effectiveHigh: maximumRate,
-          });
-          Object.assign(borrowState, {
-            ...borrowState,
+          Object.assign(savingsState, newState);
+          Object.assign(borrowState.searchBounds, {
             low: savingsState.lastRate,
-            effectiveLow: savingsState.lastRate,
           });
         }
       } else {
