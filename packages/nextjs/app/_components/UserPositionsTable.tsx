@@ -37,18 +37,17 @@ const UserPositionsTable = () => {
   }, [events, users]);
 
   return (
-    <div className="card bg-base-100 w-[630px] shadow-xl indicator">
+    <div className="card bg-base-100 w-full shadow-xl indicator">
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This table displays all users with a position in the MyUSDEngine pool. It also allows users to liquidate positions that have fallen into the liquidation zone using the provided button"
+        infoText="Monitor all MyUSDEngine positions and liquidate undercollateralized accounts"
       />
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
             <tr>
               <th>Address</th>
-              <th>Collateral (ETH)</th>
               <th>Debt ({tokenName})</th>
               <th>Ratio</th>
               <th></th>
@@ -67,16 +66,13 @@ const UserPositionsTable = () => {
                   <div className="skeleton w-16 h-6"></div>
                 </td>
                 <td>
-                  <div className="skeleton w-16 h-6"></div>
-                </td>
-                <td>
                   <div className="skeleton w-20 h-6"></div>
                 </td>
               </tr>
-            ) : users.length === 1 ? ( // Only deployer account is has a position, but we hide it
+            ) : users.length < 2 ? ( // Only deployer account is has a position, but we hide it
               <tr>
                 <td colSpan={5} className="text-center">
-                  No user positions available.
+                  No user positions available
                 </td>
               </tr>
             ) : (

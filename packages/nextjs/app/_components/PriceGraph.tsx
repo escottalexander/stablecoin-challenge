@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { useTheme } from "next-themes";
-import { Legend, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { formatEther } from "viem";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -68,8 +68,8 @@ const PriceGraph = () => {
 
   const priceData = sortedEvents.reduce<DataPoint[]>((acc, event, idx) => {
     const price = event.eventName === "PriceUpdated" ? 1 / (Number(formatEther(event.args.price || 0n)) / 1800) : 0;
-    const borrowRate = event.eventName === "BorrowRateUpdated" ? Number(event.args.newRate || 0n) / 100 : 0;
-    const savingsRate = event.eventName === "SavingsRateUpdated" ? Number(event.args.newRate || 0n) / 100 : 0;
+    const borrowRate = event.eventName === "BorrowRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
+    const savingsRate = event.eventName === "SavingsRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
 
     const prevPrice = acc[idx - 1]?.price || 1;
     const prevBorrowRate = acc[idx - 1]?.borrowRate || 0;
@@ -80,8 +80,8 @@ const PriceGraph = () => {
       {
         blockNumber: Number(event.blockNumber) || 0,
         price: price && Number.isFinite(price) ? price : prevPrice,
-        borrowRate: borrowRate && Number.isFinite(borrowRate) ? borrowRate : prevBorrowRate,
-        savingsRate: savingsRate && Number.isFinite(savingsRate) ? savingsRate : prevSavingsRate,
+        borrowRate: borrowRate >= 0 && Number.isFinite(borrowRate) ? borrowRate : prevBorrowRate,
+        savingsRate: savingsRate >= 0 && Number.isFinite(savingsRate) ? savingsRate : prevSavingsRate,
       },
     ];
   }, []);
@@ -91,11 +91,11 @@ const PriceGraph = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="This graph displays the stablecoin price (yellow), borrow rate (red), and savings rate (green) over time. Toggle rates visibility using the button."
+        infoText="Monitor MyUSD's price dynamics alongside its borrowing and savings interest rates. Toggle rates visibility using the button"
       />
-      <div className="card-body h-96 w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Price Graph</h2>
+      <div className="card-body p-0 h-96 w-full">
+        <div className="flex justify-between items-center pt-5 px-5">
+          <h2 className="card-title mb-0">Price Graph</h2>
           <button className="btn btn-sm btn-outline" onClick={() => setShowRates(!showRates)}>
             {showRates ? "Hide Rates" : "Show Rates"}
           </button>
@@ -110,7 +110,7 @@ const PriceGraph = () => {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart width={500} height={300} data={priceData}>
+            <LineChart width={500} height={300} data={priceData} margin={{ top: 10, right: 25, bottom: 20, left: 30 }}>
               <XAxis
                 domain={["auto", "auto"]}
                 dataKey="blockNumber"
@@ -124,7 +124,7 @@ const PriceGraph = () => {
                 domain={[(dataMin: number) => dataMin - 0.0001, (dataMax: number) => dataMax + 0.0001]}
                 stroke={strokeColor}
                 tick={{ fill: strokeColor, fontSize: 12 }}
-                label={{ value: "Price", angle: -90, position: "insideLeft", fill: strokeColor, dx: -2 }}
+                label={{ value: "Price", angle: -90, position: "insideLeft", fill: strokeColor, offset: -10 }}
               />
               {showRates && (
                 <YAxis
@@ -134,9 +134,10 @@ const PriceGraph = () => {
                   domain={[(dataMin: number) => dataMin - 0.5, (dataMax: number) => dataMax + 0.5]}
                   stroke={strokeColor}
                   tick={{ fill: strokeColor, fontSize: 12 }}
-                  label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: strokeColor, dx: -15 }}
+                  label={{ value: "Rates (%)", angle: 90, position: "insideRight", fill: strokeColor, dy: 15, dx: -15 }}
                 />
               )}
+              <ReferenceLine yAxisId="left" y={1.0} stroke="#71717b" strokeDasharray="5 5" strokeWidth={2} />
               <Line
                 yAxisId="left"
                 type="monotone"
@@ -168,7 +169,11 @@ const PriceGraph = () => {
                   />
                 </>
               )}
-              <Legend verticalAlign="top" formatter={value => <span style={{ color: strokeColor }}>{value}</span>} />
+              <Legend
+                verticalAlign="top"
+                wrapperStyle={{ paddingBottom: 10 }}
+                formatter={value => <span style={{ color: strokeColor }}>{value}</span>}
+              />
             </LineChart>
           </ResponsiveContainer>
         )}
