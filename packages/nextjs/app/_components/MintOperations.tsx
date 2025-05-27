@@ -72,6 +72,10 @@ const MintOperations = () => {
     }
     const extraRepayment = currentDebtValue + parseEther("0.1");
     try {
+      await writeMyUSDContract({
+        functionName: "approve",
+        args: [engineContractData?.address, extraRepayment],
+      });
       await writeStablecoinEngineContract({
         functionName: "repayUpTo",
         args: [extraRepayment],
