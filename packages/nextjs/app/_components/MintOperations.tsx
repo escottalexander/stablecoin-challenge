@@ -4,7 +4,7 @@ import TooltipInfo from "./TooltipInfo";
 import { formatEther, parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { IntegerInput } from "~~/components/scaffold-eth";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldContract, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { tokenName } from "~~/utils/constant";
 import { notification } from "~~/utils/scaffold-eth";
 
@@ -19,8 +19,16 @@ const MintOperations = () => {
     functionName: "getPrice",
   });
 
+  const { data: engineContractData } = useScaffoldContract({
+    contractName: "MyUSDEngine",
+  });
+
   const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
     contractName: "MyUSDEngine",
+  });
+
+  const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
+    contractName: "MyUSD",
   });
 
   const { data: currentDebtValue } = useScaffoldReadContract({
@@ -43,6 +51,10 @@ const MintOperations = () => {
 
   const handleBurn = async () => {
     try {
+      await writeMyUSDContract({
+        functionName: "approve",
+        args: [engineContractData?.address, burnAmount ? parseEther(burnAmount) : 0n],
+      });
       await writeStablecoinEngineContract({
         functionName: "repayUpTo",
         args: [burnAmount ? parseEther(burnAmount) : 0n],
@@ -124,7 +136,7 @@ const MintOperations = () => {
           <div className="flex gap-2 items-center">
             <IntegerInput value={burnAmount} onChange={setBurnAmount} placeholder="Amount" disableMultiplyBy1e18 />
             <button className="btn btn-sm btn-primary" onClick={handleBurn} disabled={!burnAmount}>
-              Burn
+              Repay
             </button>
           </div>
         </div>

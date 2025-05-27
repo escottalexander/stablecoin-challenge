@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+
 import "./MyUSDStaking.sol";
 
 error MyUSD__InvalidAmount();
@@ -12,7 +14,7 @@ error MyUSD__InvalidAddress();
 error MyUSD__NotStakingEngine();
 error MyUSD__NotAuthorized();
 
-contract MyUSD is ERC20, Ownable {
+contract MyUSD is ERC20, ERC20Burnable, Ownable {
     address public stakingContract;
     address public engineContract;
 
@@ -21,18 +23,10 @@ contract MyUSD is ERC20, Ownable {
         stakingContract = _stakingContract;
     }
 
-    function burnFrom(address account, uint256 amount) external returns (bool) {
-        if (msg.sender != engineContract && msg.sender != owner()) revert MyUSD__NotAuthorized();
+    function burnFrom(address account, uint256 amount) public override {
+        if (msg.sender != engineContract) revert MyUSD__NotAuthorized();
 
-        uint256 balance = balanceOf(account);
-        if (amount == 0) {
-            revert MyUSD__InvalidAmount();
-        }
-        if (balance < amount) {
-            revert MyUSD__InsufficientBalance();
-        }
-        _burn(account, amount);
-        return true;
+        return super.burnFrom(account, amount);
     }
 
     function mintTo(address to, uint256 amount) external returns (bool) {
