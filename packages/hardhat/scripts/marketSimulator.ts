@@ -284,16 +284,16 @@ async function updateUI(
     try {
       const borrowerRows: string[][] = [];
       for (const borrower of borrowers) {
-        const collateralValue = await engine.calculateCollateralValue(borrower.wallet.address);
+        const collateralAmount = await engine.s_userCollateral(borrower.wallet.address);
         const debtShares = await engine.s_userDebtShares(borrower.wallet.address);
         const debt = (debtShares * debtExchangeRate) / BigInt(1e18);
 
         // Get status text based on borrower's position and market conditions
-        const statusText = getBorrowerStatus(borrower, debt, collateralValue, borrowRate);
+        const statusText = getBorrowerStatus(borrower, debt, collateralAmount, borrowRate);
 
         borrowerRows.push([
           borrower.wallet.address.slice(0, 6) + "...",
-          Number(ethers.formatEther(collateralValue).split(".")[0]).toLocaleString(),
+          Number(ethers.formatEther(collateralAmount).split(".")[0]).toLocaleString(),
           Number(ethers.formatEther(debt).split(".")[0]).toLocaleString(),
           (borrower.maxAcceptableRate / 100).toFixed(1) + "%",
           statusText,
@@ -427,14 +427,19 @@ async function simulateBorrowing(
     // Get current debt and collateral
     const collateralValue = await engine.calculateCollateralValue(borrower.wallet.address);
     const currentDebt = await engine.getCurrentDebtValue(borrower.wallet.address);
-
+    // Calculate fixed amount to keep based on borrower's profile
+    const baseAmount = ethers.parseEther("100000"); // Base amount of 100000 MyUSD
+    const riskMultiplier = (borrower.debtTolerance / 100) * (1 - borrower.rateSensitivity / 200);
+    const amountToKeep = (baseAmount * BigInt(Math.floor(riskMultiplier * 100))) / 100n;
     // Check if borrower should pay down debt due to high rates
-    if (currentDebt > 0n && currentBorrowRate > borrower.maxAcceptableRate) {
+    if (currentDebt > amountToKeep && currentBorrowRate > borrower.maxAcceptableRate) {
       const myUSDBalance = await myUSD.balanceOf(borrower.wallet.address);
 
-      if (myUSDBalance > 0n) {
+      if (myUSDBalance > ethers.parseEther("10")) {
         try {
-          let amountToBurn = currentDebt + ethers.parseEther("0.01");
+          // Calculate amount to burn (current debt - amount to keep)
+          let amountToBurn = currentDebt - amountToKeep;
+          if (amountToBurn < 0n) amountToBurn = 0n;
           if (amountToBurn > myUSDBalance) {
             amountToBurn = myUSDBalance;
           }
@@ -444,7 +449,8 @@ async function simulateBorrowing(
           await engineWithBorrower.repayUpTo(amountToBurn);
 
           logActivity(
-            `Borrower ${borrower.wallet.address.slice(0, 6)}... repaid ${ethers.formatEther(amountToBurn).slice(0, 6)} MyUSD `,
+            `Borrower ${borrower.wallet.address.slice(0, 6)}... repaid ${ethers.formatEther(amountToBurn).slice(0, 6)} MyUSD ` +
+              `(keeping ${ethers.formatEther(amountToKeep).slice(0, 6)} MyUSD)`,
           );
         } catch (error: any) {
           logActivity(`Failed to repay debt for ${borrower.wallet.address.slice(0, 6)}...`);
@@ -524,8 +530,6 @@ async function simulateBorrowing(
           );
         }
       }
-    } else {
-      logActivity(`Borrower ${borrower.wallet.address.slice(0, 6)}... not borrowing - rate too high`);
     }
   }
 }
@@ -562,7 +566,7 @@ async function executeBorrowing(
     const swapTx = await dexWithBorrower.swap(myUSDToSwap);
     await swapTx.wait();
 
-    // 3. Add the ETH as collateral (use 90% of balance above 1 ETH safety margin)
+    // 4. Add the ETH as collateral (use 90% of balance above 1 ETH safety margin)
     const ethBalance = await ethers.provider.getBalance(borrower.wallet.address);
     const safetyMargin = ethers.parseEther("1");
 
@@ -608,7 +612,7 @@ async function simulateStaking(
         // Unstake ALL shares when rate is below minimum acceptable rate
         if (stakedShares > 0n) {
           // Unstake all shares
-          await stakingWithStaker.withdraw(stakedShares);
+          await stakingWithStaker.withdraw();
 
           logActivity(
             `Staker ${staker.wallet.address.slice(0, 6)}... unstaked ALL shares ` +
@@ -686,8 +690,6 @@ async function simulateStaking(
           logActivity(`Failed to stake for ${staker.wallet.address.slice(0, 6)}...`);
         }
       }
-    } else {
-      logActivity(`Staker ${staker.wallet.address.slice(0, 6)}... not staking - rate too low`);
     }
   }
 }

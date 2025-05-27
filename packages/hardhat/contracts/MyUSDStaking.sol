@@ -103,16 +103,17 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         emit Staked(msg.sender, amount, shares);
     }
 
-    function withdraw(uint256 shareAmount) external nonReentrant {
-        if (shareAmount == 0) revert Staking__InvalidAmount();
-        if (userShares[msg.sender] < shareAmount) revert Staking__InsufficientBalance();
+    function withdraw() external nonReentrant {
         if (address(engine) == address(0)) revert Staking__EngineNotSet();
+
+        uint256 shareAmount = userShares[msg.sender];
+        if (shareAmount == 0) revert Staking__InsufficientBalance();
 
         // Calculate MyUSD amount based on current exchange rate
         uint256 amount = getSharesValue(shareAmount);
 
         // Update user's shares
-        userShares[msg.sender] -= shareAmount;
+        userShares[msg.sender] = 0;
         
         // Transfer tokens to user
         bool success = myUSD.transfer(msg.sender, amount);

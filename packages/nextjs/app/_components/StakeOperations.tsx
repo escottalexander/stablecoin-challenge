@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import TooltipInfo from "./TooltipInfo";
 import { parseEther } from "viem";
+import { useAccount } from "wagmi";
 import { IntegerInput } from "~~/components/scaffold-eth";
-import { useScaffoldContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldContract, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { notification } from "~~/utils/scaffold-eth";
 
 const StakeOperations = () => {
+  const { address } = useAccount();
   const [stakeAmount, setStakeAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawDisabled, setWithdrawDisabled] = useState(true);
 
   const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
     contractName: "MyUSD",
@@ -15,9 +17,19 @@ const StakeOperations = () => {
 
   const { data: myUSDCStakingContract } = useScaffoldContract({ contractName: "MyUSDStaking" });
 
-  const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
+  const { writeContractAsync: writeStakingContract } = useScaffoldWriteContract({
     contractName: "MyUSDStaking",
   });
+
+  const { data: shareBalance } = useScaffoldReadContract({
+    contractName: "MyUSDStaking",
+    functionName: "userShares",
+    args: [address],
+  });
+
+  useEffect(() => {
+    setWithdrawDisabled(shareBalance === 0n);
+  }, [shareBalance]);
 
   const handleStake = async () => {
     if (!myUSDCStakingContract) {
@@ -30,7 +42,7 @@ const StakeOperations = () => {
         args: [myUSDCStakingContract.address, stakeAmount ? parseEther(stakeAmount) : 0n],
       });
 
-      await writeStablecoinEngineContract({
+      await writeStakingContract({
         functionName: "stake",
         args: [stakeAmount ? parseEther(stakeAmount) : 0n],
       });
@@ -42,11 +54,9 @@ const StakeOperations = () => {
 
   const handleWithdraw = async () => {
     try {
-      await writeStablecoinEngineContract({
+      await writeStakingContract({
         functionName: "withdraw",
-        args: [withdrawAmount ? parseEther(withdrawAmount) : 0n],
       });
-      setWithdrawAmount("");
     } catch (error) {
       console.error("Error withdrawing:", error);
     }
@@ -75,13 +85,7 @@ const StakeOperations = () => {
             <span className="label-text">Withdraw (MyUSD)</span>
           </label>
           <div className="flex gap-2 items-center">
-            <IntegerInput
-              value={withdrawAmount}
-              onChange={setWithdrawAmount}
-              placeholder="Amount"
-              disableMultiplyBy1e18
-            />
-            <button className="btn btn-sm btn-primary" onClick={handleWithdraw} disabled={!withdrawAmount}>
+            <button className="btn btn-sm btn-primary" onClick={handleWithdraw} disabled={withdrawDisabled}>
               Withdraw
             </button>
           </div>

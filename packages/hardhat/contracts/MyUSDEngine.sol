@@ -184,10 +184,6 @@ contract MyUSDEngine is Ownable {
 
     // Reduces shares as much as possible with the amount specified up to 100% paid back
     function repayUpTo(uint256 amount) public {
-        if (amount == 0) {
-            revert Engine__InvalidAmount(); // Revert if burn amount is zero
-        }
-
         uint256 amountInShares = _getMyUSDToShares(amount);
         // Check if user has enough debt
         if (amountInShares > s_userDebtShares[msg.sender]) {
@@ -196,14 +192,21 @@ contract MyUSDEngine is Ownable {
             amount = getCurrentDebtValue(msg.sender);
         }
 
+        // Check balance
+        if (amount == 0 || i_myUSD.balanceOf(msg.sender) < amount) {
+            revert MyUSD__InsufficientBalance();
+        }
+
+        // Check allowance
+        if (i_myUSD.allowance(msg.sender, address(this)) < amount) {
+            revert MyUSD__InsufficientAllowance();
+        }
+
         // Update user's debt shares and total debt shares
         s_userDebtShares[msg.sender] -= amountInShares;
         totalDebtShares -= amountInShares;
 
-        bool success = i_myUSD.burnFrom(msg.sender, amount);
-        if (!success) {
-            revert Engine__BurningFailed(); // Revert if burning fails
-        }
+        i_myUSD.burnFrom(msg.sender, amount);
 
         emit DebtSharesBurned(msg.sender, amount, amountInShares);
     }
