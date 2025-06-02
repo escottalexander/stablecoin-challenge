@@ -23,6 +23,7 @@ const HOVER_DELAY = 100;
 const SideButton: React.FC<{
   config: ButtonConfig;
   isHovered: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onHover: (id: ButtonType) => void;
 }> = React.memo(({ config, isHovered, onHover }) => {
   const Icon = config.icon;
