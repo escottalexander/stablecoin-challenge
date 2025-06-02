@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "./MyUSDEngine.sol";
 import "./MyUSDStaking.sol";
 
 contract RateController {
-    MyUSDEngine private i_myUSD;
+    IMyUSDEngine private i_myUSD;
     MyUSDStaking private i_staking;
 
     constructor(address _myUSD, address _staking) {
-        i_myUSD = MyUSDEngine(_myUSD);
+        i_myUSD = IMyUSDEngine(_myUSD);
         i_staking = MyUSDStaking(_staking);
     }
 

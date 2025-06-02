@@ -4,7 +4,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./MyUSD.sol";
-import "./MyUSDEngine.sol";
+
+interface IMyUSDEngine {
+    function borrowRate() external view returns (uint256);
+    function setBorrowRate(uint256 newRate) external;
+}
 
 error Staking__InvalidAmount();
 error Staking__InsufficientBalance();
@@ -15,7 +19,7 @@ error Staking__EngineNotSet();
 error Staking__NotRateController();
 contract MyUSDStaking is Ownable, ReentrancyGuard {
     MyUSD public immutable myUSD;
-    MyUSDEngine public engine;
+    IMyUSDEngine public engine;
     address private i_rateController;   
 
     // Total shares in the pool
@@ -48,7 +52,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
 
     constructor(address _myUSD, address _engine, address _rateController) Ownable(msg.sender) {
         myUSD = MyUSD(_myUSD);
-        engine = MyUSDEngine(_engine);
+        engine = IMyUSDEngine(_engine);
         i_rateController = _rateController;
         exchangeRate = PRECISION; // 1:1 initially
         lastUpdateTime = block.timestamp;

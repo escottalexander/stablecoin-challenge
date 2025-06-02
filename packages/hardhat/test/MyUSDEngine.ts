@@ -8,6 +8,7 @@ import { MyUSD, DEX, MyUSDEngine, Oracle, MyUSDStaking, RateController } from ".
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 describe("🚩 Stablecoin Challenge 🤓", function () {
+  const contractAddress = process.env.CONTRACT_ADDRESS;
   let myUSDToken: MyUSD;
   let dex: DEX;
   let myUSDEngine: MyUSDEngine;
@@ -24,6 +25,14 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
   beforeEach(async function () {
     await ethers.provider.send("hardhat_reset", []);
     [owner, user1, user2] = await ethers.getSigners();
+
+    // For SRE Auto-grader - use the the downloaded contract instead of default contract
+    let contractArtifact = "";
+    if (contractAddress) {
+      contractArtifact = `contracts/download-${contractAddress}.sol:MyUSDEngine`;
+    } else {
+      contractArtifact = "contracts/MyUSDEngine.sol:MyUSDEngine";
+    }
 
     // Get the deployer's current nonce
     const deployerNonce = await ethers.provider.getTransactionCount(owner.address);
@@ -64,13 +73,13 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     );
 
     // Finally deploy the MyUSDEngine at the predicted address
-    const MyUSDEngineFactory = await ethers.getContractFactory("MyUSDEngine");
-    myUSDEngine = await MyUSDEngineFactory.deploy(
+    const MyUSDEngineFactory = await ethers.getContractFactory(contractArtifact);
+    myUSDEngine = (await MyUSDEngineFactory.deploy(
       await oracle.getAddress(),
       await myUSDToken.getAddress(),
       await staking.getAddress(),
       await rateController.getAddress(),
-    );
+    )) as MyUSDEngine;
 
     // Verify addresses match predictions
     expect(await myUSDEngine.getAddress()).to.equal(futureEngineAddress);
