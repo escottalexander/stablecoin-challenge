@@ -48,11 +48,11 @@ const TokenActions = () => {
             1 {tokenName} = ${myUSDPrice.toFixed(5)}
           </span>
           <div className="flex gap-2">
-            <label htmlFor={`${transferModalId}`} className="btn btn-circle btn-xs">
+            <label htmlFor={`${transferModalId}`} className="btn btn-primary btn-circle btn-xs">
               <PaperAirplaneIcon className="h-3 w-3" />
             </label>
             {ConnectedChain?.id === hardhat.id && (
-              <label htmlFor={`${swapModalId}`} className="btn btn-circle btn-xs">
+              <label htmlFor={`${swapModalId}`} className="btn btn-primary btn-circle btn-xs">
                 <ArrowsRightLeftIcon className="h-3 w-3" />
               </label>
             )}
