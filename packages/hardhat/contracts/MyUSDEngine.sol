@@ -15,6 +15,7 @@ error Engine__PositionSafe();
 error Engine__NotLiquidatable();
 error Engine__InvalidBorrowRate();
 error Engine__NotRateController();
+
 contract MyUSDEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required
     uint256 private constant LIQUIDATOR_REWARD = 10; // 10% reward for liquidators
@@ -56,7 +57,12 @@ contract MyUSDEngine is Ownable {
         _;
     }
 
-    constructor(address _oracle, address _myUSDAddress, address _stakingAddress, address _rateController) Ownable(msg.sender) {
+    constructor(
+        address _oracle,
+        address _myUSDAddress,
+        address _stakingAddress,
+        address _rateController
+    ) Ownable(msg.sender) {
         i_oracle = Oracle(_oracle);
         i_myUSD = MyUSD(_myUSDAddress);
         i_staking = MyUSDStaking(_stakingAddress);
@@ -225,6 +231,14 @@ contract MyUSDEngine is Ownable {
         return (collateralValue * 1e18) / mintedAmount; // Calculate position ratio
     }
 
+    // Calculates the position ratio for a user to ensure they are within safe limits
+    function calculatePositionRatio(address user) public view returns (uint256) {
+        uint256 mintedAmount = getCurrentDebtValue(user);
+        uint256 collateralValue = calculateCollateralValue(user);
+        if (mintedAmount == 0) return type(uint256).max; // Return max if no stablecoins are minted
+        return (collateralValue * 1e18) / mintedAmount; // Calculate position ratio
+    }
+
     // Validates the user's position to ensure it meets safety requirements
     function _validatePosition(address user) internal view {
         uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
@@ -260,11 +274,8 @@ contract MyUSDEngine is Ownable {
             revert MyUSD__InsufficientAllowance();
         }
 
-        // transfer value of debt to the contract
-        i_myUSD.transferFrom(msg.sender, address(this), userDebtValue);
-
-        // burn the transferred stablecoins
-        i_myUSD.burnFrom(address(this), userDebtValue);
+        // burn the stablecoins
+        i_myUSD.burnFrom(msg.sender, userDebtValue);
 
         // Clear user's debt shares
         totalDebtShares -= s_userDebtShares[user];
