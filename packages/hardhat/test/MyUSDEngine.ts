@@ -347,16 +347,20 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await ethers.provider.send("evm_mine", []);
 
       const midDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const expectedMidDebt = initialDebt + (initialDebt * BigInt(borrowRate) * 91n) / (365n * 10000n);
 
       // Change rate and fast forward another 3 months
       await rateController.setBorrowRate(800); // 8% annual
+
+      const afterRateChangeDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
       await ethers.provider.send("evm_increaseTime", [91 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine", []);
 
       const finalDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const expectedFinalDebt = afterRateChangeDebt + (afterRateChangeDebt * BigInt(800) * 91n) / (365n * 10000n);
 
-      expect(midDebt).to.be.gt(initialDebt);
-      expect(finalDebt).to.be.gt(midDebt);
+      expect(midDebt).to.be.closeTo(expectedMidDebt, ethers.parseEther("0.001"));
+      expect(finalDebt).to.be.closeTo(expectedFinalDebt, ethers.parseEther("0.001"));
     });
   });
 
@@ -443,7 +447,6 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     it("Should prevent staking without sufficient balance", async function () {
       const stakeAmount = ethers.parseEther("100000"); // More than user has
       await myUSDToken.connect(user1).approve(staking.target, stakeAmount);
-      console.log("user has", Number(await myUSDToken.balanceOf(user1.address)) / 1e18);
 
       await expect(staking.connect(user1).stake(stakeAmount)).to.be.revertedWithCustomError(
         myUSDToken,
@@ -598,18 +601,25 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await ethers.provider.send("evm_increaseTime", [91 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine", []);
 
+      // Get the balance before rate change - this should include 91 days of 4% interest
+      const expectedMidBalance = initialBalance + (initialBalance * BigInt(400) * 91n) / (365n * 10000n);
       const midBalance = await staking.getBalance(user1.address);
 
       // Change rate and fast forward another 3 months
       await rateController.setBorrowRate(1000); // 10%
       await rateController.setSavingsRate(700); // 7% annual
+
+      const balanceAfterRateChange = await staking.getBalance(user1.address);
+      // Now we fast forward time with the new 7% rate
       await ethers.provider.send("evm_increaseTime", [91 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine", []);
 
+      const expectedFinalBalance =
+        balanceAfterRateChange + (balanceAfterRateChange * BigInt(700) * 91n) / (365n * 10000n);
       const finalBalance = await staking.getBalance(user1.address);
 
-      expect(midBalance).to.be.gt(initialBalance);
-      expect(finalBalance).to.be.gt(midBalance);
+      expect(midBalance).to.be.closeTo(expectedMidBalance, ethers.parseEther("0.001"));
+      expect(finalBalance).to.be.closeTo(expectedFinalBalance, ethers.parseEther("0.001"));
     });
   });
 });
