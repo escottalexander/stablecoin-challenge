@@ -73,7 +73,8 @@ const PriceGraph = () => {
   };
 
   const priceData = sortedEvents.reduce<DataPoint[]>((acc, event, idx) => {
-    const price = event.eventName === "PriceUpdated" ? 1 / (Number(formatEther(event.args.price || 0n)) / ethPriceInUSD) : 0;
+    const price =
+      event.eventName === "PriceUpdated" ? 1 / (Number(formatEther(event.args.price || 0n)) / ethPriceInUSD) : 0;
     const borrowRate = event.eventName === "BorrowRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
     const savingsRate = event.eventName === "SavingsRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
 
