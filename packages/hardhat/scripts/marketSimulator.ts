@@ -261,7 +261,7 @@ async function updateUI(
     const ethToMyUSDPrice = await dex.currentPrice();
     const ethToMyUSDPriceNum = Number(ethers.formatEther(ethToMyUSDPrice));
     const ethPriceDecimal = Number(ethers.formatEther(ethPrice));
-    const myUSDPriceInETH = 1 / (ethToMyUSDPriceNum / ethPriceDecimal);
+    const myUSDPriceInUSD = 1 / (ethToMyUSDPriceNum / ethPriceDecimal);
 
     // Get common data needed by multiple sections
     const savingsRate = Number(await staking.savingsRate());
@@ -272,7 +272,7 @@ async function updateUI(
     // Update system info
     try {
       systemInfoBox.setContent(
-        `MyUSD Price: {yellow-fg}${myUSDPriceInETH.toFixed(6)}{/yellow-fg}  |  ` +
+        `MyUSD Price: {yellow-fg}${myUSDPriceInUSD.toFixed(6)}{/yellow-fg}  |  ` +
           `ETH Price: {cyan-fg}${ethToMyUSDPriceNum.toFixed(1)} MyUSD{/cyan-fg} | ` +
           `Savings Rate: {cyan-fg}${savingsRate > 0 ? savingsRate / 100 : 0}% {/cyan-fg}  |  ` +
           `Borrow Rate: {magenta-fg}${borrowRate > 0 ? borrowRate / 100 : 0}% {/magenta-fg}`,

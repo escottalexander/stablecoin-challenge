@@ -215,7 +215,10 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should allow liquidation when position is unsafe", async function () {
       // drop price of eth so that user1 position is below 1.5
-      await dex.swap(ethers.parseEther("600"), { value: ethers.parseEther("600") });
+      const ethPrice = await oracle.getETHUSDPrice();
+      // If we swap 1/3 of the current eth price in value, the user1 position will be below 1.5x collateral due to liquidity
+      const amountToSwap = ethPrice / 3n;
+      await dex.swap(amountToSwap, { value: amountToSwap });
       expect(await myUSDEngine.isLiquidatable(user1)).to.be.true;
       const beforeBalance = await ethers.provider.getBalance(user2.address);
       await myUSDEngine.connect(user2).liquidate(user1.address);
@@ -233,7 +236,10 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     });
 
     it("Should emit appropriate events on liquidation", async function () {
-      await dex.swap(ethers.parseEther("1000"), { value: ethers.parseEther("1000") });
+      const ethPrice = await oracle.getETHUSDPrice();
+      // If we swap 1/3 of the current eth price in value, the user1 position will be below 1.5x collateral due to liquidity
+      const amountToSwap = ethPrice / 3n;
+      await dex.swap(amountToSwap, { value: amountToSwap });
       await expect(myUSDEngine.connect(user2).liquidate(user1.address)).to.emit(myUSDEngine, "Liquidation");
     });
   });
