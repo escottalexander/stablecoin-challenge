@@ -20,12 +20,18 @@ const TokenActions = () => {
     args: [address],
   });
 
-  const { data: ethPrice } = useScaffoldReadContract({
+  const { data: ethMyUSDPrice } = useScaffoldReadContract({
     contractName: "Oracle",
-    functionName: "getPrice",
+    functionName: "getETHMyUSDPrice",
   });
 
-  const myUSDPrice = 1 / (Number(formatEther(ethPrice || 0n)) / 1800);
+  const { data: ethUSDPrice } = useScaffoldReadContract({
+    contractName: "Oracle",
+    functionName: "getETHUSDPrice",
+  });
+  const ethPriceInUSD = Number(formatEther(ethUSDPrice || 0n));
+
+  const myUSDPrice = 1 / (Number(formatEther(ethMyUSDPrice || 0n)) / ethPriceInUSD);
 
   const tokenBalance = `${Math.floor(Number(formatEther(stablecoinBalance || 0n)) * 100) / 100}`;
 
@@ -57,7 +63,7 @@ const TokenActions = () => {
       <TokenSwapModal
         tokenBalance={tokenBalance}
         connectedAddress={address || ""}
-        ETHprice={Number(formatEther(ethPrice || 0n)).toFixed(2)}
+        ETHprice={Number(formatEther(ethMyUSDPrice || 0n)).toFixed(2)}
         modalId={`${swapModalId}`}
       />
     </div>

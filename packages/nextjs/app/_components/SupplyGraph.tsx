@@ -3,8 +3,7 @@ import TooltipInfo from "./TooltipInfo";
 import { useTheme } from "next-themes";
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { formatEther } from "viem";
-import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
-import { INITIAL_DEX_SUPPLY } from "~~/utils/constant";
+import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -26,6 +25,13 @@ const SupplyGraph = () => {
   const strokeColor = isDarkMode ? "#ffffff" : "#000000";
   const purpleColor = "#8884d8";
   const greenColor = "#82ca9d";
+
+  const { data: ethPrice } = useScaffoldReadContract({
+    contractName: "Oracle",
+    functionName: "getETHUSDPrice",
+  });
+
+  const initialDexSupply = Number(formatEther(ethPrice ? ethPrice * 10000000n : 0n));
 
   const { data: debtSharesMintedEvents, isLoading: isDebtSharesMintedLoading } = useScaffoldEventHistory({
     contractName: "MyUSDEngine",
@@ -104,7 +110,7 @@ const SupplyGraph = () => {
 
     const { sent: dexSentMyUSDAmount, received: dexReceivedMyUSDAmount } = calculateDexSwapAmounts(event);
 
-    if (minted >= INITIAL_DEX_SUPPLY) {
+    if (minted >= initialDexSupply) {
       minted = 0;
     }
 

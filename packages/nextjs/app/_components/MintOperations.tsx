@@ -16,7 +16,7 @@ const MintOperations = () => {
 
   const { data: ethPrice } = useScaffoldReadContract({
     contractName: "Oracle",
-    functionName: "getPrice",
+    functionName: "getETHMyUSDPrice",
   });
 
   const { data: engineContractData } = useScaffoldContract({

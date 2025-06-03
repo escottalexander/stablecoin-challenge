@@ -3,7 +3,7 @@ import TooltipInfo from "./TooltipInfo";
 import { useTheme } from "next-themes";
 import { Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { formatEther } from "viem";
-import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const PriceGraph = () => {
   const [showRates, setShowRates] = useState(false);
@@ -13,6 +13,12 @@ const PriceGraph = () => {
   const yellowColor = "#f9a73e";
   const redColor = "#bf212f";
   const greenColor = "#27b376";
+
+  const { data: ethPrice } = useScaffoldReadContract({
+    contractName: "Oracle",
+    functionName: "getETHUSDPrice",
+  });
+  const ethPriceInUSD = Number(formatEther(ethPrice || 0n));
 
   const { data: priceEvents, isLoading: isPriceLoading } = useScaffoldEventHistory({
     contractName: "DEX",
@@ -67,7 +73,7 @@ const PriceGraph = () => {
   };
 
   const priceData = sortedEvents.reduce<DataPoint[]>((acc, event, idx) => {
-    const price = event.eventName === "PriceUpdated" ? 1 / (Number(formatEther(event.args.price || 0n)) / 1800) : 0;
+    const price = event.eventName === "PriceUpdated" ? 1 / (Number(formatEther(event.args.price || 0n)) / ethPriceInUSD) : 0;
     const borrowRate = event.eventName === "BorrowRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
     const savingsRate = event.eventName === "SavingsRateUpdated" ? Number(event.args.newRate || 0n) / 100 : -1;
 

@@ -142,7 +142,7 @@ contract MyUSDEngine is Ownable {
         }
 
         s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
-        emit CollateralAdded(msg.sender, msg.value, i_oracle.getPrice()); // Emit event for collateral addition
+        emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice()); // Emit event for collateral addition
     }
 
     // Allows users to withdraw collateral as long as it doesn't make them liquidatable
@@ -163,7 +163,7 @@ contract MyUSDEngine is Ownable {
         // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
 
-        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_oracle.getPrice()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_oracle.getETHMyUSDPrice()); // Emit event for collateral withdrawal
     }
 
     // Allows users to mint MyUSD based on their collateral
@@ -220,7 +220,7 @@ contract MyUSDEngine is Ownable {
     // Calculates the total collateral value for a user based on their collateral balance and price point
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_oracle.getPrice()) / 1e18; // Calculate collateral value in terms of ETH price
+        return (collateralAmount * i_oracle.getETHMyUSDPrice()) / 1e18; // Calculate collateral value in terms of ETH price
     }
 
     // Calculates the position ratio for a user to ensure they are within safe limits
@@ -293,6 +293,6 @@ contract MyUSDEngine is Ownable {
         (bool sent, ) = payable(msg.sender).call{ value: amountForLiquidator }("");
         require(sent, "Failed to send Ether");
 
-        emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getPrice());
+        emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHMyUSDPrice());
     }
 }
