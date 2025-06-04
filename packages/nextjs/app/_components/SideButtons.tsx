@@ -18,7 +18,7 @@ const BUTTONS: ButtonConfig[] = [
   { id: "stake", icon: LockClosedIcon, title: "Stake" },
 ];
 
-const HOVER_DELAY = 100;
+const HOVER_DELAY = 200;
 
 const SideButton: React.FC<{
   config: ButtonConfig;
@@ -70,12 +70,6 @@ const SideButtons: React.FC = () => {
     };
   }, []);
 
-  const modalPosition = useMemo(() => {
-    if (!hoveredButton) return "0";
-    const buttonIndex = BUTTONS.findIndex(btn => btn.id === hoveredButton);
-    return `${buttonIndex * 56 + 20}px`;
-  }, [hoveredButton]);
-
   const renderModalContent = useCallback(() => {
     if (!hoveredButton) return null;
 
@@ -121,7 +115,6 @@ const SideButtons: React.FC = () => {
         {/* Hover Windows */}
         <div
           className={`absolute top-0 right-full mr-4 transition-all duration-300 z-10 ease-in-out ${hoveredButton ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}`}
-          style={{ top: modalPosition }}
           onMouseEnter={handleContainerEnter}
           onMouseLeave={handleContainerLeave}
         >
