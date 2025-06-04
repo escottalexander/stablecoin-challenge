@@ -106,7 +106,7 @@ const SideButtons: React.FC = () => {
         {/* Invisible bridge to cover the gap */}
         {hoveredButton && (
           <div
-            className="absolute top-0 right-full w-4 h-full pointer-events-auto"
+            className="absolute top-1/2 -translate-y-1/2 right-full w-4 h-full pointer-events-auto"
             onMouseEnter={handleContainerEnter}
             onMouseLeave={handleContainerLeave}
           />
@@ -114,7 +114,7 @@ const SideButtons: React.FC = () => {
 
         {/* Hover Windows */}
         <div
-          className={`absolute top-0 right-full mr-4 transition-all duration-300 z-10 ease-in-out ${hoveredButton ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}`}
+          className={`absolute top-1/2 -translate-y-1/2 right-full mr-4 transition-all duration-300 z-10 ease-in-out ${hoveredButton ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}`}
           onMouseEnter={handleContainerEnter}
           onMouseLeave={handleContainerLeave}
         >
