@@ -156,7 +156,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     });
 
     it("Should prevent borrowing when insufficiently collateralized", async function () {
-      const tooMuchBorrow = ethers.parseEther("1000000");
+      const tooMuchBorrow = (await oracle.getETHUSDPrice()) * collateralAmount;
       await expect(myUSDEngine.connect(user1).mintMyUSD(tooMuchBorrow)).to.be.revertedWithCustomError(
         myUSDEngine,
         "Engine__UnsafePositionRatio",
@@ -205,6 +205,8 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
   describe("Liquidation", function () {
     beforeEach(async function () {
+      const collateralAmount = ethers.parseEther("1");
+      const borrowAmount = ((await oracle.getETHUSDPrice()) * 1000n) / 1505n;
       await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
       await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
       await myUSDToken
@@ -215,9 +217,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should allow liquidation when position is unsafe", async function () {
       // drop price of eth so that user1 position is below 1.5
-      const ethPrice = await oracle.getETHUSDPrice();
-      // If we swap 1/3 of the current eth price in value, the user1 position will be below 1.5x collateral due to liquidity
-      const amountToSwap = ethPrice / 3n;
+      const amountToSwap = ethers.parseEther("10");
       await dex.swap(amountToSwap, { value: amountToSwap });
       expect(await myUSDEngine.isLiquidatable(user1)).to.be.true;
       const beforeBalance = await ethers.provider.getBalance(user2.address);
@@ -236,9 +236,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     });
 
     it("Should emit appropriate events on liquidation", async function () {
-      const ethPrice = await oracle.getETHUSDPrice();
-      // If we swap 1/3 of the current eth price in value, the user1 position will be below 1.5x collateral due to liquidity
-      const amountToSwap = ethPrice / 3n;
+      const amountToSwap = ethers.parseEther("10");
       await dex.swap(amountToSwap, { value: amountToSwap });
       await expect(myUSDEngine.connect(user2).liquidate(user1.address)).to.emit(myUSDEngine, "Liquidation");
     });
