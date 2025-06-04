@@ -7,7 +7,6 @@ import "./Oracle.sol";
 import "./MyUSDStaking.sol";
 
 error Engine__InvalidAmount();
-error Engine__TransferFailed();
 error Engine__UnsafePositionRatio();
 error Engine__NotLiquidatable();
 error Engine__InvalidBorrowRate();
