@@ -13,7 +13,6 @@ interface IMyUSDEngine {
 
 error Staking__InvalidAmount();
 error Staking__InsufficientBalance();
-error Staking__InsufficientAllowance();
 error Staking__TransferFailed();
 error Staking__InvalidSavingsRate();
 error Staking__EngineNotSet();
@@ -103,11 +102,11 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         totalShares += shares;
 
         if (myUSD.balanceOf(msg.sender) < amount) {
-            revert Staking__InsufficientBalance();
+            revert MyUSD__InsufficientBalance();
         }
 
         if (myUSD.allowance(msg.sender, address(this)) < amount) {
-            revert Staking__InsufficientAllowance();
+            revert MyUSD__InsufficientAllowance();
         }
 
         // Transfer tokens to contract

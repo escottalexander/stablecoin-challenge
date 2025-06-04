@@ -457,7 +457,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
       await expect(staking.connect(user1).stake(stakeAmount)).to.be.revertedWithCustomError(
         staking,
-        "Staking__InsufficientBalance",
+        "MyUSD__InsufficientBalance",
       );
     });
 
@@ -468,7 +468,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
       await expect(staking.connect(user1).stake(stakeAmount)).to.be.revertedWithCustomError(
         staking,
-        "Staking__InsufficientAllowance",
+        "MyUSD__InsufficientAllowance",
       );
     });
 

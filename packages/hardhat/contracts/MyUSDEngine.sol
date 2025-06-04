@@ -9,9 +9,6 @@ import "./MyUSDStaking.sol";
 error Engine__InvalidAmount();
 error Engine__TransferFailed();
 error Engine__UnsafePositionRatio();
-error Engine__MintingFailed();
-error Engine__BurningFailed();
-error Engine__PositionSafe();
 error Engine__NotLiquidatable();
 error Engine__InvalidBorrowRate();
 error Engine__NotRateController();
@@ -180,10 +177,7 @@ contract MyUSDEngine is Ownable {
         totalDebtShares += debtShares;
 
         _validatePosition(msg.sender);
-        bool success = i_myUSD.mintTo(msg.sender, mintAmount);
-        if (!success) {
-            revert Engine__MintingFailed(); // Revert if minting fails
-        }
+        i_myUSD.mintTo(msg.sender, mintAmount);
 
         emit DebtSharesMinted(msg.sender, mintAmount, debtShares);
     }

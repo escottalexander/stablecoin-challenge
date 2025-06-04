@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     DEX: {
-      address: "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
+      address: "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
       abi: [
         {
           inputs: [
@@ -314,7 +314,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     MyUSD: {
-      address: "0x59b670e9fA9D0A427751Af201D676719a970857b",
+      address: "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
       abi: [
         {
           inputs: [
@@ -838,7 +838,7 @@ const deployedContracts = {
       },
     },
     MyUSDEngine: {
-      address: "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
+      address: "0xc351628EB244ec633d5f21fBD6621e1a683B1181",
       abi: [
         {
           inputs: [
@@ -874,11 +874,6 @@ const deployedContracts = {
         {
           inputs: [],
           name: "Engine__InvalidBorrowRate",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Engine__MintingFailed",
           type: "error",
         },
         {
@@ -1382,7 +1377,7 @@ const deployedContracts = {
       },
     },
     MyUSDStaking: {
-      address: "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+      address: "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
       abi: [
         {
           inputs: [
@@ -1404,6 +1399,16 @@ const deployedContracts = {
           ],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          inputs: [],
+          name: "MyUSD__InsufficientAllowance",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "MyUSD__InsufficientBalance",
+          type: "error",
         },
         {
           inputs: [
@@ -1435,11 +1440,6 @@ const deployedContracts = {
         {
           inputs: [],
           name: "Staking__EngineNotSet",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Staking__InsufficientAllowance",
           type: "error",
         },
         {
@@ -1758,7 +1758,7 @@ const deployedContracts = {
       },
     },
     Oracle: {
-      address: "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+      address: "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
       abi: [
         {
           inputs: [
@@ -1832,7 +1832,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     RateController: {
-      address: "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+      address: "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
       abi: [
         {
           inputs: [
