@@ -11,7 +11,6 @@ error MyUSD__InvalidAmount();
 error MyUSD__InsufficientBalance();
 error MyUSD__InsufficientAllowance();
 error MyUSD__InvalidAddress();
-error MyUSD__NotStakingEngine();
 error MyUSD__NotAuthorized();
 
 contract MyUSD is ERC20, ERC20Burnable, Ownable {

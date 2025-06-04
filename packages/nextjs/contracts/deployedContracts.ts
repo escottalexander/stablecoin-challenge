@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     DEX: {
-      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      address: "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
       abi: [
         {
           inputs: [
@@ -314,7 +314,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     MyUSD: {
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      address: "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
       abi: [
         {
           inputs: [
@@ -838,7 +838,7 @@ const deployedContracts = {
       },
     },
     MyUSDEngine: {
-      address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+      address: "0xc351628EB244ec633d5f21fBD6621e1a683B1181",
       abi: [
         {
           inputs: [
@@ -874,11 +874,6 @@ const deployedContracts = {
         {
           inputs: [],
           name: "Engine__InvalidBorrowRate",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "Engine__MintingFailed",
           type: "error",
         },
         {
@@ -1382,7 +1377,7 @@ const deployedContracts = {
       },
     },
     MyUSDStaking: {
-      address: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+      address: "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
       abi: [
         {
           inputs: [
@@ -1404,6 +1399,16 @@ const deployedContracts = {
           ],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          inputs: [],
+          name: "MyUSD__InsufficientAllowance",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "MyUSD__InsufficientBalance",
+          type: "error",
         },
         {
           inputs: [
@@ -1753,7 +1758,7 @@ const deployedContracts = {
       },
     },
     Oracle: {
-      address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      address: "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
       abi: [
         {
           inputs: [
@@ -1827,7 +1832,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     RateController: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
       abi: [
         {
           inputs: [
