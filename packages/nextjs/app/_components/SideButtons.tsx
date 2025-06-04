@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import CollateralOperations from "./CollateralOperations";
 import MintOperations from "./MintOperations";
 import StakeOperations from "./StakeOperations";
@@ -18,21 +18,19 @@ const BUTTONS: ButtonConfig[] = [
   { id: "stake", icon: LockClosedIcon, title: "Stake" },
 ];
 
-const HOVER_DELAY = 100;
+const HOVER_DELAY = 200;
 
 const SideButton: React.FC<{
   config: ButtonConfig;
   isHovered: boolean;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onHover: (id: ButtonType) => void;
-  onLeave: () => void;
-}> = React.memo(({ config, isHovered, onHover, onLeave }) => {
+}> = React.memo(({ config, isHovered, onHover }) => {
   const Icon = config.icon;
   return (
     <button
       className={`btn btn-circle btn-primary transition-transform duration-300 hover:scale-110 ${isHovered ? "ring-2 ring-primary" : ""}`}
       onMouseEnter={() => onHover(config.id)}
-      onMouseLeave={onLeave}
     >
       <Icon className="h-6 w-6" />
     </button>
@@ -43,7 +41,6 @@ SideButton.displayName = "SideButton";
 
 const SideButtons: React.FC = () => {
   const [hoveredButton, setHoveredButton] = useState<ButtonType | null>(null);
-  const [isHoveringModal, setIsHoveringModal] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   const handleButtonHover = useCallback((buttonId: ButtonType) => {
@@ -53,26 +50,16 @@ const SideButtons: React.FC = () => {
     setHoveredButton(buttonId);
   }, []);
 
-  const handleButtonLeave = useCallback(() => {
-    timeoutRef.current = setTimeout(() => {
-      if (!isHoveringModal) {
-        setHoveredButton(null);
-      }
-    }, HOVER_DELAY);
-  }, [isHoveringModal]);
-
-  const handleModalHover = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    setIsHoveringModal(true);
-  }, []);
-
-  const handleModalLeave = useCallback(() => {
-    setIsHoveringModal(false);
+  const handleContainerLeave = useCallback(() => {
     timeoutRef.current = setTimeout(() => {
       setHoveredButton(null);
     }, HOVER_DELAY);
+  }, []);
+
+  const handleContainerEnter = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
   }, []);
 
   useEffect(() => {
@@ -82,12 +69,6 @@ const SideButtons: React.FC = () => {
       }
     };
   }, []);
-
-  const modalPosition = useMemo(() => {
-    if (!hoveredButton) return "0";
-    const buttonIndex = BUTTONS.findIndex(btn => btn.id === hoveredButton);
-    return `${buttonIndex * 56 + 20}px`;
-  }, [hoveredButton]);
 
   const renderModalContent = useCallback(() => {
     if (!hoveredButton) return null;
@@ -105,7 +86,11 @@ const SideButtons: React.FC = () => {
   }, [hoveredButton]);
 
   return (
-    <div className="absolute top-[120px] right-0 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-5">
+    <div
+      className="absolute top-[120px] right-0 bg-base-100 w-fit border-base-300 border shadow-md rounded-xl z-5"
+      onMouseEnter={handleContainerEnter}
+      onMouseLeave={handleContainerLeave}
+    >
       <div className="relative">
         <div className="p-4 flex flex-col items-center gap-2">
           {BUTTONS.map(config => (
@@ -114,17 +99,24 @@ const SideButtons: React.FC = () => {
               config={config}
               isHovered={hoveredButton === config.id}
               onHover={handleButtonHover}
-              onLeave={handleButtonLeave}
             />
           ))}
         </div>
 
+        {/* Invisible bridge to cover the gap */}
+        {hoveredButton && (
+          <div
+            className="absolute top-1/2 -translate-y-1/2 right-full w-4 h-full pointer-events-auto"
+            onMouseEnter={handleContainerEnter}
+            onMouseLeave={handleContainerLeave}
+          />
+        )}
+
         {/* Hover Windows */}
         <div
-          className={`absolute top-0 right-full mr-4 transition-all duration-300 z-10 ease-in-out ${hoveredButton ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}`}
-          onMouseEnter={handleModalHover}
-          onMouseLeave={handleModalLeave}
-          style={{ top: modalPosition }}
+          className={`absolute top-1/2 -translate-y-1/2 right-full mr-4 transition-all duration-300 z-10 ease-in-out ${hoveredButton ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"}`}
+          onMouseEnter={handleContainerEnter}
+          onMouseLeave={handleContainerLeave}
         >
           {renderModalContent()}
         </div>
