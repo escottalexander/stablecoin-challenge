@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import { DEX, RateController, MyUSDStaking, MyUSDEngine } from "../typechain-types";
+import { DEX, RateController, MyUSDStaking, MyUSDEngine, Oracle } from "../typechain-types";
 
 const ethers = hre.ethers;
 
@@ -139,6 +139,8 @@ async function main() {
   const rateController = await ethers.getContract<RateController>("RateController", deployer);
   const engine = await ethers.getContract<MyUSDEngine>("MyUSDEngine", deployer);
   const staking = await ethers.getContract<MyUSDStaking>("MyUSDStaking", deployer);
+  const oracle = await ethers.getContract<Oracle>("Oracle", deployer);
+  const ethPrice = await oracle.getETHUSDPrice();
 
   const startBorrowRate = await engine.borrowRate();
   const startSavingsRate = await staking.savingsRate();
@@ -179,7 +181,7 @@ async function main() {
     try {
       // --- Get price ---
       const currentPriceRaw = await dex.currentPrice();
-      const currentPriceEth = 1 / (Number(ethers.formatEther(currentPriceRaw)) / 1800);
+      const currentPriceEth = 1 / (Number(ethers.formatEther(currentPriceRaw)) / Number(ethers.formatEther(ethPrice)));
       priceHistory.push(currentPriceEth);
       if (priceHistory.length > PRICE_WINDOW) priceHistory.shift();
       const deviation = priceDeviation(currentPriceEth);

@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { Contract } from "ethers";
+import { fetchPriceFromUniswap } from "../scripts/fetchPriceFromUniswap";
 
 /**
  * Deploys a contract named "YourContract" using the deployer account and
@@ -21,6 +22,8 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   */
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
+
+  const ethPrice = await fetchPriceFromUniswap();
 
   // Add the account that you want to be the owner of your contracts when deployment is complete
   const CONTRACT_OWNER = deployer; // Change this if you want to update the rates with a different account than the deployer
@@ -59,7 +62,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
   await deploy("Oracle", {
     from: deployer,
-    args: [DEX.target],
+    args: [DEX.target, ethPrice],
   });
   const oracle = await hre.ethers.getContract<Contract>("Oracle", deployer);
 
@@ -95,7 +98,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const ethCollateralAmount = hre.ethers.parseEther("10000000000000000000");
     // Set initial price of stablecoin (as determined by DEX liquidity)
     const ethDEXAmount = hre.ethers.parseEther("10000000");
-    const myUSDAmount = hre.ethers.parseEther("18000000000");
+    const myUSDAmount = ethPrice * 10000000n;
 
     // Borrow stablecoins
     await engine.addCollateral({ value: ethCollateralAmount });

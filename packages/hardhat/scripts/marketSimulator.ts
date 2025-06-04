@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { HDNodeWallet } from "ethers";
 import hre from "hardhat";
-import { DEX, MyUSDEngine, MyUSD, MyUSDStaking } from "../typechain-types";
+import { DEX, MyUSDEngine, MyUSD, MyUSDStaking, Oracle } from "../typechain-types";
 import * as blessed from "blessed";
 import * as contrib from "blessed-contrib";
 const ethers = hre.ethers;
@@ -27,7 +27,6 @@ interface StakerProfile {
 type SimulatedAccount = BorrowerProfile | StakerProfile;
 
 // Configuration
-const ETH_PRICE_USD = 1800; // Hardcoded ETH price in USD
 const NUM_BORROWERS = 5;
 const NUM_STAKERS = 5;
 const SIMULATION_INTERVAL_MS = 2000;
@@ -250,6 +249,7 @@ function getStakerStatus(
 // Update UI with latest data
 async function updateUI(
   dex: DEX,
+  ethPrice: bigint,
   engine: MyUSDEngine,
   myUSD: MyUSD,
   staking: MyUSDStaking,
@@ -260,7 +260,8 @@ async function updateUI(
     // Get price data
     const ethToMyUSDPrice = await dex.currentPrice();
     const ethToMyUSDPriceNum = Number(ethers.formatEther(ethToMyUSDPrice));
-    const myUSDPriceInETH = 1 / (ethToMyUSDPriceNum / ETH_PRICE_USD);
+    const ethPriceDecimal = Number(ethers.formatEther(ethPrice));
+    const myUSDPriceInUSD = 1 / (ethToMyUSDPriceNum / ethPriceDecimal);
 
     // Get common data needed by multiple sections
     const savingsRate = Number(await staking.savingsRate());
@@ -271,7 +272,7 @@ async function updateUI(
     // Update system info
     try {
       systemInfoBox.setContent(
-        `MyUSD Price: {yellow-fg}${myUSDPriceInETH.toFixed(6)}{/yellow-fg}  |  ` +
+        `MyUSD Price: {yellow-fg}${myUSDPriceInUSD.toFixed(6)}{/yellow-fg}  |  ` +
           `ETH Price: {cyan-fg}${ethToMyUSDPriceNum.toFixed(1)} MyUSD{/cyan-fg} | ` +
           `Savings Rate: {cyan-fg}${savingsRate > 0 ? savingsRate / 100 : 0}% {/cyan-fg}  |  ` +
           `Borrow Rate: {magenta-fg}${borrowRate > 0 ? borrowRate / 100 : 0}% {/magenta-fg}`,
@@ -697,6 +698,7 @@ async function simulateStaking(
 // Main simulation function
 async function simulateMarket(
   dex: DEX,
+  ethPrice: bigint,
   engine: MyUSDEngine,
   myUSD: MyUSD,
   staking: MyUSDStaking,
@@ -718,7 +720,7 @@ async function simulateMarket(
   logActivity(`Initial rates - Savings: ${currentSavingsRate} bps, Borrow: ${currentBorrowRate} bps`);
 
   // Start UI update timer
-  setInterval(() => updateUI(dex, engine, myUSD, staking, borrowers, stakers), UI_REFRESH_MS);
+  setInterval(() => updateUI(dex, ethPrice, engine, myUSD, staking, borrowers, stakers), UI_REFRESH_MS);
 
   // Run market actions on interval
   setInterval(async () => {
@@ -753,6 +755,8 @@ async function main() {
 
     const [deployer] = await ethers.getSigners();
     const dex = await ethers.getContract<DEX>("DEX", deployer);
+    const oracle = await ethers.getContract<Oracle>("Oracle", deployer);
+    const ethPrice = await oracle.getETHUSDPrice();
     const engine = await ethers.getContract<MyUSDEngine>("MyUSDEngine", deployer);
     const myUSD = await ethers.getContract<MyUSD>("MyUSD", deployer);
     const staking = await ethers.getContract<MyUSDStaking>("MyUSDStaking", deployer);
@@ -762,7 +766,7 @@ async function main() {
     logActivity("Created simulated accounts");
 
     // Start the market simulation
-    await simulateMarket(dex, engine, myUSD, staking, accounts, deployer);
+    await simulateMarket(dex, ethPrice, engine, myUSD, staking, accounts, deployer);
   } catch (error: any) {
     logActivity(`Fatal error: ${error}`);
     process.exit(1);

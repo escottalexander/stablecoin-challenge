@@ -20,7 +20,7 @@ const UserPositionsTable = () => {
   });
   const { data: ethPrice } = useScaffoldReadContract({
     contractName: "Oracle",
-    functionName: "getPrice",
+    functionName: "getETHMyUSDPrice",
   });
 
   useEffect(() => {

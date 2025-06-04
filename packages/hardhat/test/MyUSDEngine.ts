@@ -6,6 +6,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { MyUSD, DEX, MyUSDEngine, Oracle, MyUSDStaking, RateController } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
+import { fetchPriceFromUniswap } from "../scripts/fetchPriceFromUniswap";
 
 describe("🚩 Stablecoin Challenge 🤓", function () {
   const contractAddress = process.env.CONTRACT_ADDRESS;
@@ -60,9 +61,11 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     const DEXFactory = await ethers.getContractFactory("DEX");
     dex = await DEXFactory.deploy(await myUSDToken.getAddress());
 
+    const ethPrice = await fetchPriceFromUniswap();
+
     // Deploy Oracle
     const OracleFactory = await ethers.getContractFactory("Oracle");
-    oracle = await OracleFactory.deploy(await dex.getAddress());
+    oracle = await OracleFactory.deploy(await dex.getAddress(), ethPrice);
 
     // Deploy MyUSDStaking
     const MyUSDStakingFactory = await ethers.getContractFactory("MyUSDStaking");
@@ -88,7 +91,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     const ethCollateralAmount = ethers.parseEther("5000");
     // Initialize DEX with liquidity
     const ethDEXAmount = ethers.parseEther("1000");
-    const myUSDAmount = ethers.parseEther("1800000");
+    const myUSDAmount = (await oracle.getETHUSDPrice()) * 1000n;
 
     // Add collateral and mint MyUSD for DEX initialization
     await myUSDEngine.addCollateral({ value: ethCollateralAmount });
@@ -107,7 +110,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     it("Should deploy with correct initial state", async function () {
       expect(await myUSDToken.owner()).to.equal(owner.address);
       expect(await dex.totalLiquidity()).to.be.gt(0);
-      expect(await oracle.getPrice()).to.be.gt(0);
+      expect(await oracle.getETHMyUSDPrice()).to.be.gt(0);
       expect(await myUSDEngine.borrowRate()).to.equal(0);
       expect(await staking.savingsRate()).to.equal(0);
     });
@@ -122,7 +125,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     it("Should emit CollateralAdded event", async function () {
       await expect(myUSDEngine.connect(user1).addCollateral({ value: collateralAmount }))
         .to.emit(myUSDEngine, "CollateralAdded")
-        .withArgs(user1.address, collateralAmount, await oracle.getPrice());
+        .withArgs(user1.address, collateralAmount, await oracle.getETHMyUSDPrice());
     });
 
     it("Should allow withdrawing collateral when no debt", async function () {
@@ -153,7 +156,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     });
 
     it("Should prevent borrowing when insufficiently collateralized", async function () {
-      const tooMuchBorrow = ethers.parseEther("1000000");
+      const tooMuchBorrow = (await oracle.getETHUSDPrice()) * collateralAmount;
       await expect(myUSDEngine.connect(user1).mintMyUSD(tooMuchBorrow)).to.be.revertedWithCustomError(
         myUSDEngine,
         "Engine__UnsafePositionRatio",
@@ -202,6 +205,8 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
   describe("Liquidation", function () {
     beforeEach(async function () {
+      const collateralAmount = ethers.parseEther("1");
+      const borrowAmount = ((await oracle.getETHUSDPrice()) * 1000n) / 1505n;
       await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
       await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
       await myUSDToken
@@ -212,7 +217,8 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should allow liquidation when position is unsafe", async function () {
       // drop price of eth so that user1 position is below 1.5
-      await dex.swap(ethers.parseEther("600"), { value: ethers.parseEther("600") });
+      const amountToSwap = ethers.parseEther("10");
+      await dex.swap(amountToSwap, { value: amountToSwap });
       expect(await myUSDEngine.isLiquidatable(user1)).to.be.true;
       const beforeBalance = await ethers.provider.getBalance(user2.address);
       await myUSDEngine.connect(user2).liquidate(user1.address);
@@ -230,7 +236,8 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     });
 
     it("Should emit appropriate events on liquidation", async function () {
-      await dex.swap(ethers.parseEther("1000"), { value: ethers.parseEther("1000") });
+      const amountToSwap = ethers.parseEther("10");
+      await dex.swap(amountToSwap, { value: amountToSwap });
       await expect(myUSDEngine.connect(user2).liquidate(user1.address)).to.emit(myUSDEngine, "Liquidation");
     });
   });
