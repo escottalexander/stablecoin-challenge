@@ -456,8 +456,8 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await myUSDToken.connect(user1).approve(staking.target, stakeAmount);
 
       await expect(staking.connect(user1).stake(stakeAmount)).to.be.revertedWithCustomError(
-        myUSDToken,
-        "ERC20InsufficientBalance",
+        staking,
+        "Staking__InsufficientBalance",
       );
     });
 
@@ -467,8 +467,8 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await myUSDToken.connect(user1).approve(staking.target, stakeAmount / 2n);
 
       await expect(staking.connect(user1).stake(stakeAmount)).to.be.revertedWithCustomError(
-        myUSDToken,
-        "ERC20InsufficientAllowance",
+        staking,
+        "Staking__InsufficientAllowance",
       );
     });
 

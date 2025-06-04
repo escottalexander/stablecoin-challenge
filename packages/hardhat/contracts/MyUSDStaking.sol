@@ -7,6 +7,7 @@ import "./MyUSD.sol";
 
 interface IMyUSDEngine {
     function borrowRate() external view returns (uint256);
+
     function setBorrowRate(uint256 newRate) external;
 }
 
@@ -17,10 +18,11 @@ error Staking__TransferFailed();
 error Staking__InvalidSavingsRate();
 error Staking__EngineNotSet();
 error Staking__NotRateController();
+
 contract MyUSDStaking is Ownable, ReentrancyGuard {
     MyUSD public immutable myUSD;
     IMyUSDEngine public engine;
-    address private i_rateController;   
+    address private i_rateController;
 
     // Total shares in the pool
     uint256 public totalShares;
@@ -100,6 +102,14 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         userShares[msg.sender] += shares;
         totalShares += shares;
 
+        if (myUSD.balanceOf(msg.sender) < amount) {
+            revert Staking__InsufficientBalance();
+        }
+
+        if (myUSD.allowance(msg.sender, address(this)) < amount) {
+            revert Staking__InsufficientAllowance();
+        }
+
         // Transfer tokens to contract
         bool success = myUSD.transferFrom(msg.sender, address(this), amount);
         if (!success) revert Staking__TransferFailed();
@@ -118,7 +128,7 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
 
         // Update user's shares
         userShares[msg.sender] = 0;
-        
+
         // Transfer tokens to user
         bool success = myUSD.transfer(msg.sender, amount);
         if (!success) revert Staking__TransferFailed();
