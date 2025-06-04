@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import CollateralOperations from "./CollateralOperations";
 import MintOperations from "./MintOperations";
 import StakeOperations from "./StakeOperations";
