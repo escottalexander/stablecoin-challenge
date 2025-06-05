@@ -11,6 +11,7 @@ error Engine__UnsafePositionRatio();
 error Engine__NotLiquidatable();
 error Engine__InvalidBorrowRate();
 error Engine__NotRateController();
+error Engine__InsufficientCollateral();
 
 contract MyUSDEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required
@@ -24,13 +25,13 @@ contract MyUSDEngine is Ownable {
     address private i_rateController;
 
     uint256 public borrowRate; // Annual interest rate for borrowers in basis points (1% = 100)
-    uint256 public lastUpdateTime;
 
     // Total debt shares in the pool
     uint256 public totalDebtShares;
 
     // Exchange rate between debt shares and MyUSD (1e18 precision)
     uint256 public debtExchangeRate;
+    uint256 public lastUpdateTime;
 
     mapping(address => uint256) public s_userCollateral;
     mapping(address => uint256) public s_userDebtShares;
@@ -67,6 +68,29 @@ contract MyUSDEngine is Ownable {
         debtExchangeRate = PRECISION; // 1:1 initially
     }
 
+    // Allows users to add collateral to their account
+    function addCollateral() public payable {
+        if (msg.value == 0) {
+            revert Engine__InvalidAmount(); // Revert if no collateral is sent
+        }
+
+        s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
+        emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice()); // Emit event for collateral addition
+    }
+
+    // Calculates the total collateral value for a user based on their collateral balance and price point
+    function calculateCollateralValue(address user) public view returns (uint256) {
+        uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
+        return (collateralAmount * i_oracle.getETHMyUSDPrice()) / 1e18; // Calculate collateral value in terms of ETH price
+    }
+
+    // Calculate the current debt value for a user, including accrued interest
+    function getCurrentDebtValue(address user) public view returns (uint256) {
+        if (s_userDebtShares[user] == 0) return 0;
+        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
+        return ((s_userDebtShares[user] * updatedExchangeRate) / PRECISION);
+    }
+
     /**
      * @notice Set the borrow rate for the engine
      * @param newRate The new borrow rate to set
@@ -87,43 +111,22 @@ contract MyUSDEngine is Ownable {
             lastUpdateTime = block.timestamp;
             return;
         }
-
-        // No way to accrue interest if no debt or no borrow rate
-        uint256 timeElapsed = block.timestamp - lastUpdateTime;
-        if (timeElapsed == 0 || borrowRate == 0) return;
-
-        // Calculate total debt value
-        uint256 totalDebtValue = (totalDebtShares * debtExchangeRate) / PRECISION;
-
-        // Calculate interest based on total debt value
-        uint256 interest = (totalDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
-
-        if (interest > 0) {
-            // Update exchange rate to reflect new value
-            debtExchangeRate += (interest * PRECISION) / totalDebtShares;
-        }
+        
+        debtExchangeRate = _getUpdatedExchangeRate();
         lastUpdateTime = block.timestamp;
     }
 
     // Internal helper to get the up-to-date exchange rate including accrued interest
     function _getUpdatedExchangeRate() internal view returns (uint256) {
+        if (totalDebtShares == 0) return debtExchangeRate;
+        
         uint256 timeElapsed = block.timestamp - lastUpdateTime;
-        if (timeElapsed == 0 || borrowRate == 0 || totalDebtShares == 0) {
-            return debtExchangeRate;
-        }
-        // Calculate total debt value
+        if (timeElapsed == 0 || borrowRate == 0) return debtExchangeRate;
+        
         uint256 totalDebtValue = (totalDebtShares * debtExchangeRate) / PRECISION;
-        // Calculate interest based on total debt value
         uint256 interest = (totalDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
-        // Update exchange rate to reflect new value
+        
         return debtExchangeRate + (interest * PRECISION) / totalDebtShares;
-    }
-
-    // Calculate the current debt value for a user, including accrued interest
-    function getCurrentDebtValue(address user) public view returns (uint256) {
-        if (s_userDebtShares[user] == 0) return 0;
-        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
-        return ((s_userDebtShares[user] * updatedExchangeRate) / PRECISION) + 1;
     }
 
     function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
@@ -131,22 +134,11 @@ contract MyUSDEngine is Ownable {
         return (amount * PRECISION) / updatedExchangeRate;
     }
 
-    // Allows users to add collateral to their account
-    function addCollateral() public payable {
-        if (msg.value == 0) {
-            revert Engine__InvalidAmount(); // Revert if no collateral is sent
-        }
-
-        s_userCollateral[msg.sender] += msg.value; // Update user's collateral balance
-        emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice()); // Emit event for collateral addition
-    }
-
     // Allows users to withdraw collateral as long as it doesn't make them liquidatable
     function withdrawCollateral(uint256 amount) external {
-        if (amount == 0 || s_userCollateral[msg.sender] < amount) {
-            revert Engine__InvalidAmount(); // Revert if the amount is invalid
-        }
-
+        if (amount == 0) revert Engine__InvalidAmount();
+        if (s_userCollateral[msg.sender] < amount) revert Engine__InsufficientCollateral();
+        
         // Temporarily reduce the user's collateral to check if they remain safe
         uint256 newCollateral = s_userCollateral[msg.sender] - amount;
         s_userCollateral[msg.sender] = newCollateral;
@@ -210,40 +202,26 @@ contract MyUSDEngine is Ownable {
         emit DebtSharesBurned(msg.sender, amount, amountInShares);
     }
 
-    // Calculates the total collateral value for a user based on their collateral balance and price point
-    function calculateCollateralValue(address user) public view returns (uint256) {
-        uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_oracle.getETHMyUSDPrice()) / 1e18; // Calculate collateral value in terms of ETH price
-    }
-
-    // Calculates the position ratio for a user to ensure they are within safe limits
-    function _calculatePositionRatio(address user) private view returns (uint256) {
-        uint256 mintedAmount = getCurrentDebtValue(user);
-        uint256 collateralValue = calculateCollateralValue(user);
-        if (mintedAmount == 0) return type(uint256).max; // Return max if no stablecoins are minted
-        return (collateralValue * 1e18) / mintedAmount; // Calculate position ratio
-    }
-
     // Calculates the position ratio for a user to ensure they are within safe limits
     function calculatePositionRatio(address user) public view returns (uint256) {
         uint256 mintedAmount = getCurrentDebtValue(user);
         uint256 collateralValue = calculateCollateralValue(user);
-        if (mintedAmount == 0) return type(uint256).max; // Return max if no stablecoins are minted
-        return (collateralValue * 1e18) / mintedAmount; // Calculate position ratio
+        if (mintedAmount == 0) return type(uint256).max;
+        return (collateralValue * PRECISION) / mintedAmount;
     }
 
     // Validates the user's position to ensure it meets safety requirements
     function _validatePosition(address user) internal view {
-        uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        if ((positionRatio * 100) < COLLATERAL_RATIO * 1e18) {
-            revert Engine__UnsafePositionRatio(); // Revert if position is unsafe
+        uint256 positionRatio = calculatePositionRatio(user);
+        if ((positionRatio * 100) < COLLATERAL_RATIO * PRECISION) {
+            revert Engine__UnsafePositionRatio();
         }
     }
 
     // Checks if a user's position can be liquidated
     function isLiquidatable(address user) public view returns (bool) {
-        uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        return (positionRatio * 100) < COLLATERAL_RATIO * 1e18; // Check if position is unsafe
+        uint256 positionRatio = calculatePositionRatio(user);
+        return (positionRatio * 100) < COLLATERAL_RATIO * PRECISION;
     }
 
     // Allows liquidators to liquidate unsafe positions

@@ -1,721 +1,877 @@
-# 💳🌽 Lending Challenge
+# 💵 MyUSD Stablecoin
 
-TODO: Add banner
+![hero-stablecoin](public/hero-stablecoin.png)
 
-> ❓ How does lending work onchain? First, traditional lending usually involves one party (such as banks) offering up money and another party agreeing to pay interest over-time in order to use that money. The only way this works is because the lending party has some way to hold the borrower accountable. This requires some way to identify the borrower and a legal structure that will help settle things if the borrower decides to stop making interest payments. In the onchain world we don't have a reliable identification system *(yet)* so all lending is "over-collateralized". Borrower's must lock up collateral in order to take out a loan. "Over-collateralized" means you can never borrow more value than you have supplied. I am sure you are wondering, "What is the benefit of a loan if you can't take out more than you put in?" Great question! This form of lending lacks the common use case seen in traditional lending where people may use the loan to buy a house they otherwise couldn't afford but here are a few primary use cases of permissionless lending in DeFi:
+> 💰 Build your own decentralized stablecoin! In this challenge, you'll build the core engine for **MyUSD**, a crypto-backed stablecoin designed to maintain a peg to $1 USD. You'll get to wear the hat of a DeFi protocol that wants to maintain price stability while also increasing adoption of your stablecoin product, diving deep into concepts like collateralization, minting, burning, interest rates, and liquidations – all crucial components of a robust stablecoin system.
 
-- Maintaining Price Exposure ~ You may have real world bills due but you are *sure* that ETH is going up in value from here and it would kill you to sell to pay your bills. You could get a loan against your ETH in a stablecoin and pay your bills. You would still have ETH locked up to come back to and all you would have to do is pay back the stablecoin loan.
-- Leverage ~ You could deposit ETH and borrow a stablecoin but only use it to buy more ETH, increasing your exposure to the ETH price movements (to the upside 🎢 or the downside 🔻😰).
-- Tax Advantages ~ In many jurisdictions, money obtained from a loan is taxed differently than money obtained other ways. It might be advantageous to avoid outright selling of an asset and instead get a loan against it.
+<details markdown='1'><summary>❓ Wondering how stablecoins work? Read the overview here.</summary>
 
-> 👍 Now that you know the background of what is and is not possible with onchain lending, let's dive in to the challenge!
+Stablecoins are cryptocurrencies designed to maintain a stable value relative to a specific asset (in our case, $1 USD). They serve as a bridge between traditional finance and crypto, providing stability in an otherwise volatile market.
 
-> 💬 The Lending contract accepts ETH deposits and allows depositor's to take out a loan in CORN 🌽. The contract tracks each depositor's address and only allows them to borrow as long as they maintain at least 120% of the loans value in ETH. If the collateral falls in value or if CORN goes up in value then the borrower's position may be liquidatable by anyone who pays back the loan. The liquidator has an incentive to do this because they collect a 10% fee on top of the value of the loan. 
+🤔 How do they maintain their peg? There are several mechanisms:
 
-> 📈 The Lending contract naively uses the price returned by a CORN/ETH DEX contract. This makes it easy for you to change the price of CORN by "moving the market" with large swaps. Shout out to the [DEX challenge](https://github.com/scaffold-eth/se-2-challenges/blob/challenge-4-dex/README.md)! Using a DEX as the sole price oracle would never work in a production grade system but it will help to demonstrate the different market conditions that affect a lending protocol.
+- 💎 **Collateralization**: Users lock up valuable assets (like ETH) as collateral to mint stablecoins. This ensures each stablecoin is backed by real value.
+- 📊 **Interest Rates**: By adjusting borrowing and savings rates, we can influence supply and demand to maintain the peg.
+- 🚨 **Liquidations**: If collateral value drops too low, positions can be liquidated to protect the system.
+- 💸 **Market Operations**: The system can incentivize buying or selling to maintain the peg.
 
-> 🌽 Your job is to fill out the functions in the Lending contract so that it enables you to take out a CORN loan.
+👍 Now that you understand the basics, let's build our own stablecoin system!
 
-> 💬 Meet other builders working on this challenge and get help in the TODO
+</details>
 
 ---
 
 ## Checkpoint 0: 📦 Environment 📚
 
-Before you begin, you need to install the following tools:
+🛠️ Before you begin, you need to install the following tools:
 
 - [Node (v18 LTS)](https://nodejs.org/en/download/)
 - Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
 - [Git](https://git-scm.com/downloads)
 
-Then download the challenge to your computer and install dependencies by running:
+📥 Then download the challenge to your computer and install dependencies by running:
 
 ```sh
-npx create-eth@0.1.0 -e lending-challenge lending-challenge
-cd lending-challenge
+npx create-eth@latest -e challenge-stablecoin challenge-stablecoin 
+cd challenge-stablecoin
 ```
 
-> in the same terminal, start your local network (a blockchain emulator in your computer):
+> 💻 In the same terminal, start your local network (a blockchain emulator in your computer):
 
 ```sh
 yarn chain
 ```
 
-> in a second terminal window, 🛰 deploy your contract (locally):
+> 🛰️ In a second terminal window, deploy your contract (locally):
 
 ```sh
-cd lending-challenge
+cd challenge-stablecoin
 yarn deploy
 ```
 
-> in a third terminal window, start your 📱 frontend:
+> 📱 In a third terminal window, start your frontend:
 
 ```sh
-cd lending-challenge
+cd challenge-stablecoin
 yarn start
 ```
 
 📱 Open http://localhost:3000 to see the app.
 
-> 👩‍💻 Restart `yarn chain` and then run `yarn deploy` whenever you want to deploy new or updated contracts to your local network. If you haven't made any contract changes, you can run `yarn deploy --reset` for a completely fresh deploy.
+> 👩‍💻 Rerun `yarn deploy` whenever you want to deploy new contracts to the frontend. If you haven't made any contract changes, you can run `yarn deploy --reset` for a completely fresh deploy.
 
 ---
 
-## Checkpoint 1: 💳🌽 Lending Contract
+## Checkpoint 1: 🧱 Depositing Collateral & Understanding Value
 
-Navigate to the `Debug Contracts` tab, you should see four smart contracts displayed called `Corn`, `CornDEX`, `Lending` and `MovePrice`. You don't need to worry about any of these except `Lending` but here is a quick description of each:
-    - Corn ~ This is the ERC20 token that can be borrowed
-    - CornDEX ~ This is the DEX contract that is used to swap between ETH and CORN but is also used as a makeshift price oracle
-    - Lending ~ This is the contract that facilitates collateral depositing, loan creation and liquidation of loans in bad positions
-    - MovePrice ~ This contract is only used for making large swaps in the DEX to change the asset ratio, changing the price reported by the DEX
+First, users need a way to deposit collateral (ETH) into the system. We also need to know the USD value of this collateral.
 
-`packages/hardhat/contracts/Lending.sol` Is where you will spend most of your time.
+Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the logic to the existing (empty) methods.
 
-> Below is what your front-end will look like with no implementation code within your smart contracts yet. The buttons will likely break because there are no functions tied to them yet!
+### ✏️ Tasks:
 
-![DefaultView](https://github.com/user-attachments/assets/a13f6f69-5d3f-4c67-a792-7ae341ff3167)
+1.  **Implement `addCollateral()`**
+    *   This function is `payable`, so it will receive ETH (`msg.value`).
+    *   It should update the `s_userCollateral` mapping for `msg.sender` to reflect how much ETH they sent the contract.
+    *   It should emit a `CollateralAdded` event.
+    *   Don't forget to revert if `msg.value` is zero using `Engine__InvalidAmount()`.
 
-> Check out the empty functions in `Lending.sol` to see aspects of each function. If you can explain how each function will work with one another, that's great! 😎
+    <details>
+    <summary>💡 Hint: Adding Collateral</summary>
+    This is a simple function that:
+    - Receives ETH via `msg.value`
+    - Updates a mapping to track how much ETH each user has deposited
+    - Emits an event for tracking
+    
+    Remember to:
+    - Check for zero value
+    - Use the existing mapping
+    - Include the current ETH price in the event
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function addCollateral() public payable {
+        if (msg.value == 0) revert Engine__InvalidAmount();
+        
+        s_userCollateral[msg.sender] += msg.value;
+        emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice());
+    }
+    ```
+    </details>
+    </details>
 
----
+2.  **Implement `calculateCollateralValue(address user)`**
+    *   This function should return the total USD value of the ETH collateral held by a `user`.
+    *   Use `i_oracle.getPrice()` to get the current price of ETH in USD (it returns price with 1e18 precision).
+    *   The collateral amount `s_userCollateral[user]` is in wei (1e18 ETH = 1 ETH).
+    *   Calculation: `(collateralAmount * ethPrice) / PRECISION`.
 
-### 🥅 Goals
-
-- [ ] Review all the `Lending.sol` functions and envision how they might work together.
-
----
-
-## Checkpoint 2: ➕ Adding and Removing Collateral
-
-👀 Let's take a look at the `addCollateral` function inside `Lending.sol`. 
-
-It should revert with `Lending_InvalidAmount()` if somebody calls it without value.
-
-It needs to record any value that gets sent to it as being collateral posted by the sender into an existing mapping called `s_userCollateral`.
-
-Let's also emit the `CollateralAdded` event with depositor address, amount they deposited and the `i_cornDEX.currentPrice()` which is the current value of ETH in CORN.
- > ⚠️ We are emitting the price returned by the DEX in every event solely for the front end to be able to visualize things properly.
-
-Very good! Now let's look at the `withdrawCollateral` function. Don't want to send funds in if they can't be retrieved, now do we?!
-
-Let's revert with `Lending_InvalidAmount()` right at the start if someone attempts to use the function with the `amount` parameter set to 0. We also want to revert if the sender doesn't have the `amount` of collateral they are requesting.
-
-Now let's reduce the sender's collateral (in the mapping) and send it back to their address.
-
-Emit `CollateralWithdrawn` with the sender's address, the amount they withdrew and the `currentPrice` from the DEX.
-
-Excellent! Re-deploy your contract with `yarn deploy` but first shut down and restart `yarn chain`. We want to do a fresh deploy of all the contracts so that they each have correct constructor parameters. Now try out your methods from the front end and see if you need to make any changes.
-
-Don't forget to give yourself some ETH from the faucet!
-
-![faucet](https://github.com/user-attachments/assets/d3db19a5-c444-4e4c-9a35-bf9c15ceb7ec)
-
----
-
-### 🥅 Goals
-
-- [ ] Can you add collateral and withdraw collateral?
-- [ ] Does the front end update when you do each action?
-
----
-
-## Checkpoint 3: 🫶 Helper Methods
-
-Now we need to add four methods that we will use in other functions to get various details about a user's debt position.
-
-Let's start with `calculateCollateralValue`. This function receives the address of the user in question and returns a uint256 representing the ETH collateral, priced in CORN.
-
-We know how to get the user's collateral and we know the price in CORN is returned by `i_cornDEX.currentPrice()`. Can you figure out how to return the collateral value in CORN?
-
-<details markdown='1'><summary>🔎 Hint</summary>
-
-> This method just needs to return the users collateral multiplied by the price of CORN (`i_cornDEX.currentPrice()`) *divided by 1e18* (since that is how many decimals CORN has).
-
-<details markdown='1'><summary>Solution Code</summary>
-
-```solidity
+    <details>
+    <summary>💡 Hint: Calculating Collateral Value</summary>
+    This function converts ETH to USD value:
+    - Get the user's ETH amount from the mapping
+    - Get the current ETH price from the oracle
+    - Multiply them together and divide by PRECISION
+    
+    Think about:
+    - Why we need to divide by PRECISION
+    - What units the oracle price is in
+    - What units the collateral amount is in
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
     function calculateCollateralValue(address user) public view returns (uint256) {
-        uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
-        return (collateralAmount * i_cornDEX.currentPrice()) / 1e18; // Calculate collateral value in CORN
+        uint256 collateralAmount = s_userCollateral[user];
+        return (collateralAmount * i_oracle.getETHMyUSDPrice()) / PRECISION;
     }
-```
+    ```
+    </details>
+    </details>
 
+Go ahead and re-deploy your contracts with `yarn deploy --reset` and test your front-end to see if you can add collateral.
+
+### 🥅 Goals:
+
+- [ ] Users can send ETH to the `addCollateral` function.
+- [ ] `s_userCollateral` correctly tracks the amount of ETH deposited by each user.
+- [ ] `calculateCollateralValue` returns the correct USD value of a user's collateral.
+- [ ] The frontend should update to show your deposited ETH and its USD value.
+
+<details>
+<summary>💡 Hint: Oracle Price</summary>
+The `i_oracle.getPrice()` function returns the price of 1 ETH in USD, scaled by 1e18. For example, if ETH is $2000, it returns `2000 * 1e18`.
 </details>
-</details>
 
-Let's turn our attention to the internal `_calculatePositionRatio` view function.
+---
 
-This function takes a user address and returns what we are calling the "position ratio". This is the percentage of collateral to borrowed assets with a caveat, it is returned as the percentage * 1e18. In other words, if the collateral ratio percent is 133 then the returned value would be 133000000000000000000. We do this to enable a higher amount of precision. Try to figure out the math on your own.
+## Checkpoint 2: 💰 Interest Calculation System
 
-<details markdown='1'><summary>🔎 Hint</summary>
+Now that users can deposit collateral, we need to set up the interest calculation system before we can let them mint MyUSD. This system uses a share-based approach to efficiently track interest accrual. Unlike traditional systems where interest is used as revenue, our stablecoin uses interest rates as a tool to maintain the peg - higher rates discourage borrowing when the price is below $1, helping to destroy demand for loans and pushing the price back up.
 
-> It needs to return the value of the collateral (in CORN) divided by the amount borrowed.
+> [!NOTE]
+> The complexity starts to go up from here so pay close attention.
 
-<details markdown='1'><summary>Solution Code</summary>
+To handle interest accrual efficiently, we use a **share-based** system. Instead of updating every user's balance when interest accrues, we use two key variables:
+- `debtExchangeRate`: How much MyUSD each share is worth
+- `lastUpdateTime`: When we last updated the exchange rate
 
-```solidity
-    function _calculatePositionRatio(address user) internal view returns (uint256) {
-        uint borrowedAmount = s_userBorrowed[user]; // Get user's borrowed amount
-        uint collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
-        if (borrowedAmount == 0) return type(uint256).max; // Return max if no corn is borrowed
-        return (collateralValue * 1e18) / borrowedAmount; // Calculate position ratio
+Here's how it works:
+
+1. When Bob mints 100 MyUSD, he gets 100 shares (1 share = 1 MyUSD initially)
+2. After a year at 10% interest:
+   - Bob still has 100 shares
+   - But each share is now worth 1.1 MyUSD
+   - So he owes 110 MyUSD total (100 shares × 1.1 exchange rate)
+3. Now if Alice mints 100 MyUSD:
+   - She gets 90.91 shares (100 MyUSD ÷ 1.1 exchange rate)
+   - These shares are worth 100 MyUSD at the current rate
+   - But she won't owe interest on the first year's debt
+
+The exchange rate only updates when the borrow rate changes, and we calculate any new interest based on the time since the last update.
+
+### ✏️ Tasks:
+
+1.  **Implement `_getUpdatedExchangeRate()`**
+    *   Calculate what the `debtExchangeRate` would be if interest were accrued right now.
+    *   If `totalDebtShares` is 0, return current `debtExchangeRate`.
+    *   Calculate interest based on total debt value and time elapsed.
+    *   Return updated exchange rate.
+
+    <details>
+    <summary>💡 Hint: Calculating Updated Exchange Rate</summary>
+    You need to calculate how much interest has accrued since the last update. Think about:
+    - How much time has passed since `lastUpdateTime`
+    - What the total debt value was at that time
+    - How much interest that debt has earned at the current `borrowRate`
+    - How to distribute that interest across all shares
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function _getUpdatedExchangeRate() internal view returns (uint256) {
+        if (totalDebtShares == 0) return debtExchangeRate;
+        
+        uint256 timeElapsed = block.timestamp - lastUpdateTime;
+        if (timeElapsed == 0 || borrowRate == 0) return debtExchangeRate;
+        
+        uint256 totalDebtValue = (totalDebtShares * debtExchangeRate) / PRECISION;
+        uint256 interest = (totalDebtValue * borrowRate * timeElapsed) / (SECONDS_PER_YEAR * 10000);
+        
+        return debtExchangeRate + (interest * PRECISION) / totalDebtShares;
     }
-```
+    ```
+    </details>
+    </details>
 
+2.  **Implement `_accrueInterest()`**
+    *   Update `debtExchangeRate` using `_getUpdatedExchangeRate()`.
+    *   Update `lastUpdateTime` to current timestamp.
+
+    <details>
+    <summary>💡 Hint: Accruing Interest</summary>
+    This function updates the exchange rate to include accrued interest:
+    - Get the new exchange rate
+    - Update the stored rate
+    - Update the timestamp
+    
+    Remember to:
+    - Handle the case where there are no debt shares
+    - Update both the rate and timestamp
+    - Use the helper function we created earlier
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function _accrueInterest() internal {
+        if (totalDebtShares == 0) {
+            lastUpdateTime = block.timestamp;
+            return;
+        }
+        
+        debtExchangeRate = _getUpdatedExchangeRate();
+        lastUpdateTime = block.timestamp;
+    }
+    ```
+    </details>
+    </details>
+
+3.  **Implement `_getMyUSDToShares(uint256 amount)`**
+    *   Convert a MyUSD `amount` into the equivalent number of `debtShares`.
+    *   Use `_getUpdatedExchangeRate()` to get the current rate.
+
+    <details>
+    <summary>💡 Hint: Converting MyUSD to Shares</summary>
+    Think about this like a currency conversion:
+    - If 1 share = 1.1 MyUSD (exchange rate)
+    - Then 100 MyUSD = 100/1.1 shares
+    
+    You need to:
+    - Get the current exchange rate
+    - Use it to calculate how many shares represent the given amount
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
+        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
+        return (amount * PRECISION) / updatedExchangeRate;
+    }
+    ```
+    </details>
+    </details>
+
+### 🥅 Goals:
+
+- [ ] Interest accrues correctly based on time elapsed and borrow rate
+- [ ] Exchange rate updates properly when interest accrues
+- [ ] Shares are calculated correctly based on current exchange rate
+- [ ] The system handles edge cases (no shares, zero interest, etc.)
+
+<details>
+<summary>💡 Hint: Understanding Shares and Exchange Rate</summary>
+Think of shares like a "debt token" that represents a portion of the total debt pool. The exchange rate tells us how much MyUSD each share is worth. As interest accrues, the exchange rate increases, making each share worth more MyUSD. This way, we don't need to update every user's balance - we just update the exchange rate.
 </details>
-</details>
 
-Last helper function! Now we will fill in the details on `isLiquidatable`. This function should return a bool indicating if the position ratio is less than `COLLATERAL_RATIO`. See if you can implement the logic without the hint.
+---
 
-<details markdown='1'><summary>🔎 Hint</summary>
+## Checkpoint 3: 💰 Minting MyUSD & Position Health
 
-> We can use the `_calculatePositionRatio` function we just made to get the current ratio. Then just a simple comparison between that and the COLLATERAL_RATIO to make sure we aren't below the acceptable liquidatable threshold.
+Now that we have our interest calculation system in place, we can implement the minting functionality. Users should be able to mint MyUSD against their collateral, but we must ensure they don't mint too much, keeping the system over-collateralized. This is where the `COLLATERAL_RATIO` (150%) comes in.
 
-<details markdown='1'><summary>Solution Code</summary>
+### ✏️ Tasks:
 
-```solidity
+1.  **Implement `getCurrentDebtValue(address user)`**
+    *   This function calculates how much MyUSD a user actually owes, including interest.
+    *   If user has no shares (`s_userDebtShares[user] == 0`), return 0.
+    *   Get the current exchange rate using `_getUpdatedExchangeRate()`.
+    *   Calculate: `(s_userDebtShares[user] * updatedExchangeRate) / PRECISION`.
+    *   This represents the total debt value including accrued interest.
+
+    <details>
+    <summary>💡 Hint: Calculating Current Debt Value</summary>
+    This is the inverse of `_getMyUSDToShares`:
+    - If we know how many shares a user has
+    - And we know the current exchange rate
+    - We can calculate their total debt value
+    
+    Remember to handle the case where a user has no shares!
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function getCurrentDebtValue(address user) public view returns (uint256) {
+        if (s_userDebtShares[user] == 0) return 0;
+        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
+        return (s_userDebtShares[user] * updatedExchangeRate) / PRECISION;
+    }
+    ```
+    </details>
+    </details>
+
+2.  **Implement `calculatePositionRatio(address user)`**
+    *   This function calculates a user's collateralization ratio.
+    *   Get the user's current debt value using `getCurrentDebtValue(user)`.
+    *   Get the user's collateral value using `calculateCollateralValue(user)`.
+    *   If debt value is 0, return `type(uint256).max` (infinite ratio).
+    *   Calculate: `(collateralValue * PRECISION) / debtValue`.
+    *   This ratio must stay above 150% to keep the position safe.
+
+    <details>
+    <summary>💡 Hint: Calculating Position Ratio</summary>
+    The position ratio is like a health score for a user's position:
+    - Higher ratio = safer position
+    - Lower ratio = riskier position
+    
+    Think about:
+    - What happens if someone has no debt?
+    - How to handle division by zero
+    - Why we multiply by PRECISION before dividing
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function calculatePositionRatio(address user) public view returns (uint256) {
+        uint256 debtValue = getCurrentDebtValue(user);
+        if (debtValue == 0) return type(uint256).max;
+        
+        uint256 collateralValue = calculateCollateralValue(user);
+        return (collateralValue * PRECISION) / debtValue;
+    }
+    ```
+    </details>
+    </details>
+
+3.  **Implement `_validatePosition(address user)`**
+    *   This internal view function checks if a user's position is safe.
+    *   Get the position ratio using `calculatePositionRatio(user)`.
+    *   A position is safe if `(positionRatio * 100) >= (COLLATERAL_RATIO * PRECISION)`.
+    *   If unsafe, revert with `Engine__UnsafePositionRatio()`.
+
+    <details>
+    <summary>💡 Hint: Validating Position Safety</summary>
+    This is a simple check that uses the position ratio:
+    - Get the ratio
+    - Compare it to the required ratio (150%)
+    - Revert if it's too low
+    
+    Remember to handle the precision correctly when comparing!
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function _validatePosition(address user) internal view {
+        uint256 positionRatio = calculatePositionRatio(user);
+        if ((positionRatio * 100) < COLLATERAL_RATIO * PRECISION) {
+            revert Engine__UnsafePositionRatio();
+        }
+    }
+    ```
+    </details>
+    </details>
+
+4.  **Implement `mintMyUSD(uint256 mintAmount)`**
+    *   Revert with `Engine__InvalidAmount()` if `mintAmount` is 0.
+    *   Calculate how many shares this mint amount represents using `_getMyUSDToShares(mintAmount)`.
+    *   Update the user's debt shares: `s_userDebtShares[msg.sender] += shares`.
+    *   Update total debt shares: `totalDebtShares += shares`.
+    *   Validate the position is safe using `_validatePosition(msg.sender)`.
+    *   Mint the MyUSD tokens to the user.
+    *   Emit `DebtSharesMinted` event with the amount and shares.
+
+    <details>
+    <summary>💡 Hint: Minting MyUSD</summary>
+    This function ties everything together:
+    - Convert the mint amount to shares
+    - Update the user's and total shares
+    - Check if the position is still safe
+    - Mint the actual tokens
+    
+    Remember to:
+    - Check for zero amount
+    - Update both share mappings
+    - Validate before minting
+    - Emit the event
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function mintMyUSD(uint256 mintAmount) public {
+        if (mintAmount == 0) revert Engine__InvalidAmount();
+        
+        uint256 shares = _getMyUSDToShares(mintAmount);
+        s_userDebtShares[msg.sender] += shares;
+        totalDebtShares += shares;
+        
+        _validatePosition(msg.sender);
+        i_myUSD.mintTo(msg.sender, mintAmount);
+        
+        emit DebtSharesMinted(msg.sender, mintAmount, shares);
+    }
+    ```
+    </details>
+    </details>
+
+### 🥅 Goals:
+
+- [ ] Users can mint MyUSD up to the allowed collateralization limit (150%).
+- [ ] The share-based system correctly tracks debt including interest.
+- [ ] `getCurrentDebtValue` shows the true amount owed including interest.
+- [ ] `calculatePositionRatio` correctly reflects position health.
+- [ ] The frontend should allow minting and show the MyUSD balance and position ratio.
+
+---
+
+## Checkpoint 4: 📈 Accruing Interest & Managing Borrow Rates
+
+Now lets set up the ability for the rate controller to change the borrow rate.
+
+Whenever the rate is changed we need to "lock-in" all the interest accrued since the last rate change using the `_accrueInterest` method we created in checkpoint 2.
+
+In the absence of decimals we will assume that a borrow rate of 125 is equivalent to a 1.25% annual rate.
+
+### ✏️ Tasks:
+
+1.  **Implement `setBorrowRate(uint256 newRate)`**
+    *   Allow the `i_rateController` to change the annual `borrowRate`.
+    *   Run `_accrueInterest()` to update the `debtExchangeRate`
+    *   Update `borrowRate` and emit event.
+
+    <details>
+    <summary>💡 Hint: Setting Borrow Rate</summary>
+    This function lets the rate controller adjust the borrow rate:
+    - Check if caller is the rate controller
+    - Run `_accrueInterest()`
+    - Update the rate
+    - Emit an event
+    
+    Remember to:
+    - Use the modifier for access control
+    - Emit the event with the new rate
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function setBorrowRate(uint256 newRate) external onlyRateController {
+        _accrueInterest();
+        borrowRate = newRate;
+        emit BorrowRateUpdated(newRate);
+    }
+    ```
+    </details>
+    </details>
+
+The funny thing about checking that only the rate controller can change the rate is that *anyone* can use the methods in the `RateController.sol` contract! We did this so that you can easily change rates from the front end without having to authorize a specific account.
+
+Go try it out on the front end after redeploying with `yarn deploy --reset`. Click the edit icon next to the borrow rate and set a new rate.
+
+### 🥅 Goals:
+
+- [ ] The borrow rate can be updated
+
+---
+
+## Checkpoint 5: 💸 Repaying Debt & Withdrawing Collateral
+
+Users need to be able to repay their MyUSD debt and withdraw their ETH collateral.
+
+Since debt is always accruing we have decided to use a method (`repayUpTo`) that allows specifying an arbitrary amount *over* the debt that is owed so that a user can cancel their debt completely. If we simply made them specify the exact amount they owed, by the time their transaction was included their debt would have accrued more interest and a very small amount would remain unpaid.
+
+### ✏️ Tasks:
+
+1.  **Implement `repayUpTo(uint256 amount)`**
+    *   This function allows a user to repay up to a certain `amount` of their MyUSD debt.
+    *   First, convert the MyUSD `amount` the user wants to repay into `amountInShares` using `_getMyUSDToShares(amount)`.
+    *   If `amountInShares` is more than the user's `s_userDebtShares[msg.sender]`, they are trying to repay more than they owe. In this case, we cap the repayment at their actual debt by:
+        * Setting `amountInShares` to `s_userDebtShares[msg.sender]`
+        * Recalculating the actual MyUSD `amount` to be repaid using `getCurrentDebtValue(msg.sender)`
+    *   Check if the user has enough MyUSD balance: `i_myUSD.balanceOf(msg.sender) < amount`. Revert with `MyUSD__InsufficientBalance()` if not.
+    *   Check if the MyUSD Engine contract has allowance to spend the user's MyUSD: `i_myUSD.allowance(msg.sender, address(this)) < amount`. Revert with `MyUSD__InsufficientAllowance()` if not.
+    *   Update `s_userDebtShares[msg.sender]` and `totalDebtShares` by subtracting `amountInShares`.
+    *   Burn the MyUSD from the user: `i_myUSD.burnFrom(msg.sender, amount)`.
+    *   Emit `DebtSharesBurned`.
+
+    <details>
+    <summary>💡 Hint: Repaying Debt</summary>
+    This function needs to handle several cases:
+    - User wants to repay exactly what they owe
+    - User wants to repay more than they owe (we cap at their actual debt)
+    - User doesn't have enough balance
+    - User hasn't approved enough allowance
+    
+    Remember to:
+    - Convert MyUSD amount to shares first
+    - If user tries to repay more than they owe, cap it at their actual debt
+    - Update both user's shares and total shares
+    - Burn the correct amount of MyUSD
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function repayUpTo(uint256 amount) public {
+        uint256 amountInShares = _getMyUSDToShares(amount);
+        // Check if user has enough debt
+        if (amountInShares > s_userDebtShares[msg.sender]) {
+            // will only use the max amount of MyUSD that can be repaid
+            amountInShares = s_userDebtShares[msg.sender];
+            amount = getCurrentDebtValue(msg.sender);
+        }
+
+        // Check balance
+        if (amount == 0 || i_myUSD.balanceOf(msg.sender) < amount) {
+            revert MyUSD__InsufficientBalance();
+        }
+
+        // Check allowance
+        if (i_myUSD.allowance(msg.sender, address(this)) < amount) {
+            revert MyUSD__InsufficientAllowance();
+        }
+
+        // Update user's debt shares and total shares
+        s_userDebtShares[msg.sender] -= amountInShares;
+        totalDebtShares -= amountInShares;
+
+        i_myUSD.burnFrom(msg.sender, amount);
+
+        emit DebtSharesBurned(msg.sender, amount, amountInShares);
+    }
+    ```
+    </details>
+    </details>
+
+2.  **Implement `withdrawCollateral(uint256 amount)`**
+    *   Revert with `Engine__InvalidAmount()` if `amount` is 0.
+    *   Revert with `Engine__InsufficientCollateral()` if `s_userCollateral[msg.sender] < amount`.
+    *   Decrease `s_userCollateral[msg.sender]` by `amount`.
+    *   If the user still has debt (`s_userDebtShares[msg.sender] > 0`), call `_validatePosition(msg.sender)` to ensure they are still safely collateralized *after* the withdrawal. If not, the `_validatePosition` will revert (and because you haven't actually transferred ETH yet, the state change to `s_userCollateral` will also be reverted).
+    *   If the position is still valid (or they have no debt), transfer the ETH: `payable(msg.sender).transfer(amount);`. Handle potential transfer failure with `Engine__TransferFailed()`.
+    *   Emit `CollateralWithdrawn` with the current ETH price.
+
+    <details>
+    <summary>💡 Hint: Withdrawing Collateral</summary>
+    This function needs to be careful about maintaining the user's position safety:
+    - Check if they have enough collateral
+    - Temporarily reduce their collateral to check if they'd still be safe
+    - Only transfer ETH if the position remains safe
+    
+    Remember to:
+    - Handle the case where user has no debt
+    - Use the existing position validation
+    - Handle ETH transfer failures
+    - Emit the event with the current price
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function withdrawCollateral(uint256 amount) external {
+        if (amount == 0) revert Engine__InvalidAmount();
+        if (s_userCollateral[msg.sender] < amount) revert Engine__InsufficientCollateral();
+        
+        // Temporarily reduce the user's collateral to check if they remain safe
+        uint256 newCollateral = s_userCollateral[msg.sender] - amount;
+        s_userCollateral[msg.sender] = newCollateral;
+
+        // Validate the user's position after withdrawal
+        if (s_userDebtShares[msg.sender] > 0) {
+            _validatePosition(msg.sender);
+        }
+
+        // Transfer the collateral to the user
+        payable(msg.sender).transfer(amount);
+
+        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_oracle.getETHMyUSDPrice());
+    }
+    ```
+    </details>
+    </details>
+
+### 🥅 Goals:
+
+- [ ] Users can repay their MyUSD debt. Their `s_userDebtShares` should decrease.
+- [ ] Users can withdraw their ETH collateral, provided their position remains safe (above 150% collateralization if they have debt).
+- [ ] Attempting to withdraw too much collateral leading to an unsafe position should fail.
+- [ ] The frontend should reflect these changes.
+
+Go try it out on the frontend! Re-deploy with `yarn deploy --reset` and go try to do the full deposit, mint/borrow, repay, and withdraw workflow.
+
+---
+
+## Checkpoint 6: 🚨 Liquidation - Enforcing System Stability
+
+What happens if the price of ETH drops or a user's debt accrues too much interest, causing their position to become under-collateralized (below 150%)? This is where liquidations come in. Anyone can trigger a liquidation for an unsafe position.
+
+Liquidations are crucial for maintaining the system's solvency. They ensure that:
+1. The system remains over-collateralized at all times
+2. Debt is quickly resolved before it becomes "bad debt" (under-collateralized)
+3. Users are incentivized to maintain safe positions
+
+### ✏️ Tasks:
+
+1.  **Implement `isLiquidatable(address user)`**
+    *   This function checks if a user's position has become unsafe and can be liquidated.
+    *   Calculate the user's current position ratio using `calculatePositionRatio(user)`. This will automatically use the current exchange rate to get up-to-date debt values.
+    *   Return `true` if `(positionRatio * 100) < COLLATERAL_RATIO * PRECISION`, otherwise `false`.
+
+    <details>
+    <summary>💡 Hint: Checking Liquidation Status</summary>
+    This function provides an important check for the system:
+    - It compares the position's health against the minimum required ratio
+    - It's used both by liquidators and by the system to monitor positions
+    - It automatically uses current debt values through `calculatePositionRatio`
+    
+    Think about:
+    - How the position ratio relates to the collateral ratio
+    - Why we multiply by 100 and compare with COLLATERAL_RATIO * PRECISION
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
     function isLiquidatable(address user) public view returns (bool) {
-        uint256 positionRatio = _calculatePositionRatio(user); // Calculate user's position ratio
-        return (positionRatio * 100) < COLLATERAL_RATIO * 1e18; // Check if position is unsafe
+        uint256 positionRatio = calculatePositionRatio(user);
+        return (positionRatio * 100) < COLLATERAL_RATIO * PRECISION;
     }
-```
+    ```
+    </details>
+    </details>
 
-</details>
-</details>
+2.  **Implement `liquidate(address user)`**
+    *   This function allows anyone to liquidate an unsafe position by:
+        * Paying off the user's debt
+        * Receiving their collateral (plus a bonus)
+        * Clearing their debt
+    *   Check if the position is actually liquidatable using `if (!isLiquidatable(user)) revert Engine__NotLiquidatable();`.
+    *   Get `userDebtValue = getCurrentDebtValue(user)`.
+    *   Get `userCollateral = s_userCollateral[user]`.
+    *   Get `collateralValue = calculateCollateralValue(user)`.
+    *   The liquidator (`msg.sender`) must pay off the user's debt. Check if liquidator has enough MyUSD: `i_myUSD.balanceOf(msg.sender) < userDebtValue`. Revert if not.
+    *   Check allowance for the engine to burn liquidator's MyUSD: `i_myUSD.allowance(msg.sender, address(this)) < userDebtValue`. Revert if not.
+    *   Burn `userDebtValue` of MyUSD from `msg.sender`: `i_myUSD.burnFrom(msg.sender, userDebtValue)`.
+    *   Clear the liquidated user's debt: `totalDebtShares -= s_userDebtShares[user]; s_userDebtShares[user] = 0;`.
+    *   Calculate how much of the user's collateral the liquidator receives:
+        *   `collateralToCoverDebt = (userDebtValue * userCollateral) / collateralValue;` (This is the amount of ETH collateral that has the same USD value as the debt).
+        *   `rewardAmount = (collateralToCoverDebt * LIQUIDATOR_REWARD) / 100;`
+        *   `amountForLiquidator = collateralToCoverDebt + rewardAmount;`
+    *   Ensure `amountForLiquidator` does not exceed `userCollateral`. If it does, cap it at `userCollateral`.
+    *   Reduce the liquidated user's collateral: `s_userCollateral[user] -= amountForLiquidator;`.
+    *   Transfer `amountForLiquidator` ETH to `msg.sender`. Handle potential transfer failure.
+    *   Emit `Liquidation` event.
 
-Lastly let's fill in a simple function called `_validatePosition`. This function has one use case: revert with `Lending_UnsafePositionRatio` if the user's position is liquidatable (`isLiquidatable` returns exactly what we need). We can then use this function any place where we need to verify the user's ratio position hasn't been changed to a liquidatable state after changing the user's state.
-
----
-
-### 🥅 Goals
-
-- [ ] Do you understand why we need to multiply/divide everything by 1e18? (Search term: Solidity precision loss)
-- [ ] Glance around the other methods and try to predict where we may use these methods
-
----
-
-## Checkpoint 4: 🌽 Let's Borrow Some CORN!
-
-👀 Go to the `borrowCorn` function. 
-
-It should revert with `Lending_InvalidAmount()` if somebody calls it without a `borrowAmount`.
-
-It should add the borrowed amount to the user's balance in the `s_userBorrowed` mapping.
-
-It should validate the user's position (`_validatePosition`) so that it reverts if they are attempting to borrow more than they are allowed.
-
-Then it should use the CORN token's `mintTo` function to mint the tokens to the user's address.
- > ⚠️ This is an oversimplification on our part. A real lending contract would not be minting the asset that is being borrowed in most cases. This way we only have to deal with one side of the market so it makes it easier to understand.
-
-You should also emit the `AssetBorrowed` event.
-
-Perfect! Now let's go fill out the `repayCorn` function.
-
-Revert with `Lending_InvalidAmount` if the repayAmount is 0 or if it is more than the user has borrowed.
-
-Subtract the amount from the `s_userBorrowed` mapping. Then use the CORN token's `burnFrom` function to remove the CORN from the borrower's wallet.
-
-And finally, emit the `AssetRepaid` event.
-
-Restart `yarn chain` and then `yarn deploy` so you can play with borrowing and repaying on the front end.
-
-<details><summary>Solution Code</summary>
-
-```solidity
-    function borrowCorn(uint256 borrowAmount) public {
-        if (borrowAmount == 0) {
-            revert Lending__InvalidAmount(); // Revert if borrow amount is zero
-        }
-        s_userBorrowed[msg.sender] += borrowAmount; // Update user's borrowed corn balance
-        _validatePosition(msg.sender); // Validate user's position before borrowing
-        bool success = i_corn.mintTo(msg.sender, borrowAmount); // Borrow corn to user
-        if (!success) {
-            revert Lending__BorrowingFailed(); // Revert if borrowing fails
-        }
-        emit AssetBorrowed(msg.sender, borrowAmount, i_cornDEX.currentPrice()); // Emit event for borrowing
-    }
-
-    function repayCorn(uint256 repayAmount) public {
-        if (repayAmount == 0 || repayAmount > s_userBorrowed[msg.sender]) {
-            revert Lending__InvalidAmount(); // Revert if repay amount is invalid
-        }
-        s_userBorrowed[msg.sender] -= repayAmount; // Reduce user's borrowed balance
-        bool success = i_corn.burnFrom(msg.sender, repayAmount); // Burn corns from user
-        if (!success) {
-            revert Lending__RepayingFailed(); // Revert if burning fails
-        }
-        emit AssetRepaid(msg.sender, repayAmount, i_cornDEX.currentPrice()); // Emit event for repaying
-    }
-```
-
-</details>
-
----
-
-### 🥅 Goals
-
-- [ ] Can you borrow and repay CORN?
-- [ ] What happens if you repay without having enough tokens to repay? Have you handled that well? (`Lending__RepayingFailed` might be nice to throw...)
-- [ ] Can you borrow more than 120% of your collateral value? It should revert if you attempt this...
-
----
-
-## Checkpoint 5: 📉 Liquidation Mechanism
-
-So we have a way to deposit collateral and borrow against it. Great! But what happens if the price of CORN goes up and the liquidation threshold is surpassed?
-
-We need a liquidation mechanism!
-
-Let's go to the `liquidate` function. We want anyone to be able to call this when a position is liquidatable. The caller must have enough CORN to repay the debt. This function should remove the borrower's debt AND the amount of collateral that is needed to cover the debt.
-
-First let's make sure to revert if the user's position is not liquidatable with `Lending__NotLiquidatable`.
-
-Let's transfer the CORN to this contract from the liquidator and then burn it. (`transferFrom` and `burnFrom`).
-
-Clear the borrower's debt completely.
-
-Calculate the amount of collateral needed to cover the cost of the burned CORN and remove it from the borrower's collateral.
-> Keep in mind, It's not enough to simply have a liquidation mechanism. We need an incentive for people to trigger it!
-
-**So** add the `LIQUIDATOR_REWARD` as a percentage on top of the collateral (but never exceeding the borrower's total collateral) so that the liquidator has a nice incentive to want to liquidate that poor borrower.
-
-Transfer that amount of collateral to the liquidator.
-
-Finally emit the `Liquidation` event.
-
-<details markdown='1'><summary>Solution Code</summary>
-
-```solidity
-    function liquidate(address user) public {
+    <details>
+    <summary>💡 Hint: Liquidating Positions</summary>
+    This is the core function that maintains system health:
+    - It allows anyone to step in and resolve unsafe positions
+    - It ensures the liquidator is compensated for their service
+    - It protects the system from accumulating bad debt
+    
+    Key considerations:
+    - Always accrue interest first to get current debt values
+    - Calculate collateral amounts carefully to maintain system solvency
+    - Handle edge cases where collateral might not cover the full debt
+    - Ensure proper event emission for off-chain monitoring
+    
+    <details>
+    <summary>🎯 Solution</summary>
+    ```solidity
+    function liquidate(address user) external {
         if (!isLiquidatable(user)) {
-            revert Lending__NotLiquidatable(); // Revert if position is not liquidatable
+            revert Engine__NotLiquidatable();
         }
 
-        uint256 userDebt = s_userBorrowed[user]; // Get user's borrowed amount
-        uint256 userCollateral = s_userCollateral[user]; // Get user's collateral balance
-        uint256 collateralValue = calculateCollateralValue(user); // Calculate user's collateral value
+        uint256 userDebtValue = getCurrentDebtValue(user);
+        uint256 userCollateral = s_userCollateral[user];
+        uint256 collateralValue = calculateCollateralValue(user);
 
-        // transfer value of debt to the contract
-        i_corn.transferFrom(msg.sender, address(this), userDebt);
+        if (i_myUSD.balanceOf(msg.sender) < userDebtValue) {
+            revert MyUSD__InsufficientBalance();
+        }
 
-        // burn the transferred corn
-        i_corn.burnFrom(address(this), userDebt);
+        if (i_myUSD.allowance(msg.sender, address(this)) < userDebtValue) {
+            revert MyUSD__InsufficientAllowance();
+        }
 
-        // Clear user's debt
-        s_userBorrowed[user] = 0;
+        i_myUSD.burnFrom(msg.sender, userDebtValue);
 
-        // calculate collateral to purchase (maintain the ratio of debt to collateral value)
-        uint256 collateralPurchased = (userDebt * userCollateral) / collateralValue;
-        uint256 liquidatorReward = (collateralPurchased * LIQUIDATOR_REWARD) / 100;
-        uint256 amountForLiquidator = collateralPurchased + liquidatorReward;
-        amountForLiquidator = amountForLiquidator > userCollateral ? userCollateral : amountForLiquidator; // Ensure we don't exceed user's collateral
+        totalDebtShares -= s_userDebtShares[user];
+        s_userDebtShares[user] = 0;
+
+        uint256 collateralToCoverDebt = (userDebtValue * userCollateral) / collateralValue;
+        uint256 rewardAmount = (collateralToCoverDebt * LIQUIDATOR_REWARD) / 100;
+        uint256 amountForLiquidator = collateralToCoverDebt + rewardAmount;
+        
+        if (amountForLiquidator > userCollateral) {
+            amountForLiquidator = userCollateral;
+        }
 
         s_userCollateral[user] = userCollateral - amountForLiquidator;
 
-        // transfer 110% of the collateral needed to cover the debt to the liquidator
-        (bool sent,) = payable(msg.sender).call{ value: amountForLiquidator }("");
+        (bool sent, ) = payable(msg.sender).call{ value: amountForLiquidator }("");
         require(sent, "Failed to send Ether");
 
-        emit Liquidation(user, msg.sender, amountForLiquidator, userDebt, i_cornDEX.currentPrice());
+        emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHMyUSDPrice());
     }
-```
+    ```
+    </details>
+    </details>
 
+### 🥅 Goals:
+
+- [ ] `isLiquidatable` should correctly identify positions below the `COLLATERAL_RATIO`.
+- [ ] `liquidate` function should allow a third party to repay a risky user's debt and claim their collateral (with a bonus).
+- [ ] The liquidated user's debt should be cleared, and their collateral reduced.
+- [ ] The liquidator should receive the correct amount of collateral.
+- [ ] Test this by creating a position and borrowing the maximum amount possible, then letting interest accrue by setting a high borrow rate.
+
+<details>
+<summary>💡 Hint: Liquidator's Incentive</summary>
+The `LIQUIDATOR_REWARD` (10%) incentivizes anyone to monitor the system and liquidate unsafe positions. This creates a market for liquidators who:
+- Monitor positions for safety
+- Act quickly when positions become unsafe
+- Help maintain system health
+- Profit from their service
+
+The reward is carefully balanced to:
+- Be attractive enough to ensure liquidations happen
+- Cover gas costs and provide a reasonable return
+- Maintain system solvency
 </details>
-
-You know the drill. Restart `yarn chain` and then `yarn deploy` so you can try liquidating on the front end. It may be useful to open a private browser tab and go to `localhost:3000` so you can simulate multiple parties.
 
 ---
 
-### 🥅 Goals
+## Checkpoint 7: 🤖 Market Simulation
 
-- [ ] As long as people follow the incentives, will the protocol ever go under 100% backed loans? Look into this situation that happened to [Aave](https://blockworks.co/news/aave-curve-exposure)
-- [ ] What happens when a liquidator doesn't have enough CORN to repay the loan? Does it revert like it ought to?
+Now that we have implemented all the core functionality of our stablecoin system, let's see how it behaves in a simulated market environment. The `yarn simulate` script will run several automated bots that simulate different market participants.
+
+We will focus on the borrowing aspect. These bot accounts each have a slow trickle of unlimited funds and they want to use it to get leveraged exposure to ETH. They will deposit collateral, then mint some MyUSD. After that they will take their newly minted MyUSD and swap it for more ETH. This will drive the price of MyUSD down since the only market participants are dumping it in favor of ETH.
+
+
+### 🚀 Running the Simulation:
+
+1. Make sure your local network is running (`yarn chain`)
+2. Deploy your contracts (`yarn deploy --reset`)
+3. Run the simulation:
+```sh
+yarn simulate
+```
+
+Watch the console output to see:
+- Each bot accounts upper borrow rate limit preference
+- The activity of each bot
+
+Watch the front end to see:
+- Our precious MyUSD losing its peg!
+- The total supply of MyUSD in circulation increasing
+
+Now Raise the borrow rate to 30%.
+
+What do you notice?
+- Bots are exiting their positions
+- Total supply drops significantly
+- The peg is restored
+
+Now this is just a small example of what a very small group of market participants can do to the price of an asset. 
+
+Is our stablecoin doomed to either have a very small market cap or lose its peg perpetually? Find out in the next section...
+
+### 🥅 Goals:
+
+- [ ] Successfully run the simulation script
+- [ ] Observe bullish market activities effect on the market
+- [ ] Understand how the system components interact
+- [ ] See how rates influence market behavior
 
 ---
 
-## Checkpoint 6: Final Touches
+## Checkpoint 8: ⚖️ The Other Side: Savings Rate & Market Dynamics
 
-Throwback to the `withdrawCollateral` function. What happens when a borrower withdraws collateral exceeding the safe position ratio? You should add a `_validatePosition` check to make sure that never happens. Skip the check if they don't have any borrowed CORN.
+So far, we've focused on users borrowing MyUSD (which can create sell pressure if they swap MyUSD for ETH). But we saw how that made the stablecoin lose it's peg pretty quickly.
 
-Great work! Your contract has all the necessary functionality to help people get CORN loans.
+To maintain the $1 peg, we also need mechanisms to create *buy pressure* for MyUSD. What if we could create an incentive for the market to buy MyUSD instead of just selling it? This is where a **Savings Rate** comes in, managed by the `MyUSDStaking.sol` contract.
 
-🍨 Now you get to see something real special. Restart `yarn chain` and then `yarn deploy` as you usually do. Then run `yarn simulate`. This command will spin up several bot accounts that start using your lending platform! Look at the front end and interact while they are running! You can check out `packages/hardhat/scripts/marketSimulator.ts` to adjust the default settings or change the logic on the bot accounts.
+Users can stake their MyUSD into `MyUSDStaking.sol` to earn yield. This yield (the savings rate) makes holding MyUSD attractive.
 
->👇 Keep on going and try to tackle these optional gigachad side quests. The front end doesn't have any special components for using these side quests but you can use the Debug Tab to use them
-
-### ⚔️ Side Quest 1: Flash Loans
-
-🤔 What if you could borrow any amount of CORN as long as it was paid back by the end of the transaction? That is exactly what a flash loan does! Flash loans are a new financial primitive that is only possible onchain.
-
-Let's implement a fee free flash loan function!
-
-Before we implement the logic we need to crete a new interface called `IFlashLoanRecipient`. You can define it beneath the `Lending`. It should have a function called `executeOperation` that receives the following parameters: `uint256 amount, address initiator, address extraParam` and returns a bool.
-
-<details markdown='1'><summary>Interface Code</summary>
-
-```solidity
-contract Lending is Ownable {
-    // ...
-    // Existing code
-    // ...
-}
-
-// Place this beneath so we don't have to import from another file
-interface IFlashLoanRecipient {
-    function executeOperation(uint256 amount, address initiator, address extraParam) external returns (bool);
-}
-```
-
+<details>
+<summary>Where does the yield come from?</summary>
+No MyUSD can exist that is not paying for the borrow rate so as long as the savings rate is less than or equal to the borrow rate this is sustainable. Maybe you are thinking, "What about all the DEX liquidity?". Even this DEX liquidity is just a large borrower who deposited ETH collateral and has a lot of MyUSD borrowed and supplied to the DEX. Take a look at the <code>packages/hardhat/deploy/00_deploy_contract.ts</code> deploy file to see where the DEX is supplied with liquidity. Technically all of the MyUSD that is accrued from the borrow rate that is not being allocated to stakers should exist <i>somewhere</i> in the system but we decided against adding that to an already complex system. As a result, if everyone (including the DEX liquidity provider) decided to attempt repaying all their debt, they would not be able to do so.
 </details>
 
-There isn't any existing `flashLoan` function in `Lending.sol` but that is where we need one. Go ahead and define one that is public. It should receive the following parameters:
-- `IFlashLoanRecipient _recipient` This is because the loan recipient must be a contract that adheres to the `IFlashLoanRecipient` interface -- Not your EOA. You will see why in a minute
-- `uint256 _amount` The amount of CORN to send to the recipient contract
-- `address _extraParam` In a real flash loan function this would probably be a struct with several optional properties allowing people to pass along any data to the recipient contract. See Aave's implementation [here](https://github.com/aave-dao/aave-v3-origin/blob/083bd38a137b42b5df04e22ad4c9e72454365d0d/src/contracts/protocol/libraries/logic/FlashLoanLogic.sol#L184) 
+You **don't need to write new Solidity code in `MyUSDEngine.sol` for this checkpoint**, but you need to understand the interactions.
 
-The logic inside the method needs to mint the amount of CORN that is given in the parameter to the recipient address - The IFlashLoanRecipient adhering contract.
+### 🧠 Concepts & Connections:
 
-Then it will call the `executeOperation` function on the recipient contract and make sure that it returns `true`.
+1.  **`MyUSDStaking.sol`:** This separate contract (already provided) has a `setSavingsRate(uint256 newRate)` function (callable by its owner, which is also the `RateController` in our setup) and a `savingsRate()` view function. Users would `approve` MyUSD to this contract and call a `stake(uint256 amount)` function on it.
+2.  **`RateController.sol`:** This contract (which you can control via the UI/scripts) can call:
+    *   `MyUSDEngine.setBorrowRate()`
+    *   `MyUSDStaking.setSavingsRate()`
+3.  **Constraint in `MyUSDEngine.setBorrowRate()`:**
+    *   Remember the line: `if (newRate < i_staking.savingsRate()) revert Engine__InvalidBorrowRate();`
+    *   This implies the `borrowRate` in your engine should generally be higher than or equal to the `savingsRate` offered by `MyUSDStaking.sol`. This makes sense: the system needs to earn more from borrowers than it pays out to savers to be sustainable (or to fund other operations).
+4.  **The Levers for Peg Stability:**
+    *   **High Borrow Rate:** Discourages minting MyUSD (reduces potential sell pressure).
+    *   **Attractive Savings Rate:** Encourages buying/holding MyUSD to stake it (creates buy pressure).
+    *   Finding the right balance between these rates is key to keeping MyUSD close to $1. If MyUSD is trading below $1, you might increase the savings rate or increase the borrow rate. If MyUSD is above $1, you might decrease the savings rate or decrease the borrow rate.
 
-Use the CORN token's `burnFrom` method to destroy the CORN that was minted at the beginning of this function. Burn it from `address(this)` since the recipient should have returned it. If they didn't this burn method will revert when we try to burn tokens that are not held by the lending contract. If it reverts then the CORN will have never been minted to the recipient - no risk of the tokens being stolen.
+### 📖 Understanding:
 
-<details markdown='1'><summary>Solution Code</summary>
+*   Explore the frontend. You should see options to set both the **Borrow Rate** (for `MyUSDEngine`) and the **Savings Rate** (for `MyUSDStaking`).
+*   The `DEX.sol` contract provides a simple market where ETH can be swapped for MyUSD. The price on this DEX will reflect the supply and demand for MyUSD.
+*   Think about how changing the borrow and savings rates would influence users:
+    *   If savings rate is high, people might buy MyUSD on the DEX to stake it, pushing the price up.
+    *   If borrow rate is high, people might be less inclined to mint new MyUSD, or might buy MyUSD on the DEX to repay existing loans, reducing sell pressure or creating buy pressure.
 
-```solidity
-    function flashLoan(IFlashLoanRecipient _recipient, uint256 _amount, address _extraParam) public {
-        // Send the loan to the recipient - No collateral is required since it gets repaid all in the same transaction
-        i_corn.mintTo(address(_recipient), _amount);
-
-        // Execute the operation - It should return the loan amount back to this contract
-        bool success = _recipient.executeOperation(_amount, msg.sender, _extraParam);
-        require(success, "Operation was unsuccessful");
+### 🥅 Goals:
 
-        // Burn the loan - Should revert if it doesn't have enough
-        i_corn.burnFrom(address(this), _amount);
-    }
-```
+- [ ] Understand that `MyUSDEngine` and `MyUSDStaking` work together, influenced by rates set via `RateController`.
+- [ ] Understand that the savings rate creates an incentive to hold/buy MyUSD.
+- [ ] Observe the MyUSD price on the DEX tab of the frontend.
 
-</details>
+---
 
-Now we need to create a contract that is the recipient of the CORN. Let's create a contract that uses the `flashLoan` method to make it possible to liquidate loans without the liquidator needing to hold CORN tokens.
+## Checkpoint 9: 🤖 Simulation & Finding Equilibrium
 
-> ❕ Keep in mind, this is just one example of how we could use the `flashLoan` function. There are so many more things you can build with flash loans!
+Now for the "Aha!" moment. Let's see how these mechanisms play out with simulated market activity and an automated rate controller.
 
-Create a new contract file and call it `FlashLoanLiquidator.sol`
+### 🚀 Running Simulations:
 
-See if you can figure out the correct logic to liquidate a loan inside a function called `executeOperation`. It will need to utilize the DEX to swap ETH for CORN in order to repay the CORN loan after liquidating the position and receiving the ETH. 
-After liquidating the loan the contract should send any remaining ETH back to the original initiator of the `flashLoan` function.
+1.  **`yarn simulate` Script:**
+    *   This script spins up several simulated users (actors).
+    *   Some actors will look at the `borrowRate`. If it's attractive, they will deposit ETH and mint MyUSD (potentially selling it on the DEX for more ETH, representing leveraged traders).
+    *   Other actors will look at the `savingsRate`. If it's attractive, they will buy MyUSD from the DEX and stake it in `MyUSDStaking.sol`.
+    *   Run this script from your `challenge-stablecoin` directory: `yarn simulate`.
+    *   Observe your Hardhat node console and the frontend. You should see activity: collateral deposits, MyUSD mints, stakes, and DEX swaps. The MyUSD price on the DEX will fluctuate.
+    *   Experiment: Manually set very high or very low borrow/savings rates using the frontend controls (which use `RateController.sol`) and re-run `yarn simulate` (or parts of it if it's iterative). How does the MyUSD price react?
 
-Don't forget to let the contract `receive()` ether!
+2.  **`yarn interest-rate-controller` Script:**
+    *   This script attempts to automatically adjust the `borrowRate` (in `MyUSDEngine`) and `savingsRate` (in `MyUSDStaking`) to try and bring the MyUSD price on the DEX towards $1.
+    *   It will likely observe the DEX price and then make decisions:
+        *   If MyUSD < $1: Try to increase savings rate (make holding MyUSD more attractive) or increase borrow rate (make minting MyUSD less attractive).
+        *   If MyUSD > $1: Try to decrease savings rate or decrease borrow rate.
+    *   Run this script: `yarn interest-rate-controller`.
+    *   Observe its actions in the Hardhat console and how the MyUSD price on the DEX responds. Does it manage to stabilize the price near $1?
 
-<details markdown='1'><summary>FlashLoanLiquidator Contract Code</summary>
+### 🤔 Key Takeaways:
 
-Here is one example of how to accomplish this:
+*   **Demand Destruction:** High borrow rates make minting MyUSD expensive, reducing its supply and potential sell pressure. This is one lever.
+*   **Demand Creation:** Attractive savings rates make holding MyUSD (and thus buying it) desirable, increasing demand and buy pressure. This is the other crucial lever.
+*   **Dynamic Equilibrium:** The "correct" rates are not fixed; they depend on market conditions and sentiment. A stablecoin system constantly seeks equilibrium by adjusting these incentives.
+*   **Arbitrary Rates:** The rates are ultimately set by a controller (in our case, `RateController.sol`, which you can manipulate). Their effectiveness depends on the market's reaction.
 
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+### 🥅 Goals:
 
-import { Lending } from "./Lending.sol";
-import { CornDEX } from "./CornDEX.sol";
-import { Corn } from "./Corn.sol";
+- [ ] Successfully run the `yarn simulate` script and observe market behaviors.
+- [ ] Successfully run the `yarn interest-rate-controller` script and observe its attempts to stabilize the MyUSD price.
+- [ ] Gain an intuitive understanding of how borrow and savings rates are the primary tools for managing a stablecoin's peg in this type of system.
+- [ ] Appreciate that maintaining a peg is an active process of balancing incentives.
 
-/**
- * @notice For Side quest only
- * @notice This contract is used to liquidate unsafe positions by using a flash loan to borrow CORN to liquidate the position
- * then swapping the returned ETH for CORN for repaying the flash loan
- */
-contract FlashLoanLiquidator {
-    Lending i_lending;
-    CornDEX i_cornDEX;
-    Corn i_corn;
+---
 
-    constructor(address _lending, address _cornDEX, address _corn) {
-        i_lending = Lending(_lending);
-        i_cornDEX = CornDEX(_cornDEX);
-        i_corn = Corn(_corn);
-    }
+## Checkpoint 9: 💾 Deploy your contracts! 🛰
 
-    function executeOperation(uint256 amount, address initiator, address toLiquidate) public returns (bool) {
-        // Approve the lending contract to spend the tokens
-        i_corn.approve(address(i_lending), amount);
-        // First liquidate to get the collateral tokens
-        i_lending.liquidate(toLiquidate);
-        
-        // Calculate required input amount of ETH to get exactly 'amount' of tokens
-        uint256 ethReserves = address(i_cornDEX).balance;
-        uint256 tokenReserves = i_corn.balanceOf(address(i_cornDEX));
-        uint256 requiredETHInput = i_cornDEX.calculateXInput(amount, ethReserves, tokenReserves);
-        
-        // Execute the swap
-        i_cornDEX.swap{value: requiredETHInput}(requiredETHInput); // Swap ETH for tokens
-        // Send the tokens back to Lending to repay the flash loan
-        i_corn.transfer(address(i_lending), i_corn.balanceOf(address(this)));
-        // Send the ETH back to the initiator
-        if (address(this).balance > 0) {
-            (bool success, ) = payable(initiator).call{value: address(this).balance}("");
-            require(success, "Failed to send ETH back to initiator");
-        }
+Well done on building a stablecoin engine! Now, let's get it on a public testnet.
 
-        return true;
-    }
+📡 Edit the `defaultNetwork` to [your choice of public EVM networks](https://ethereum.org/en/developers/docs/networks/) in `packages/hardhat/hardhat.config.ts` (e.g., `sepolia`).
 
-    receive() external payable {}
-}
-
-```
-
-</details>
-
-Now you need to add your new contract to the deployment script. You can just add it beneath all the existing logic in `packages/hardhat/deploy/00_deploy_contracts.ts`.
-<details markdown='1'><summary>Deployment Code</summary>
-
-```typescript
-const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-
-    // All existing logic...
-
-    await deploy("FlashLoanLiquidator", {
-        from: deployer,
-        args: [lending.address, cornDEX.target, cornToken.target],
-        log: true,
-        autoMine: true,
-    });
-}
-```
-
-</details>
-
-Restart `yarn chain` and deploy your contracts with `yarn deploy`.
-
-Create a debt position that is close to the liquidation line and then increase the price of CORN until the position is liquidatable.
-
-Then go to the Debug Tab and trigger the `Lending.flashLoan` method with your `FlashLoanLiquidator` contract address as the `recipient`, the amount of CORN needed to liquidate as the `amount` and the borrower's address as the `extraParam`.
-
-Pretty cool, huh? You can liquidate any position without needing to have the CORN to pay back the loan!
-
-### ⚔️ Side Quest 2: Maximum Leverage With A Recursive Borrow > Swap > Deposit Loop
-
-🤔 What if you think the price of CORN is going down relative to ETH (*Why in the world would you think that!?* 🤣). You could borrow CORN but then use the DEX to buy more ETH with your CORN. But wait! Now you have more ETH you could technically use it as collateral *again* and then you could borrow more CORN and swap to ETH and repeat that as many times as possible.
-
-You can already do this manually but what if we created a contract with some methods that make it easy?
-
-Let's start by adding a couple helper methods to the `Lending.sol` contract.
-
-First let's add a method called `getMaxBorrowAmount` that takes a uint256 representing the amount of ETH we have to deposit and returns the maximum amount of CORN we can expect to receive. See if you can figure it out without the solution below, then compare if you run into issues.
-
-<details markdown='1'><summary>Solution Code</summary>
-
-```solidity
-    function getMaxBorrowAmount(uint256 ethCollateralAmount) public view returns (uint256) {
-        if (ethCollateralAmount == 0) return 0;
-        
-        // Calculate collateral value in CORN terms
-        uint256 collateralValue = (ethCollateralAmount * i_cornDEX.currentPrice()) / 1e18;
-        
-        // Calculate max borrow amount while maintaining the required collateral ratio
-        return (collateralValue * 100) / COLLATERAL_RATIO;
-    }
-```
-
-</details>
-
-Now let's add a method that will help us when we go to unravel a position.
-
-Create a function called `getMaxWithdrawableCollateral` that receives an address representing the user we want to query. It should return a uint256 representing the amount of ETH that the account has deposited as collateral that is OK to withdraw without putting the position into a liquidatable state. Try to figure it out yourself but feel free to peek at the solution below.
-
-<details markdown='1'><summary>Solution Code</summary>
-
-```solidity
-    function getMaxWithdrawableCollateral(address user) public view returns (uint256) {
-        uint256 borrowedAmount = s_userBorrowed[user];
-        uint256 userCollateral = s_userCollateral[user];
-        if (borrowedAmount == 0) return userCollateral;
-
-        uint256 maxBorrowedAmount = getMaxBorrowAmount(userCollateral);
-        if (borrowedAmount == maxBorrowedAmount) return 0;
-
-        uint256 potentialBorrowingAmount = maxBorrowedAmount - borrowedAmount;
-        uint256 ethValueOfPotentialBorrowingAmount = (potentialBorrowingAmount * 1e18) / i_cornDEX.currentPrice();
-
-        return (ethValueOfPotentialBorrowingAmount * COLLATERAL_RATIO) / 100;
-    }
-```
-
-</details>
-
-Now let's create a new contract that will use those new view functions to "while loop" until we trigger a stop.
-
-Create a new file in the contracts directory called `Leverage.sol` and copy the following code into it:
-
-<details><summary>Solution Code</summary>
-
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import { Lending } from "./Lending.sol";
-import { CornDEX } from "./CornDEX.sol";
-import { Corn } from "./Corn.sol";
-
-/**
- * @notice For Side quest only
- * @notice This contract is used to leverage a user's position by borrowing CORN from the Lending contract
- * then borrowing more CORN from the DEX to repay the initial borrow then repeating until the user has borrowed as much as they want
- */
-contract Leverage {
-    Lending i_lending;
-    CornDEX i_cornDEX;
-    Corn i_corn;
-    address public owner;
-
-    event LeveragedPositionOpened(address user, uint256 loops);
-    event LeveragedPositionClosed(address user, uint256 loops);
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only the owner can call this function");
-        _;
-    }
-
-    constructor(address _lending, address _cornDEX, address _corn) {
-        i_lending = Lending(_lending);
-        i_cornDEX = CornDEX(_cornDEX);
-        i_corn = Corn(_corn);
-        // Approve the DEX to spend the user's CORN
-        i_corn.approve(address(i_cornDEX), type(uint256).max);
-    }
-    
-    /**
-     * @notice Claim ownership of the contract so that no one else can change your position or withdraw your funds
-     */
-    function claimOwnership() public {
-        owner = msg.sender;
-    }
-
-    /**
-     * @notice Open a leveraged position, recursively borrowing CORN, swapping it for ETH, and adding it as collateral
-     * @param reserve The amount of ETH that we will keep in the contract as a reserve to prevent liquidation
-     */
-    function openLeveragedPosition(uint256 reserve) public payable onlyOwner {
-        uint256 loops = 0;
-        while (true) {
-            // Write more code here
-            loops++;
-        }
-        emit LeveragedPositionOpened(msg.sender, loops);
-    }
-
-    /**
-     * @notice Close a leveraged position, recursively withdrawing collateral, swapping it for CORN, and repaying the lending contract until the position is closed
-     */
-    function closeLeveragedPosition() public onlyOwner {
-        uint256 loops = 0;
-        while (true) {
-            // Write more code here
-            loops++;
-        }
-        emit LeveragedPositionClosed(msg.sender, loops);
-    }
-
-    /**
-     * @notice Withdraw the ETH from the contract
-     */
-    function withdraw() public onlyOwner {
-        uint256 balance = address(this).balance;
-        require(balance > 0, "No balance to withdraw");
-        (bool success, ) = payable(msg.sender).call{value: balance}("");
-        require(success, "Failed to send Ether");
-    }
-
-    receive() external payable {}
-}
-```
-
-</details>
-
-Try to fill in the "while loops" in the open and close leveraged position functions.
-
-Notice how the `openLeveragedPosition` receives a uint256 which represents the amount of ETH the caller wants left over as collateral after looping. If none is specified then the the loan will stop right at the liquidation threshold. The smallest movement in CORN going higher could cause you to be liquidated.
-
-The while loop should add collateral to the `Lending` contract and then borrow the max amount of CORN. Then it should use the DEX to swap that CORN for more ETH. Then the loop should be good to go again. Just make sure you add a condition to check if the amount of ETH is less than or equal to the reserve amount and if so, break out of the loop.
-
-<details><summary>Solution Code</summary>
-
-```solidity
-    function openLeveragedPosition(uint256 reserve) public payable onlyOwner {
-        uint256 loops = 0;
-        while (true) {
-            uint256 balance = address(this).balance;
-            i_lending.addCollateral{value: balance}();
-            if (balance <= reserve) {
-                break;
-            }
-            uint256 maxBorrowAmount = i_lending.getMaxBorrowAmount(balance);
-            i_lending.borrowCorn(maxBorrowAmount);
-            
-            i_cornDEX.swap(maxBorrowAmount);
-            loops++;
-        }
-        emit LeveragedPositionOpened(msg.sender, loops);
-    }
-```
-
-</details>
-
-`closeLeveragedPosition` Should be similar except it will be withdrawing the maximum amount of collateral, swapping to CORN and repaying the debt until there isn't any more CORN left to repay.
-
-<details><summary>Solution Code</summary>
-
-```solidity
-    function closeLeveragedPosition() public onlyOwner {
-        uint256 loops = 0;
-        while (true) {
-            uint256 maxWithdrawable = i_lending.getMaxWithdrawableCollateral(address(this));
-            i_lending.withdrawCollateral(maxWithdrawable);
-            require(maxWithdrawable == address(this).balance, "maxWithdrawable is not equal to balance");
-            i_cornDEX.swap{value:maxWithdrawable}(maxWithdrawable);
-            uint256 cornBalance = i_corn.balanceOf(address(this));
-            uint256 amountToRepay = cornBalance > i_lending.s_userBorrowed(address(this)) ? i_lending.s_userBorrowed(address(this)) : cornBalance;
-            if (amountToRepay > 0) {
-                i_lending.repayCorn(amountToRepay);
-            } else {
-                // Swap the remaining CORN to ETH since we don't want CORN exposure
-                i_cornDEX.swap(i_corn.balanceOf(address(this)));
-                break;
-            }
-            loops++;
-        }
-        emit LeveragedPositionClosed(msg.sender, loops);
-    }
-```
-
-</details>
-
-The `Leverage` contract has a `claimOwnership` and `withdraw` function so that you can claim ownership of the contract before opening the position because the position is actually owned by this contract.
-
-Lastly, add the deploy logic to the deployment script. Add it beneath all the existing logic in `packages/hardhat/deploy/00_deploy_contracts.ts` like you did with the last side quest.
-<details markdown='1'><summary>Deployment Code</summary>
-
-```typescript
-  await deploy("Leverage", {
-    from: deployer,
-    args: [lending.address, cornDEX.target, cornToken.target],
-    log: true,
-    autoMine: true,
-  });
-```
-
-</details>
-
-Restart `yarn chain` and deploy your contracts with `yarn deploy`.
-
-Try opening a leveraged position and see how changing the reserve amount affects your tolerance to changes in the market. Leverage is powerful stuff that will blow up in your face if you aren't careful.
-
-## Checkpoint 7: 💾 Deploy your contracts! 🛰
-
-📡 Edit the `defaultNetwork` to [your choice of public EVM networks](https://ethereum.org/en/developers/docs/networks/) in `packages/hardhat/hardhat.config.ts`
-
-🔐 You will need to generate a **deployer address** using `yarn generate` This creates a mnemonic and saves it locally.
+🔐 You will need to generate a **deployer address** using `yarn generate`. This creates a mnemonic and saves it locally.
 
 👩‍🚀 Use `yarn account` to view your deployer account balances.
 
@@ -723,13 +879,13 @@ Try opening a leveraged position and see how changing the reserve amount affects
 
 🚀 Run `yarn deploy` to deploy your smart contract to a public network (selected in `hardhat.config.ts`)
 
-> 💬 Hint: You can set the `defaultNetwork` in `hardhat.config.ts` to `sepolia` or `optimismSepolia` **OR** you can `yarn deploy --network sepolia` or `yarn deploy --network optimismSepolia`.
+> 💬 Hint: You can set the `defaultNetwork` in `hardhat.config.ts` to `sepolia` **OR** you can `yarn deploy --network sepolia`.
 
 ---
 
-## Checkpoint 8: 🚢 Ship your frontend! 🚁
+## Checkpoint 10: 🚢 Ship your frontend! 🚁
 
-✏️ Edit your frontend config in `packages/nextjs/scaffold.config.ts` to change the `targetNetwork` to `chains.sepolia` (or `chains.optimismSepolia` if you deployed to OP Sepolia)
+✏️ Edit your frontend config in `packages/nextjs/scaffold.config.ts` to change the `targetNetwork` to `chains.sepolia` (or your chosen deployed network).
 
 💻 View your frontend at http://localhost:3000 and verify you see the correct network.
 
@@ -743,7 +899,7 @@ Try opening a leveraged position and see how changing the reserve amount affects
 
 > Follow the steps to deploy to Vercel. It'll give you a public URL.
 
-> 🦊 Since we have deployed to a public testnet, you will now need to connect using a wallet you own or use a burner wallet. By default 🔥 `burner wallet's` are only available on `hardhat` . You can enable them on every chain by setting `onlyLocalBurnerWallet: false` in your frontend config (`scaffold.config.ts` in `packages/nextjs/`)
+> 🦊 Since we have deployed to a public testnet, you will now need to connect using a wallet you own or use a burner wallet. By default 🔥 `burner wallets` are only available on `hardhat` . You can enable them on every chain by setting `onlyLocalBurnerWallet: false` in your frontend config (`scaffold.config.ts` in `packages/nextjs/`)
 
 #### Configuration of Third-Party Services for Production-Grade Apps.
 
@@ -760,14 +916,17 @@ For production-grade applications, it's recommended to obtain your own API keys 
 
 ---
 
-## Checkpoint 9: 📜 Contract Verification
+## Checkpoint 11: 📜 Contract Verification
 
-Run the `yarn verify --network your_network` command to verify your contracts on etherscan 🛰
+Run the `yarn verify --network your_network` command to verify your contracts on Etherscan 🛰.
 
-👉 Search this address on [Sepolia Etherscan](https://sepolia.etherscan.io/) (or [Optimism Sepolia Etherscan](https://sepolia-optimism.etherscan.io/) if you deployed to OP Sepolia) to get the URL you submit to 🏃‍♀️[SpeedRunEthereum.com](https://speedrunethereum.com).
+👉 Search your deployed `MyUSDEngine` contract address on [Sepolia Etherscan](https://sepolia.etherscan.io/) to get the URL you submit to 🏃‍♀️[SpeedRunEthereum.com](https://speedrunethereum.com).
 
 ---
+
+> 🎉 Congratulations on completing the MyUSD Stablecoin Engine Challenge! You've gained valuable insights into the mechanics of decentralized stablecoins.
 
 > 🏃 Head to your next challenge [here](https://speedrunethereum.com).
 
 > 💬 Problems, questions, comments on the stack? Post them to the [🏗 scaffold-eth developers chat](https://t.me/joinchat/F7nCRK3kI93PoCOk)
+```
