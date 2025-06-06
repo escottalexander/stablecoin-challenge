@@ -68,7 +68,7 @@ contract MyUSDEngine is Ownable {
         debtExchangeRate = PRECISION; // 1:1 initially
     }
 
-    // Allows users to add collateral to their account
+    // Checkpoint 2: Depositing Collateral & Understanding Value
     function addCollateral() public payable {
         if (msg.value == 0) {
             revert Engine__InvalidAmount(); // Revert if no collateral is sent
@@ -78,45 +78,12 @@ contract MyUSDEngine is Ownable {
         emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice()); // Emit event for collateral addition
     }
 
-    // Calculates the total collateral value for a user based on their collateral balance and price point
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user]; // Get user's collateral amount
         return (collateralAmount * i_oracle.getETHMyUSDPrice()) / 1e18; // Calculate collateral value in terms of ETH price
     }
 
-    // Calculate the current debt value for a user, including accrued interest
-    function getCurrentDebtValue(address user) public view returns (uint256) {
-        if (s_userDebtShares[user] == 0) return 0;
-        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
-        return ((s_userDebtShares[user] * updatedExchangeRate) / PRECISION);
-    }
-
-    /**
-     * @notice Set the borrow rate for the engine
-     * @param newRate The new borrow rate to set
-     */
-    function setBorrowRate(uint256 newRate) external onlyRateController {
-        if (newRate < i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
-        _accrueInterest();
-        borrowRate = newRate;
-        emit BorrowRateUpdated(newRate);
-    }
-
-    /**
-     * @notice Accrues interest on the total debt value so that we only need to track existing debt + new interest
-     * @dev This function is called when the borrow rate is updated - before the rate is applied
-     */
-    function _accrueInterest() internal {
-        if (totalDebtShares == 0) {
-            lastUpdateTime = block.timestamp;
-            return;
-        }
-        
-        debtExchangeRate = _getUpdatedExchangeRate();
-        lastUpdateTime = block.timestamp;
-    }
-
-    // Internal helper to get the up-to-date exchange rate including accrued interest
+    // Checkpoint 3: Interest Calculation System
     function _getUpdatedExchangeRate() internal view returns (uint256) {
         if (totalDebtShares == 0) return debtExchangeRate;
         
@@ -129,32 +96,42 @@ contract MyUSDEngine is Ownable {
         return debtExchangeRate + (interest * PRECISION) / totalDebtShares;
     }
 
+    function _accrueInterest() internal {
+        if (totalDebtShares == 0) {
+            lastUpdateTime = block.timestamp;
+            return;
+        }
+        
+        debtExchangeRate = _getUpdatedExchangeRate();
+        lastUpdateTime = block.timestamp;
+    }
+
     function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
         uint256 updatedExchangeRate = _getUpdatedExchangeRate();
         return (amount * PRECISION) / updatedExchangeRate;
     }
 
-    // Allows users to withdraw collateral as long as it doesn't make them liquidatable
-    function withdrawCollateral(uint256 amount) external {
-        if (amount == 0) revert Engine__InvalidAmount();
-        if (s_userCollateral[msg.sender] < amount) revert Engine__InsufficientCollateral();
-        
-        // Temporarily reduce the user's collateral to check if they remain safe
-        uint256 newCollateral = s_userCollateral[msg.sender] - amount;
-        s_userCollateral[msg.sender] = newCollateral;
-
-        // Validate the user's position after withdrawal
-        if (s_userDebtShares[msg.sender] > 0) {
-            _validatePosition(msg.sender);
-        }
-
-        // Transfer the collateral to the user
-        payable(msg.sender).transfer(amount);
-
-        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_oracle.getETHMyUSDPrice()); // Emit event for collateral withdrawal
+    // Checkpoint 4: Minting MyUSD & Position Health
+    function getCurrentDebtValue(address user) public view returns (uint256) {
+        if (s_userDebtShares[user] == 0) return 0;
+        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
+        return ((s_userDebtShares[user] * updatedExchangeRate) / PRECISION);
     }
 
-    // Allows users to mint MyUSD based on their collateral
+    function calculatePositionRatio(address user) public view returns (uint256) {
+        uint256 mintedAmount = getCurrentDebtValue(user);
+        uint256 collateralValue = calculateCollateralValue(user);
+        if (mintedAmount == 0) return type(uint256).max;
+        return (collateralValue * PRECISION) / mintedAmount;
+    }
+
+    function _validatePosition(address user) internal view {
+        uint256 positionRatio = calculatePositionRatio(user);
+        if ((positionRatio * 100) < COLLATERAL_RATIO * PRECISION) {
+            revert Engine__UnsafePositionRatio();
+        }
+    }
+
     function mintMyUSD(uint256 mintAmount) public {
         if (mintAmount == 0) {
             revert Engine__InvalidAmount(); // Revert if mint amount is zero
@@ -173,7 +150,15 @@ contract MyUSDEngine is Ownable {
         emit DebtSharesMinted(msg.sender, mintAmount, debtShares);
     }
 
-    // Reduces shares as much as possible with the amount specified up to 100% paid back
+    // Checkpoint 5: Accruing Interest & Managing Borrow Rates
+    function setBorrowRate(uint256 newRate) external onlyRateController {
+        if (newRate < i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
+        _accrueInterest();
+        borrowRate = newRate;
+        emit BorrowRateUpdated(newRate);
+    }
+
+    // Checkpoint 6: Repaying Debt & Withdrawing Collateral
     function repayUpTo(uint256 amount) public {
         uint256 amountInShares = _getMyUSDToShares(amount);
         // Check if user has enough debt
@@ -202,29 +187,31 @@ contract MyUSDEngine is Ownable {
         emit DebtSharesBurned(msg.sender, amount, amountInShares);
     }
 
-    // Calculates the position ratio for a user to ensure they are within safe limits
-    function calculatePositionRatio(address user) public view returns (uint256) {
-        uint256 mintedAmount = getCurrentDebtValue(user);
-        uint256 collateralValue = calculateCollateralValue(user);
-        if (mintedAmount == 0) return type(uint256).max;
-        return (collateralValue * PRECISION) / mintedAmount;
-    }
+    function withdrawCollateral(uint256 amount) external {
+        if (amount == 0) revert Engine__InvalidAmount();
+        if (s_userCollateral[msg.sender] < amount) revert Engine__InsufficientCollateral();
+        
+        // Temporarily reduce the user's collateral to check if they remain safe
+        uint256 newCollateral = s_userCollateral[msg.sender] - amount;
+        s_userCollateral[msg.sender] = newCollateral;
 
-    // Validates the user's position to ensure it meets safety requirements
-    function _validatePosition(address user) internal view {
-        uint256 positionRatio = calculatePositionRatio(user);
-        if ((positionRatio * 100) < COLLATERAL_RATIO * PRECISION) {
-            revert Engine__UnsafePositionRatio();
+        // Validate the user's position after withdrawal
+        if (s_userDebtShares[msg.sender] > 0) {
+            _validatePosition(msg.sender);
         }
+
+        // Transfer the collateral to the user
+        payable(msg.sender).transfer(amount);
+
+        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_oracle.getETHMyUSDPrice()); // Emit event for collateral withdrawal
     }
 
-    // Checks if a user's position can be liquidated
+    // Checkpoint 7: Liquidation - Enforcing System Stability
     function isLiquidatable(address user) public view returns (bool) {
         uint256 positionRatio = calculatePositionRatio(user);
         return (positionRatio * 100) < COLLATERAL_RATIO * PRECISION;
     }
 
-    // Allows liquidators to liquidate unsafe positions
     function liquidate(address user) external {
         if (!isLiquidatable(user)) {
             revert Engine__NotLiquidatable(); // Revert if position is not liquidatable

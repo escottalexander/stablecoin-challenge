@@ -62,7 +62,89 @@ yarn start
 
 ---
 
-## Checkpoint 1: 🧱 Depositing Collateral & Understanding Value
+## Checkpoint 1: 🎯 System Overview
+
+Let's understand the key components and mechanics of our stablecoin system:
+
+### Core Components
+
+1. **MyUSD Token (`MyUSD.sol`)**
+   - The actual stablecoin token (ERC20)
+   - Can be minted and burned by the engine
+
+2. **Engine (`MyUSDEngine.sol`)**
+   - Core contract managing the stablecoin system
+   - Handles collateral deposits (ETH)
+   - Controls minting/burning of MyUSD
+   - Manages interest rates and liquidations
+   - Enforces collateralization requirements
+
+3. **Oracle (`Oracle.sol`)**
+   - Provides ETH/MyUSD and ETH/USD price feeds
+   - ETH/USD price feed is **fixed** from price of ETH at time of contract deploy
+   - Critical for calculating collateral values
+   - Used for liquidation checks
+
+4. **Staking (`MyUSDStaking.sol`)**
+   - Allows users to stake MyUSD
+   - Earns yield from borrow rates
+   - Creates buy pressure for MyUSD
+
+5. **Rate Controller**
+   - Manages borrow and savings rates
+   - Key tool for maintaining the $1 peg
+   - Can be automated or manual
+
+### Key Mechanics
+
+1. **Collateralization**
+   - Users deposit ETH as collateral
+   - Must maintain 150% collateralization ratio
+   - Collateral value tracked via oracle
+
+2. **Interest System**
+   - Share-based approach for efficiency
+   - Borrow rate: Cost to mint MyUSD
+   - Savings rate: Yield for staking MyUSD
+   - Rates used to maintain peg
+
+3. **Liquidation System**
+   - Protects system from under-collateralization
+   - Anyone can liquidate unsafe positions
+   - Liquidators receive 10% bonus
+
+4. **Peg Stability**
+   - Borrow rate: Controls supply (minting)
+   - Savings rate: Controls demand (staking)
+   - Dynamic equilibrium through rate adjustments
+
+### System Flow
+
+1. **Minting MyUSD**
+   - User deposits ETH collateral
+   - Mints MyUSD but no higher than a 150% over-collateralization ratio
+   - Pays borrow rate on minted amount
+
+2. **Staking MyUSD**
+   - User buys MyUSD (creates demand)
+   - Stakes in staking contract
+   - Earns savings rate yield
+
+3. **Liquidation Process**
+   - Position becomes unsafe (<150% over-collateralized)
+   - Liquidator repays debt
+   - Receives collateral + bonus
+
+4. **Rate Management**
+   - Monitor MyUSD price
+   - Adjust rates to maintain peg
+   - Balance supply and demand
+
+This system creates a stablecoin where we have two levers to pull in order to maintain the peg. The 
+
+---
+
+## Checkpoint 2: 🧱 Depositing Collateral & Understanding Value
 
 First, users need a way to deposit collateral (ETH) into the system. We also need to know the USD value of this collateral.
 
@@ -76,7 +158,7 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
     *   It should emit a `CollateralAdded` event.
     *   Don't forget to revert if `msg.value` is zero using `Engine__InvalidAmount()`.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Adding Collateral</summary>
     This is a simple function that:
     - Receives ETH via `msg.value`
@@ -88,7 +170,7 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
     - Use the existing mapping
     - Include the current ETH price in the event
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function addCollateral() public payable {
@@ -107,7 +189,7 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
     *   The collateral amount `s_userCollateral[user]` is in wei (1e18 ETH = 1 ETH).
     *   Calculation: `(collateralAmount * ethPrice) / PRECISION`.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Calculating Collateral Value</summary>
     This function converts ETH to USD value:
     - Get the user's ETH amount from the mapping
@@ -119,7 +201,7 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
     - What units the oracle price is in
     - What units the collateral amount is in
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function calculateCollateralValue(address user) public view returns (uint256) {
@@ -139,14 +221,14 @@ Go ahead and re-deploy your contracts with `yarn deploy --reset` and test your f
 - [ ] `calculateCollateralValue` returns the correct USD value of a user's collateral.
 - [ ] The frontend should update to show your deposited ETH and its USD value.
 
-<details>
+<details markdown='1'>
 <summary>💡 Hint: Oracle Price</summary>
 The `i_oracle.getPrice()` function returns the price of 1 ETH in USD, scaled by 1e18. For example, if ETH is $2000, it returns `2000 * 1e18`.
 </details>
 
 ---
 
-## Checkpoint 2: 💰 Interest Calculation System
+## Checkpoint 3: 💰 Interest Calculation System
 
 Now that users can deposit collateral, we need to set up the interest calculation system before we can let them mint MyUSD. This system uses a share-based approach to efficiently track interest accrual. Unlike traditional systems where interest is used as revenue, our stablecoin uses interest rates as a tool to maintain the peg - higher rates discourage borrowing when the price is below $1, helping to destroy demand for loans and pushing the price back up.
 
@@ -179,7 +261,7 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     *   Calculate interest based on total debt value and time elapsed.
     *   Return updated exchange rate.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Calculating Updated Exchange Rate</summary>
     You need to calculate how much interest has accrued since the last update. Think about:
     - How much time has passed since `lastUpdateTime`
@@ -187,7 +269,7 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     - How much interest that debt has earned at the current `borrowRate`
     - How to distribute that interest across all shares
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function _getUpdatedExchangeRate() internal view returns (uint256) {
@@ -209,7 +291,7 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     *   Update `debtExchangeRate` using `_getUpdatedExchangeRate()`.
     *   Update `lastUpdateTime` to current timestamp.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Accruing Interest</summary>
     This function updates the exchange rate to include accrued interest:
     - Get the new exchange rate
@@ -221,7 +303,7 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     - Update both the rate and timestamp
     - Use the helper function we created earlier
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function _accrueInterest() internal {
@@ -241,7 +323,7 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     *   Convert a MyUSD `amount` into the equivalent number of `debtShares`.
     *   Use `_getUpdatedExchangeRate()` to get the current rate.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Converting MyUSD to Shares</summary>
     Think about this like a currency conversion:
     - If 1 share = 1.1 MyUSD (exchange rate)
@@ -251,7 +333,7 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     - Get the current exchange rate
     - Use it to calculate how many shares represent the given amount
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
@@ -269,14 +351,14 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
 - [ ] Shares are calculated correctly based on current exchange rate
 - [ ] The system handles edge cases (no shares, zero interest, etc.)
 
-<details>
+<details markdown='1'>
 <summary>💡 Hint: Understanding Shares and Exchange Rate</summary>
 Think of shares like a "debt token" that represents a portion of the total debt pool. The exchange rate tells us how much MyUSD each share is worth. As interest accrues, the exchange rate increases, making each share worth more MyUSD. This way, we don't need to update every user's balance - we just update the exchange rate.
 </details>
 
 ---
 
-## Checkpoint 3: 💰 Minting MyUSD & Position Health
+## Checkpoint 4: 💰 Minting MyUSD & Position Health
 
 Now that we have our interest calculation system in place, we can implement the minting functionality. Users should be able to mint MyUSD against their collateral, but we must ensure they don't mint too much, keeping the system over-collateralized. This is where the `COLLATERAL_RATIO` (150%) comes in.
 
@@ -289,7 +371,7 @@ Now that we have our interest calculation system in place, we can implement the 
     *   Calculate: `(s_userDebtShares[user] * updatedExchangeRate) / PRECISION`.
     *   This represents the total debt value including accrued interest.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Calculating Current Debt Value</summary>
     This is the inverse of `_getMyUSDToShares`:
     - If we know how many shares a user has
@@ -298,7 +380,7 @@ Now that we have our interest calculation system in place, we can implement the 
     
     Remember to handle the case where a user has no shares!
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function getCurrentDebtValue(address user) public view returns (uint256) {
@@ -318,7 +400,7 @@ Now that we have our interest calculation system in place, we can implement the 
     *   Calculate: `(collateralValue * PRECISION) / debtValue`.
     *   This ratio must stay above 150% to keep the position safe.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Calculating Position Ratio</summary>
     The position ratio is like a health score for a user's position:
     - Higher ratio = safer position
@@ -329,7 +411,7 @@ Now that we have our interest calculation system in place, we can implement the 
     - How to handle division by zero
     - Why we multiply by PRECISION before dividing
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function calculatePositionRatio(address user) public view returns (uint256) {
@@ -349,7 +431,7 @@ Now that we have our interest calculation system in place, we can implement the 
     *   A position is safe if `(positionRatio * 100) >= (COLLATERAL_RATIO * PRECISION)`.
     *   If unsafe, revert with `Engine__UnsafePositionRatio()`.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Validating Position Safety</summary>
     This is a simple check that uses the position ratio:
     - Get the ratio
@@ -358,7 +440,7 @@ Now that we have our interest calculation system in place, we can implement the 
     
     Remember to handle the precision correctly when comparing!
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function _validatePosition(address user) internal view {
@@ -380,7 +462,7 @@ Now that we have our interest calculation system in place, we can implement the 
     *   Mint the MyUSD tokens to the user.
     *   Emit `DebtSharesMinted` event with the amount and shares.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Minting MyUSD</summary>
     This function ties everything together:
     - Convert the mint amount to shares
@@ -394,7 +476,7 @@ Now that we have our interest calculation system in place, we can implement the 
     - Validate before minting
     - Emit the event
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function mintMyUSD(uint256 mintAmount) public {
@@ -423,7 +505,7 @@ Now that we have our interest calculation system in place, we can implement the 
 
 ---
 
-## Checkpoint 4: 📈 Accruing Interest & Managing Borrow Rates
+## Checkpoint 5: 📈 Accruing Interest & Managing Borrow Rates
 
 Now lets set up the ability for the rate controller to change the borrow rate.
 
@@ -438,7 +520,7 @@ In the absence of decimals we will assume that a borrow rate of 125 is equivalen
     *   Run `_accrueInterest()` to update the `debtExchangeRate`
     *   Update `borrowRate` and emit event.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Setting Borrow Rate</summary>
     This function lets the rate controller adjust the borrow rate:
     - Check if caller is the rate controller
@@ -450,7 +532,7 @@ In the absence of decimals we will assume that a borrow rate of 125 is equivalen
     - Use the modifier for access control
     - Emit the event with the new rate
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function setBorrowRate(uint256 newRate) external onlyRateController {
@@ -462,9 +544,9 @@ In the absence of decimals we will assume that a borrow rate of 125 is equivalen
     </details>
     </details>
 
-The funny thing about checking that only the rate controller can change the rate is that *anyone* can use the methods in the `RateController.sol` contract! We did this so that you can easily change rates from the front end without having to authorize a specific account.
+The funny thing about checking that only the rate controller can change the rate is that *anyone* can use the methods in the `RateController.sol` contract! We did this so that you can easily change rates from the frontend without having to authorize a specific account.
 
-Go try it out on the front end after redeploying with `yarn deploy --reset`. Click the edit icon next to the borrow rate and set a new rate.
+Go try it out on the frontend after redeploying with `yarn deploy --reset`. Click the edit icon next to the borrow rate and set a new rate.
 
 ### 🥅 Goals:
 
@@ -472,7 +554,7 @@ Go try it out on the front end after redeploying with `yarn deploy --reset`. Cli
 
 ---
 
-## Checkpoint 5: 💸 Repaying Debt & Withdrawing Collateral
+## Checkpoint 6: 💸 Repaying Debt & Withdrawing Collateral
 
 Users need to be able to repay their MyUSD debt and withdraw their ETH collateral.
 
@@ -492,7 +574,7 @@ Since debt is always accruing we have decided to use a method (`repayUpTo`) that
     *   Burn the MyUSD from the user: `i_myUSD.burnFrom(msg.sender, amount)`.
     *   Emit `DebtSharesBurned`.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Repaying Debt</summary>
     This function needs to handle several cases:
     - User wants to repay exactly what they owe
@@ -506,7 +588,7 @@ Since debt is always accruing we have decided to use a method (`repayUpTo`) that
     - Update both user's shares and total shares
     - Burn the correct amount of MyUSD
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function repayUpTo(uint256 amount) public {
@@ -548,7 +630,7 @@ Since debt is always accruing we have decided to use a method (`repayUpTo`) that
     *   If the position is still valid (or they have no debt), transfer the ETH: `payable(msg.sender).transfer(amount);`. Handle potential transfer failure with `Engine__TransferFailed()`.
     *   Emit `CollateralWithdrawn` with the current ETH price.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Withdrawing Collateral</summary>
     This function needs to be careful about maintaining the user's position safety:
     - Check if they have enough collateral
@@ -561,7 +643,7 @@ Since debt is always accruing we have decided to use a method (`repayUpTo`) that
     - Handle ETH transfer failures
     - Emit the event with the current price
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function withdrawCollateral(uint256 amount) external {
@@ -597,7 +679,7 @@ Go try it out on the frontend! Re-deploy with `yarn deploy --reset` and go try t
 
 ---
 
-## Checkpoint 6: 🚨 Liquidation - Enforcing System Stability
+## Checkpoint 7: 🚨 Liquidation - Enforcing System Stability
 
 What happens if the price of ETH drops or a user's debt accrues too much interest, causing their position to become under-collateralized (below 150%)? This is where liquidations come in. Anyone can trigger a liquidation for an unsafe position.
 
@@ -613,7 +695,7 @@ Liquidations are crucial for maintaining the system's solvency. They ensure that
     *   Calculate the user's current position ratio using `calculatePositionRatio(user)`. This will automatically use the current exchange rate to get up-to-date debt values.
     *   Return `true` if `(positionRatio * 100) < COLLATERAL_RATIO * PRECISION`, otherwise `false`.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Checking Liquidation Status</summary>
     This function provides an important check for the system:
     - It compares the position's health against the minimum required ratio
@@ -624,7 +706,7 @@ Liquidations are crucial for maintaining the system's solvency. They ensure that
     - How the position ratio relates to the collateral ratio
     - Why we multiply by 100 and compare with COLLATERAL_RATIO * PRECISION
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function isLiquidatable(address user) public view returns (bool) {
@@ -657,7 +739,7 @@ Liquidations are crucial for maintaining the system's solvency. They ensure that
     *   Transfer `amountForLiquidator` ETH to `msg.sender`. Handle potential transfer failure.
     *   Emit `Liquidation` event.
 
-    <details>
+    <details markdown='1'>
     <summary>💡 Hint: Liquidating Positions</summary>
     This is the core function that maintains system health:
     - It allows anyone to step in and resolve unsafe positions
@@ -670,7 +752,7 @@ Liquidations are crucial for maintaining the system's solvency. They ensure that
     - Handle edge cases where collateral might not cover the full debt
     - Ensure proper event emission for off-chain monitoring
     
-    <details>
+    <details markdown='1'>
     <summary>🎯 Solution</summary>
     ```solidity
     function liquidate(address user) external {
@@ -722,7 +804,7 @@ Liquidations are crucial for maintaining the system's solvency. They ensure that
 - [ ] The liquidator should receive the correct amount of collateral.
 - [ ] Test this by creating a position and borrowing the maximum amount possible, then letting interest accrue by setting a high borrow rate.
 
-<details>
+<details markdown='1'>
 <summary>💡 Hint: Liquidator's Incentive</summary>
 The `LIQUIDATOR_REWARD` (10%) incentivizes anyone to monitor the system and liquidate unsafe positions. This creates a market for liquidators who:
 - Monitor positions for safety
@@ -738,7 +820,7 @@ The reward is carefully balanced to:
 
 ---
 
-## Checkpoint 7: 🤖 Market Simulation
+## Checkpoint 8: 🤖 Market Simulation
 
 Now that we have implemented all the core functionality of our stablecoin system, let's see how it behaves in a simulated market environment. The `yarn simulate` script will run several automated bots that simulate different market participants.
 
@@ -758,7 +840,7 @@ Watch the console output to see:
 - Each bot accounts upper borrow rate limit preference
 - The activity of each bot
 
-Watch the front end to see:
+Watch the frontend to see:
 - Our precious MyUSD losing its peg!
 - The total supply of MyUSD in circulation increasing
 
@@ -782,20 +864,43 @@ Is our stablecoin doomed to either have a very small market cap or lose its peg 
 
 ---
 
-## Checkpoint 8: ⚖️ The Other Side: Savings Rate & Market Dynamics
+## Checkpoint 9: ⚖️ The Other Side: Savings Rate & Market Dynamics
 
 So far, we've focused on users borrowing MyUSD (which can create sell pressure if they swap MyUSD for ETH). But we saw how that made the stablecoin lose it's peg pretty quickly.
 
 To maintain the $1 peg, we also need mechanisms to create *buy pressure* for MyUSD. What if we could create an incentive for the market to buy MyUSD instead of just selling it? This is where a **Savings Rate** comes in, managed by the `MyUSDStaking.sol` contract.
 
-Users can stake their MyUSD into `MyUSDStaking.sol` to earn yield. This yield (the savings rate) makes holding MyUSD attractive.
+Users can stake their MyUSD into `MyUSDStaking.sol` to earn yield. This yield (the savings rate) makes holding MyUSD attractive and provides a new incentive besides leveraged exposure to ETH to use MyUSD.
 
-<details>
+<details markdown='1'>
 <summary>Where does the yield come from?</summary>
 No MyUSD can exist that is not paying for the borrow rate so as long as the savings rate is less than or equal to the borrow rate this is sustainable. Maybe you are thinking, "What about all the DEX liquidity?". Even this DEX liquidity is just a large borrower who deposited ETH collateral and has a lot of MyUSD borrowed and supplied to the DEX. Take a look at the <code>packages/hardhat/deploy/00_deploy_contract.ts</code> deploy file to see where the DEX is supplied with liquidity. Technically all of the MyUSD that is accrued from the borrow rate that is not being allocated to stakers should exist <i>somewhere</i> in the system but we decided against adding that to an already complex system. As a result, if everyone (including the DEX liquidity provider) decided to attempt repaying all their debt, they would not be able to do so.
 </details>
 
-You **don't need to write new Solidity code in `MyUSDEngine.sol` for this checkpoint**, but you need to understand the interactions.
+Now that we understand where the yield comes from, we need to ensure our system can always pay it. Return to your `setBorrowRate` function in `MyUSDEngine.sol` and add a check to ensure the new rate is greater than or equal to the savings rate. This ensures the system can always pay stakers their yield. If the new rate is too low, revert with `Engine__InvalidBorrowRate()`.
+
+<details markdown='1'>
+<summary>💡 Hint: Setting Borrow Rate</summary>
+The borrow rate must always be high enough to cover the savings rate:
+- Get the current savings rate from the staking contract using `i_staking.savingsRate()`
+- Compare it with the new borrow rate
+- Revert if the borrow rate is too low
+- Remember to do this check before accruing interest and updating the rate
+
+<details markdown='1'>
+<summary>🎯 Solution</summary>
+```solidity
+function setBorrowRate(uint256 newRate) external onlyRateController {
+    if (newRate < i_staking.savingsRate()) revert Engine__InvalidBorrowRate();
+    _accrueInterest();
+    borrowRate = newRate;
+    emit BorrowRateUpdated(newRate);
+}
+```
+</details>
+</details>
+
+For the rest of this checkpoint **you won't need to edit any Solidity**, but you need to understand the interactions.
 
 ### 🧠 Concepts & Connections:
 
@@ -827,7 +932,7 @@ You **don't need to write new Solidity code in `MyUSDEngine.sol` for this checkp
 
 ---
 
-## Checkpoint 9: 🤖 Simulation & Finding Equilibrium
+## Checkpoint 10: 🤖 Simulation & Finding Equilibrium
 
 Now for the "Aha!" moment. Let's see how these mechanisms play out with simulated market activity and an automated rate controller.
 
@@ -838,8 +943,8 @@ Now for the "Aha!" moment. Let's see how these mechanisms play out with simulate
     *   Some actors will look at the `borrowRate`. If it's attractive, they will deposit ETH and mint MyUSD (potentially selling it on the DEX for more ETH, representing leveraged traders).
     *   Other actors will look at the `savingsRate`. If it's attractive, they will buy MyUSD from the DEX and stake it in `MyUSDStaking.sol`.
     *   Run this script from your `challenge-stablecoin` directory: `yarn simulate`.
-    *   Observe your Hardhat node console and the frontend. You should see activity: collateral deposits, MyUSD mints, stakes, and DEX swaps. The MyUSD price on the DEX will fluctuate.
-    *   Experiment: Manually set very high or very low borrow/savings rates using the frontend controls (which use `RateController.sol`) and re-run `yarn simulate` (or parts of it if it's iterative). How does the MyUSD price react?
+    *   Observe your console and the frontend. You should see activity: collateral deposits, MyUSD mints, stakes, and DEX swaps. The MyUSD price on the DEX will fluctuate.
+    *   Experiment: Manually set very high or very low borrow/savings rates using the frontend controls (which use `RateController.sol`) while running `yarn simulate`. How does the MyUSD price react?
 
 2.  **`yarn interest-rate-controller` Script:**
     *   This script attempts to automatically adjust the `borrowRate` (in `MyUSDEngine`) and `savingsRate` (in `MyUSDStaking`) to try and bring the MyUSD price on the DEX towards $1.
@@ -853,8 +958,9 @@ Now for the "Aha!" moment. Let's see how these mechanisms play out with simulate
 
 *   **Demand Destruction:** High borrow rates make minting MyUSD expensive, reducing its supply and potential sell pressure. This is one lever.
 *   **Demand Creation:** Attractive savings rates make holding MyUSD (and thus buying it) desirable, increasing demand and buy pressure. This is the other crucial lever.
-*   **Dynamic Equilibrium:** The "correct" rates are not fixed; they depend on market conditions and sentiment. A stablecoin system constantly seeks equilibrium by adjusting these incentives.
+*   **Dynamic Equilibrium:** The "correct" rates are not fixed; they depend on market conditions and sentiment. This stablecoin system constantly seeks equilibrium by adjusting these incentives.
 *   **Arbitrary Rates:** The rates are ultimately set by a controller (in our case, `RateController.sol`, which you can manipulate). Their effectiveness depends on the market's reaction.
+*   **Market Unpredictability:** We have only simulated two different types of market participants. Imagine what a real market would be like with thousands, maybe even millions, of participants. All constantly changing as new incentives to buy, sell or hold MyUSD emerge. Also think about how those market demands may change when in a bull market vs bear market.
 
 ### 🥅 Goals:
 
@@ -865,7 +971,7 @@ Now for the "Aha!" moment. Let's see how these mechanisms play out with simulate
 
 ---
 
-## Checkpoint 9: 💾 Deploy your contracts! 🛰
+## Checkpoint 11: 💾 Deploy your contracts! 🛰
 
 Well done on building a stablecoin engine! Now, let's get it on a public testnet.
 
@@ -883,7 +989,7 @@ Well done on building a stablecoin engine! Now, let's get it on a public testnet
 
 ---
 
-## Checkpoint 10: 🚢 Ship your frontend! 🚁
+## Checkpoint 12: 🚢 Ship your frontend! 🚁
 
 ✏️ Edit your frontend config in `packages/nextjs/scaffold.config.ts` to change the `targetNetwork` to `chains.sepolia` (or your chosen deployed network).
 
@@ -916,7 +1022,7 @@ For production-grade applications, it's recommended to obtain your own API keys 
 
 ---
 
-## Checkpoint 11: 📜 Contract Verification
+## Checkpoint 13: 📜 Contract Verification
 
 Run the `yarn verify --network your_network` command to verify your contracts on Etherscan 🛰.
 
