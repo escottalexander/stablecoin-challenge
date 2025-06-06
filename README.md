@@ -4,9 +4,9 @@
 
 > 💰 Build your own decentralized stablecoin! In this challenge, you'll build the core engine for **MyUSD**, a crypto-backed stablecoin designed to maintain a peg to $1 USD. You'll get to wear the hat of a DeFi protocol that wants to maintain price stability while also increasing adoption of your stablecoin product, diving deep into concepts like collateralization, minting, burning, interest rates, and liquidations – all crucial components of a robust stablecoin system.
 
-<details markdown='1'><summary>❓ Wondering how stablecoins work? Read the overview here.</summary>
+<details markdown='1'><summary>❓ Wondering what a stablecoin is? Read the overview here.</summary>
 
-Stablecoins are cryptocurrencies designed to maintain a stable value relative to a specific asset (in our case, $1 USD). They serve as a bridge between traditional finance and crypto, providing stability in an otherwise volatile market.
+Stablecoins are cryptocurrencies designed to maintain a stable value relative to a specific asset (in our case, $1 USD). In some ways they serve as a bridge between traditional finance and crypto, providing stability in an otherwise volatile market.
 
 🤔 How do they maintain their peg? There are several mechanisms:
 
@@ -18,6 +18,12 @@ Stablecoins are cryptocurrencies designed to maintain a stable value relative to
 👍 Now that you understand the basics, let's build our own stablecoin system!
 
 </details>
+
+First we should mention there are lots of different types of stablecoins on the market. Some are backed 1-1 with actual USD denominated assets in a bank (USDC, USDT). Others are backed by crypto and use special mechanisms to maintain their peg (Dai, RAI, LUSD/BOLD).
+
+This challenge is modeled after one of the first crypto-backed stablecoins called Dai - back when the only thing backing it was ETH. Later Dai would allow multiple types of collateral and change it's design somewhat so the version we are building is commonly referred to as "single collateral Dai".
+
+You are highly encouraged to have completed the Over-collateralized Lending challenge prior to attempting this one since we will be building on that same basic system.
 
 ---
 
@@ -64,15 +70,18 @@ yarn start
 
 ## Checkpoint 1: 🎯 System Overview
 
-Let's understand the key components and mechanics of our stablecoin system:
+Let's understand the key components and mechanics of our stablecoin system.
+
+These are located in `packages/hardhat/contracts`. Go check them out now!
 
 ### Core Components
 
 1. **MyUSD Token (`MyUSD.sol`)**
    - The actual stablecoin token (ERC20)
-   - Can be minted and burned by the engine
+   - Can be minted and burned only by the engine
 
 2. **Engine (`MyUSDEngine.sol`)**
+   - This is what *you* will be editing
    - Core contract managing the stablecoin system
    - Handles collateral deposits (ETH)
    - Controls minting/burning of MyUSD
@@ -81,9 +90,8 @@ Let's understand the key components and mechanics of our stablecoin system:
 
 3. **Oracle (`Oracle.sol`)**
    - Provides ETH/MyUSD and ETH/USD price feeds
-   - ETH/USD price feed is **fixed** from price of ETH at time of contract deploy
-   - Critical for calculating collateral values
-   - Used for liquidation checks
+   - ETH/USD price is **fixed** at time you deploy the contracts
+   - We did this to simplify all the potential "moving pieces" and minimize the learning curve
 
 4. **Staking (`MyUSDStaking.sol`)**
    - Allows users to stake MyUSD
@@ -93,54 +101,8 @@ Let's understand the key components and mechanics of our stablecoin system:
 5. **Rate Controller**
    - Manages borrow and savings rates
    - Key tool for maintaining the $1 peg
-   - Can be automated or manual
 
-### Key Mechanics
-
-1. **Collateralization**
-   - Users deposit ETH as collateral
-   - Must maintain 150% collateralization ratio
-   - Collateral value tracked via oracle
-
-2. **Interest System**
-   - Share-based approach for efficiency
-   - Borrow rate: Cost to mint MyUSD
-   - Savings rate: Yield for staking MyUSD
-   - Rates used to maintain peg
-
-3. **Liquidation System**
-   - Protects system from under-collateralization
-   - Anyone can liquidate unsafe positions
-   - Liquidators receive 10% bonus
-
-4. **Peg Stability**
-   - Borrow rate: Controls supply (minting)
-   - Savings rate: Controls demand (staking)
-   - Dynamic equilibrium through rate adjustments
-
-### System Flow
-
-1. **Minting MyUSD**
-   - User deposits ETH collateral
-   - Mints MyUSD but no higher than a 150% over-collateralization ratio
-   - Pays borrow rate on minted amount
-
-2. **Staking MyUSD**
-   - User buys MyUSD (creates demand)
-   - Stakes in staking contract
-   - Earns savings rate yield
-
-3. **Liquidation Process**
-   - Position becomes unsafe (<150% over-collateralized)
-   - Liquidator repays debt
-   - Receives collateral + bonus
-
-4. **Rate Management**
-   - Monitor MyUSD price
-   - Adjust rates to maintain peg
-   - Balance supply and demand
-
-This system creates a stablecoin where we have two levers to pull in order to maintain the peg. The 
+This system creates a stablecoin where we have two levers to pull in order to maintain the peg.
 
 ---
 
@@ -160,6 +122,7 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
 
     <details markdown='1'>
     <summary>💡 Hint: Adding Collateral</summary>
+
     This is a simple function that:
     - Receives ETH via `msg.value`
     - Updates a mapping to track how much ETH each user has deposited
@@ -168,10 +131,11 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
     Remember to:
     - Check for zero value
     - Use the existing mapping
-    - Include the current ETH price in the event
+    - Include the current ETH price (in MyUSD) in the event
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function addCollateral() public payable {
         if (msg.value == 0) revert Engine__InvalidAmount();
@@ -180,13 +144,14 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
         emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice());
     }
     ```
+
     </details>
     </details>
 
 2.  **Implement `calculateCollateralValue(address user)`**
     *   This function should return the total USD value of the ETH collateral held by a `user`.
-    *   Use `i_oracle.getPrice()` to get the current price of ETH in USD (it returns price with 1e18 precision).
-    *   The collateral amount `s_userCollateral[user]` is in wei (1e18 ETH = 1 ETH).
+    *   Use `i_oracle.getETHMyUSDPrice()` to get the current price of ETH in MyUSD (it returns price with 1e18 precision).
+    *   The collateral amount `s_userCollateral[user]` is in wei (1e18 wei = 1 ETH).
     *   Calculation: `(collateralAmount * ethPrice) / PRECISION`.
 
     <details markdown='1'>
@@ -212,19 +177,18 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
     </details>
     </details>
 
-Go ahead and re-deploy your contracts with `yarn deploy --reset` and test your front-end to see if you can add collateral.
+Go ahead and re-deploy your contracts with `yarn deploy --reset` and test your front-end to see if you can add collateral. 
+
+On the right side of the screen you will see a three icon menu. Hover the top icon to make the collateral menu appear.
+
+[TODO: SHOW IMAGE COLLATERAL OPERATIONS MENU]
 
 ### 🥅 Goals:
 
-- [ ] Users can send ETH to the `addCollateral` function.
+- [ ] Users can send ETH to contract using the `addCollateral` function.
 - [ ] `s_userCollateral` correctly tracks the amount of ETH deposited by each user.
 - [ ] `calculateCollateralValue` returns the correct USD value of a user's collateral.
-- [ ] The frontend should update to show your deposited ETH and its USD value.
-
-<details markdown='1'>
-<summary>💡 Hint: Oracle Price</summary>
-The `i_oracle.getPrice()` function returns the price of 1 ETH in USD, scaled by 1e18. For example, if ETH is $2000, it returns `2000 * 1e18`.
-</details>
+- [ ] The frontend should update to show your address has performed an action.
 
 ---
 
@@ -253,26 +217,32 @@ Here's how it works:
 
 The exchange rate only updates when the borrow rate changes, and we calculate any new interest based on the time since the last update.
 
+<details markdown='1'>
+<summary>💡 Hint: Understanding Shares and Exchange Rate</summary>
+Think of shares like a "debt token" that represents a portion of the total debt pool. The exchange rate tells us how much MyUSD each share is worth. As interest accrues, the exchange rate increases, making each share worth more MyUSD. This way, we don't need to update every user's balance - we just update the exchange rate.
+</details>
+
+Keep in mind, in the absence of decimals we will assume that a borrow rate of 125 is equivalent to a 1.25% annual rate. This will mean we need to multiply by 10000
 ### ✏️ Tasks:
 
-1.  **Implement `_getUpdatedExchangeRate()`**
+1.  **Implement `_getCurrentExchangeRate()`**
     *   Calculate what the `debtExchangeRate` would be if interest were accrued right now.
     *   If `totalDebtShares` is 0, return current `debtExchangeRate`.
-    *   Calculate interest based on total debt value and time elapsed.
-    *   Return updated exchange rate.
+    *   Calculate interest based on total debt value and time elapsed. This will require multiplying the total debt by the borrow rate and the time elapsed since the last update but you will need to divide by `SECONDS_PER_YEAR` and 100% (`10000`)
+    *   Return the current exchange rate which should be the existing exchange rate + interest (in shares, not value *which is what we figured above*)
 
     <details markdown='1'>
-    <summary>💡 Hint: Calculating Updated Exchange Rate</summary>
+    <summary>💡 Hint: Calculating Current Exchange Rate</summary>
     You need to calculate how much interest has accrued since the last update. Think about:
     - How much time has passed since `lastUpdateTime`
-    - What the total debt value was at that time
+    - What the total debt value is currently (`totalDebtShares` x `debtExchangeRate`)
     - How much interest that debt has earned at the current `borrowRate`
-    - How to distribute that interest across all shares
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
-    function _getUpdatedExchangeRate() internal view returns (uint256) {
+    function _getCurrentExchangeRate() internal view returns (uint256) {
         if (totalDebtShares == 0) return debtExchangeRate;
         
         uint256 timeElapsed = block.timestamp - lastUpdateTime;
@@ -284,11 +254,12 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
         return debtExchangeRate + (interest * PRECISION) / totalDebtShares;
     }
     ```
+
     </details>
     </details>
 
 2.  **Implement `_accrueInterest()`**
-    *   Update `debtExchangeRate` using `_getUpdatedExchangeRate()`.
+    *   Update `debtExchangeRate` using `_getCurrentExchangeRate()`.
     *   Update `lastUpdateTime` to current timestamp.
 
     <details markdown='1'>
@@ -300,11 +271,12 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     
     Remember to:
     - Handle the case where there are no debt shares
-    - Update both the rate and timestamp
-    - Use the helper function we created earlier
+    - Update both the exchange rate and timestamp
+    - Use the helper function we just created (`_getCurrentExchangeRate()`)
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function _accrueInterest() internal {
         if (totalDebtShares == 0) {
@@ -312,16 +284,17 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
             return;
         }
         
-        debtExchangeRate = _getUpdatedExchangeRate();
+        debtExchangeRate = _getCurrentExchangeRate();
         lastUpdateTime = block.timestamp;
     }
     ```
+
     </details>
     </details>
 
 3.  **Implement `_getMyUSDToShares(uint256 amount)`**
     *   Convert a MyUSD `amount` into the equivalent number of `debtShares`.
-    *   Use `_getUpdatedExchangeRate()` to get the current rate.
+    *   Use `_getCurrentExchangeRate()` to get the current rate.
 
     <details markdown='1'>
     <summary>💡 Hint: Converting MyUSD to Shares</summary>
@@ -335,12 +308,14 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
-        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
-        return (amount * PRECISION) / updatedExchangeRate;
+        uint256 currentExchangeRate = _getCurrentExchangeRate();
+        return (amount * PRECISION) / currentExchangeRate;
     }
     ```
+
     </details>
     </details>
 
@@ -351,10 +326,7 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
 - [ ] Shares are calculated correctly based on current exchange rate
 - [ ] The system handles edge cases (no shares, zero interest, etc.)
 
-<details markdown='1'>
-<summary>💡 Hint: Understanding Shares and Exchange Rate</summary>
-Think of shares like a "debt token" that represents a portion of the total debt pool. The exchange rate tells us how much MyUSD each share is worth. As interest accrues, the exchange rate increases, making each share worth more MyUSD. This way, we don't need to update every user's balance - we just update the exchange rate.
-</details>
+Nothing material to test on the frontend but you may need to return to these helper methods you just created if something isn't working as expected later.
 
 ---
 
@@ -367,8 +339,8 @@ Now that we have our interest calculation system in place, we can implement the 
 1.  **Implement `getCurrentDebtValue(address user)`**
     *   This function calculates how much MyUSD a user actually owes, including interest.
     *   If user has no shares (`s_userDebtShares[user] == 0`), return 0.
-    *   Get the current exchange rate using `_getUpdatedExchangeRate()`.
-    *   Calculate: `(s_userDebtShares[user] * updatedExchangeRate) / PRECISION`.
+    *   Get the current exchange rate using `_getCurrentExchangeRate()`.
+    *   Calculate: `(s_userDebtShares[user] * currentExchangeRate) / PRECISION`.
     *   This represents the total debt value including accrued interest.
 
     <details markdown='1'>
@@ -382,13 +354,15 @@ Now that we have our interest calculation system in place, we can implement the 
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function getCurrentDebtValue(address user) public view returns (uint256) {
         if (s_userDebtShares[user] == 0) return 0;
-        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
-        return (s_userDebtShares[user] * updatedExchangeRate) / PRECISION;
+        uint256 currentExchangeRate = _getCurrentExchangeRate();
+        return (s_userDebtShares[user] * currentExchangeRate) / PRECISION;
     }
     ```
+
     </details>
     </details>
 
@@ -409,10 +383,11 @@ Now that we have our interest calculation system in place, we can implement the 
     Think about:
     - What happens if someone has no debt?
     - How to handle division by zero
-    - Why we multiply by PRECISION before dividing
+    - Why we need to multiply by `PRECISION` before dividing
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function calculatePositionRatio(address user) public view returns (uint256) {
         uint256 debtValue = getCurrentDebtValue(user);
@@ -422,11 +397,12 @@ Now that we have our interest calculation system in place, we can implement the 
         return (collateralValue * PRECISION) / debtValue;
     }
     ```
+
     </details>
     </details>
 
 3.  **Implement `_validatePosition(address user)`**
-    *   This internal view function checks if a user's position is safe.
+    *   This internal view function uses the last function and it reverts if the position is unsafe
     *   Get the position ratio using `calculatePositionRatio(user)`.
     *   A position is safe if `(positionRatio * 100) >= (COLLATERAL_RATIO * PRECISION)`.
     *   If unsafe, revert with `Engine__UnsafePositionRatio()`.
@@ -442,6 +418,7 @@ Now that we have our interest calculation system in place, we can implement the 
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function _validatePosition(address user) internal view {
         uint256 positionRatio = calculatePositionRatio(user);
@@ -450,10 +427,12 @@ Now that we have our interest calculation system in place, we can implement the 
         }
     }
     ```
+
     </details>
     </details>
 
 4.  **Implement `mintMyUSD(uint256 mintAmount)`**
+    *   Finally get to mint some stablecoin tokens against your collateral!
     *   Revert with `Engine__InvalidAmount()` if `mintAmount` is 0.
     *   Calculate how many shares this mint amount represents using `_getMyUSDToShares(mintAmount)`.
     *   Update the user's debt shares: `s_userDebtShares[msg.sender] += shares`.
@@ -478,6 +457,7 @@ Now that we have our interest calculation system in place, we can implement the 
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function mintMyUSD(uint256 mintAmount) public {
         if (mintAmount == 0) revert Engine__InvalidAmount();
@@ -492,6 +472,7 @@ Now that we have our interest calculation system in place, we can implement the 
         emit DebtSharesMinted(msg.sender, mintAmount, shares);
     }
     ```
+
     </details>
     </details>
 
@@ -510,8 +491,6 @@ Now that we have our interest calculation system in place, we can implement the 
 Now lets set up the ability for the rate controller to change the borrow rate.
 
 Whenever the rate is changed we need to "lock-in" all the interest accrued since the last rate change using the `_accrueInterest` method we created in checkpoint 2.
-
-In the absence of decimals we will assume that a borrow rate of 125 is equivalent to a 1.25% annual rate.
 
 ### ✏️ Tasks:
 
