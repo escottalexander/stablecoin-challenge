@@ -19,11 +19,11 @@ Stablecoins are cryptocurrencies designed to maintain a stable value relative to
 
 </details>
 
-First we should mention there are lots of different types of stablecoins on the market. Some are backed 1-1 with actual USD denominated assets in a bank (USDC, USDT). Others are backed by crypto and use special mechanisms to maintain their peg (Dai, RAI, LUSD/BOLD).
+🔍 First we should mention there are lots of different types of stablecoins on the market. Some are backed 1-1 with actual USD denominated assets in a bank (USDC, USDT). Others are backed by crypto and use special mechanisms to maintain their peg (Dai, RAI, LUSD/BOLD).
 
-This challenge is modeled after one of the first crypto-backed stablecoins called Dai - back when the only thing backing it was ETH. Later Dai would allow multiple types of collateral and change it's design somewhat so the version we are building is commonly referred to as "single collateral Dai".
+📚 This challenge is modeled after one of the first crypto-backed stablecoins called Dai - back when the only thing backing it was ETH. Later Dai would allow multiple types of collateral and change it's design somewhat so the version we are building is commonly referred to as "single collateral Dai".
 
-You are highly encouraged to have completed the Over-collateralized Lending challenge prior to attempting this one since we will be building on that same basic system.
+⚠️ You are highly encouraged to have completed the [Over-collateralized Lending challenge](https://speedrunethereum.com/challenge/over-collateralized-lending) prior to attempting this one since we will be building on that same basic system but won't be discussing it in detail.
 
 ---
 
@@ -70,17 +70,17 @@ yarn start
 
 ## Checkpoint 1: 🎯 System Overview
 
-Let's understand the key components and mechanics of our stablecoin system.
+🔍 Let's understand the key components and mechanics of our stablecoin system.
 
 These are located in `packages/hardhat/contracts`. Go check them out and reference the following descriptions of each contract.
 
 ### Core Components
 
-1. **MyUSD Token (`MyUSD.sol`)**
+1. 💰 **MyUSD Token (`MyUSD.sol`)**
    - The actual stablecoin token (ERC20)
    - Can be minted and burned only by the engine
 
-2. **Engine (`MyUSDEngine.sol`)**
+2. ⚙️ **Engine (`MyUSDEngine.sol`)**
    - This is what *you* will be editing
    - Core contract managing the stablecoin system
    - Handles collateral deposits (ETH)
@@ -88,18 +88,18 @@ These are located in `packages/hardhat/contracts`. Go check them out and referen
    - Manages interest rates and liquidations
    - Enforces collateralization requirements
 
-3. **Oracle (`Oracle.sol`)**
+3. 📊 **Oracle (`Oracle.sol`)**
    - Provides ETH/MyUSD and ETH/USD price feeds
    - ETH/USD price is **fixed** at time you deploy the contracts
-> [!NOTE]
-> The real world ETH price being fixed is just a shortcut on our parts to simplify the overall process of understanding the mechanics at play. It would be substantially harder to track the impact of the peg manipulation devices if we also had to account for a changing ETH price.
 
-4. **Staking (`MyUSDStaking.sol`)**
+> ⚠️ The real world ETH price being fixed is just a shortcut on our parts to simplify the overall process of understanding the mechanics at play. It would be substantially harder to track the impact of the peg manipulation devices if we also had to account for a changing ETH price.
+
+4. 🏦 **Staking (`MyUSDStaking.sol`)**
    - Allows users to stake MyUSD
    - Earns yield from borrow rates
    - Creates buy pressure for MyUSD
 
-5. **Rate Controller**
+5. 📈 **Rate Controller**
    - Manages borrow and savings rates
    - Key tool for maintaining the $1 peg
 
@@ -111,7 +111,7 @@ This system creates a stablecoin where we have two levers to pull in order to ma
 
 First, users need a way to deposit collateral (ETH) into the system. We also need to know the USD value of this collateral.
 
-Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the logic to the existing (empty) methods.
+🔍 Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the logic to the existing (empty) methods.
 
 ### ✏️ Tasks:
 
@@ -178,7 +178,7 @@ Open the `packages/hardhat/contracts/MyUSDEngine.sol` file to begin adding the l
     </details>
     </details>
 
-Go ahead and re-deploy your contracts with `yarn deploy --reset` and test your front-end to see if you can add collateral. 
+🚀 Go ahead and re-deploy your contracts with `yarn deploy --reset` and test your front-end to see if you can add collateral. 
 
 On the right side of the screen you will see a three icon menu. Hover the top icon to make the collateral menu appear.
 
@@ -197,8 +197,7 @@ On the right side of the screen you will see a three icon menu. Hover the top ic
 
 Now that users can deposit collateral, we need to set up the interest calculation system before we can let them mint MyUSD. This system uses a share-based approach to efficiently track interest accrual. Unlike traditional systems where interest is used as revenue, our stablecoin uses interest rates as a tool to maintain the peg - higher rates discourage borrowing when the price is below $1, helping to destroy demand for loans and pushing the price back up.
 
-> [!NOTE]
-> The complexity starts to go up from here so pay close attention.
+> ⚠️ The complexity starts to go up from here so pay close attention.
 
 To handle interest accrual efficiently, we use a **share-based** system. Instead of updating every user's balance when interest accrues, we use two key variables:
 - `debtExchangeRate`: How much MyUSD each share is worth
@@ -224,6 +223,7 @@ Think of shares like a "debt token" that represents a portion of the total debt 
 </details>
 
 Keep in mind, in the absence of decimals we will assume that a borrow rate of 125 is equivalent to a 1.25% annual rate. This will mean we need to multiply by 10000
+
 ### ✏️ Tasks:
 
 1.  **Implement `_getCurrentExchangeRate()`**
@@ -320,7 +320,7 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
-Nothing material to test on the frontend but you may need to return to these helper methods you just created if something isn't working as expected later.
+🔍 Nothing material to test on the frontend but you may need to return to these helper methods you just created if something isn't working as expected later.
 
 ### 🥅 Goals:
 
@@ -334,7 +334,7 @@ Nothing material to test on the frontend but you may need to return to these hel
 
 ## Checkpoint 4: 💰 Minting MyUSD & Position Health
 
-Now that we have our interest calculation system in place, we can implement the minting functionality. Users should be able to mint MyUSD against their collateral, but we must ensure they don't mint too much, keeping the system over-collateralized. This is where the `COLLATERAL_RATIO` (150%) comes in.
+🪙 Now that we have our interest calculation system in place, we can implement the minting functionality. Users should be able to mint MyUSD against their collateral, but we must ensure they don't mint too much, keeping the system over-collateralized. This is where the `COLLATERAL_RATIO` (150%) comes in.
 
 ### ✏️ Tasks:
 
@@ -478,7 +478,7 @@ Now that we have our interest calculation system in place, we can implement the 
     </details>
     </details>
 
-Go test the minting functionality on the front end. After depositing collateral, hover the mint icon and input the amount of MyUSD you would like to mint.
+🧪 Go test the minting functionality on the front end. After depositing collateral, hover the mint icon and input the amount of MyUSD you would like to mint.
 
 [TODO: ADD Mint OPS Image]
 
@@ -494,7 +494,7 @@ Go test the minting functionality on the front end. After depositing collateral,
 
 ## Checkpoint 5: 📈 Accruing Interest & Managing Borrow Rates
 
-Now lets set up the ability for the rate controller to change the borrow rate.
+🛠️ Now lets set up the ability for the rate controller to change the borrow rate.
 
 Whenever the rate is changed we need to "lock-in" all the interest accrued since the last rate change using the `_accrueInterest` method we created in checkpoint 2.
 
@@ -531,9 +531,9 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
     </details>
     </details>
 
-The funny thing about checking that only the rate controller can change the rate is that *anyone* can use the methods in the `RateController.sol` contract! We did this so that you can easily change rates from the frontend without having to authorize a specific account.
+🤡 The funny thing about checking that only the rate controller can change the rate is that *anyone* can use the methods in the `RateController.sol` contract! We did this so that you can easily change rates from the frontend without having to authorize a specific account.
 
-Go try it out on the frontend after redeploying with `yarn deploy --reset`. Click the edit icon next to the borrow rate (inside **Rate Controls**) and set a new rate.
+🧪 Go try it out on the frontend after redeploying with `yarn deploy --reset`. Click the edit icon next to the borrow rate (inside **Rate Controls**) and set a new rate.
 
 [TODO: ADD Image for editing borrow rate]
 
@@ -545,9 +545,9 @@ Go try it out on the frontend after redeploying with `yarn deploy --reset`. Clic
 
 ## Checkpoint 6: 💸 Repaying Debt & Withdrawing Collateral
 
-Users need to be able to repay their MyUSD debt and withdraw their ETH collateral.
+🔄 Users need to be able to repay their MyUSD debt and withdraw their ETH collateral.
 
-Since debt is always accruing we have decided to use a method (`repayUpTo`) that allows specifying an arbitrary amount *over* the debt that is owed so that a user can cancel their debt completely. If we simply made them specify the exact amount they owed, by the time their transaction was included their debt would have accrued more interest and a very small amount would remain unpaid.
+🧮 Since debt is always accruing we have decided to use a method (`repayUpTo`) that allows specifying an arbitrary amount *over* the debt that is owed so that a user can cancel their debt completely. If we simply made them specify the exact amount they owed, by the time their transaction was included their debt would have accrued more interest and a very small amount would remain unpaid.
 
 ### ✏️ Tasks:
 
@@ -660,7 +660,7 @@ Since debt is always accruing we have decided to use a method (`repayUpTo`) that
     </details>
     </details>
 
-Go try it out on the frontend! Re-deploy with `yarn deploy --reset` and go try to do the full deposit, mint/borrow, repay, and withdraw workflow.
+🧪 Go try it out on the frontend! Re-deploy with `yarn deploy --reset` and go try to do the full deposit, mint/borrow, repay, and withdraw workflow.
 
 ### 🥅 Goals:
 
@@ -673,9 +673,9 @@ Go try it out on the frontend! Re-deploy with `yarn deploy --reset` and go try t
 
 ## Checkpoint 7: 🚨 Liquidation - Enforcing System Stability
 
-What happens if the price of ETH drops or a user's debt accrues too much interest, causing their position to become less than 150% collateralized? This is where liquidations come in. Anyone can trigger a liquidation for an unsafe position.
+🛡️ What happens if the price of ETH drops or a user's debt accrues too much interest, causing their position to become less than 150% collateralized? This is where liquidations come in. Anyone can trigger a liquidation for an unsafe position.
 
-Liquidations are crucial for maintaining the system's solvency. They ensure that:
+⚖️ Liquidations are crucial for maintaining the system's solvency. They ensure that:
 1. The system remains over-collateralized at all times
 2. Debt is quickly resolved before it becomes "bad debt" (under-collateralized - less than 100% collateralized)
 3. Users are incentivized to maintain safe positions
@@ -789,18 +789,18 @@ Liquidations are crucial for maintaining the system's solvency. They ensure that
     </details>
     </details>
 
-The `LIQUIDATOR_REWARD` (10%) incentivizes *anyone* to monitor the system and liquidate unsafe positions. This creates a market for liquidators who:
+🏆 The `LIQUIDATOR_REWARD` (10%) incentivizes *anyone* to monitor the system and liquidate unsafe positions. This creates a market for liquidators who:
 - Monitor positions for safety
 - Act quickly when positions become unsafe
 - Help maintain system health
 - Profit from their service
 
-The reward is carefully balanced to:
+💡 The reward is carefully balanced to:
 - Be attractive enough to ensure liquidations happen
 - Cover gas costs and provide a reasonable return
 - Maintain system solvency
 
-Re-deploy (`yarn deploy --reset`) and go test everything on the frontend.
+🧪 Re-deploy (`yarn deploy --reset`) and go test everything on the frontend.
 - Crank up the Borrow Rate to 1000% or something crazy (this will help us get in a liquidatable position quickly)
 - Deposit collateral
 - Mint the maximum amount MyUSD (150% of collateral value), including added cents in order to get as close as possible.
@@ -809,8 +809,7 @@ Re-deploy (`yarn deploy --reset`) and go test everything on the frontend.
 - Check if the first account's position is in a liquidatable state. The **Liquidate** button should be enabled.
 - Click the button with your second account to liquidate the position.
 
-> [!NOTE]
-> Notice how the first account still has the original MyUSD in their wallet. The second (liquidator) account paid the debt back to the protocol and claimed their collateral plus the bonus.
+> ⚠️ Notice how the first account still has the original MyUSD in their wallet. The second (liquidator) account paid the debt back to the protocol and claimed their collateral plus the bonus.
 
 ### 🥅 Goals:
 
@@ -824,40 +823,40 @@ Re-deploy (`yarn deploy --reset`) and go test everything on the frontend.
 
 ## Checkpoint 8: 🤖 Market Simulation
 
-Now that we have implemented all the core functionality of our stablecoin system, let's see how it behaves in a simulated market environment. The `yarn simulate` script will run several automated bots that simulate different market participants.
+🧪 Now that we have implemented all the core functionality of our stablecoin system, let's see how it behaves in a simulated market environment. The `yarn simulate` script will run several automated bots that simulate different market participants.
 
-At first, we will focus on the borrowing aspect. These bot accounts each have a slow trickle of unlimited funds and they want to use it to get leveraged exposure to ETH. They will deposit collateral, then mint some MyUSD. After that they will take their newly minted MyUSD and swap it for more ETH. This will drive the price of MyUSD down since the *only* market participants are dumping it in favor of ETH.
+🚀 At first, we will focus on the borrowing aspect. These bot accounts each have a slow trickle of unlimited funds and they want to use it to get leveraged exposure to ETH. They will deposit collateral, then mint some MyUSD. After that they will take their newly minted MyUSD and swap it for more ETH. This will drive the price of MyUSD down since the *only* market participants are dumping it in favor of ETH.
 
 
 ### 🚀 Running the Simulation:
 
-1. Make sure your local network is running (`yarn chain`)
-2. Deploy your contracts (`yarn deploy --reset`) or at least set the borrow rate back to 0
-3. Run the simulation:
+1. 🟢 Make sure your local network is running (`yarn chain`)
+2. 🟢 Deploy your contracts (`yarn deploy --reset`) or at least set the borrow rate back to 0
+3. 🟢 Run the simulation:
 ```sh
 yarn simulate
 ```
 
-Watch the console output to see:
+👀 Watch the console output to see:
 - Each bot accounts upper borrow rate limit preference
 - The activity of each bot
 
-Watch the frontend to see:
+👀 Watch the frontend to see:
 - Our precious MyUSD losing its peg!
 - The total supply of MyUSD in circulation increasing
 
 💣 Now raise the borrow rate to 30%.
 
-The bots are having to kiss their sweet low rate goodbye and accept the high interest they are now being charged.
+🧠 The bots are having to kiss their sweet low rate goodbye and accept the high interest they are now being charged.
 
-What do you notice?
+❓ What do you notice?
 - Bots are exiting their positions
 - Total supply drops significantly
 - The peg is restored
 
-Now this is just a small example of what a very small group of market participants can do to the price of an asset. 
+🧩 Now this is just a small example of what a very small group of market participants can do to the price of an asset. 
 
-Is our stablecoin doomed to either have a very small market cap or lose its peg perpetually? Find out in the next section...
+❓ Is our stablecoin doomed to either have a very small market cap or lose its peg perpetually? Find out in the next section...
 
 ### 🥅 Goals:
 
@@ -870,11 +869,11 @@ Is our stablecoin doomed to either have a very small market cap or lose its peg 
 
 ## Checkpoint 9: ⚖️ The Other Side: Savings Rate & Market Dynamics
 
-So far, we've focused on users borrowing MyUSD (which can create sell pressure if they swap MyUSD for ETH). But we saw how that made the stablecoin lose it's peg pretty quickly.
+🪙 So far, we've focused on users borrowing MyUSD (which can create sell pressure if they swap MyUSD for ETH). But we saw how that made the stablecoin lose it's peg pretty quickly.
 
-To maintain the $1 peg, we also need mechanisms to create *buy pressure* for MyUSD. What if we could create an incentive for the market to buy MyUSD instead of just selling it? This is where a **Savings Rate** comes in, managed by the `MyUSDStaking.sol` contract.
+🧲 To maintain the $1 peg, we also need mechanisms to create *buy pressure* for MyUSD. What if we could create an incentive for the market to buy MyUSD instead of just selling it? This is where a **Savings Rate** comes in, managed by the `MyUSDStaking.sol` contract.
 
-Users can stake their MyUSD into `MyUSDStaking.sol` to earn yield. This yield (the savings rate) makes holding MyUSD attractive and provides a new incentive *besides leveraged exposure to ETH* for using MyUSD.
+💡 Users can stake their MyUSD into `MyUSDStaking.sol` to earn yield. This yield (the savings rate) makes holding MyUSD attractive and provides a new incentive *besides leveraged exposure to ETH* for using MyUSD.
 
 <details markdown='1'>
 <summary>Where does the yield come from?</summary>
@@ -883,7 +882,7 @@ No MyUSD can exist that is not paying for the borrow rate so <b>as long as the s
 
 ---
 
-Now that we understand where the yield comes from, we need to ensure our system can always pay it. Return to your `setBorrowRate` function in `MyUSDEngine.sol` and add a check to ensure the new rate is greater than or equal to the savings rate. This ensures the system can always pay stakers their yield. If the new rate is too low, revert with `Engine__InvalidBorrowRate()`.
+🛡️ Now that we understand where the yield comes from, we need to ensure our system can always pay it. Return to your `setBorrowRate` function in `MyUSDEngine.sol` and add a check to ensure the new rate is greater than or equal to the savings rate. This ensures the system can always pay stakers their yield. If the new rate is too low, revert with `Engine__InvalidBorrowRate()`.
 
 <details markdown='1'>
 <summary>💡 Hint: Setting Borrow Rate</summary>
@@ -910,9 +909,9 @@ function setBorrowRate(uint256 newRate) external onlyRateController {
 
 ---
 
-For the rest of this checkpoint **you won't need to edit any Solidity**, but you need to understand the interactions.
+🧠 For the rest of this checkpoint **you won't need to edit any Solidity**, but you need to understand the interactions.
 
-### 🧠 Concepts & Connections:
+### 📖 Concepts & Connections:
 
 1.  **`MyUSDStaking.sol`:** This separate contract (already provided) has a `setSavingsRate(uint256 newRate)` function (callable by its owner, which is also the `RateController` in our setup) and a `savingsRate()` view function. Users would `approve` MyUSD to this contract and call a `stake(uint256 amount)` function on it.
 2.  **`RateController.sol`:** This contract (which you can control via the UI) can call:
@@ -944,7 +943,7 @@ For the rest of this checkpoint **you won't need to edit any Solidity**, but you
 
 ## Checkpoint 10: 🤖 Simulation & Finding Equilibrium
 
-Now for the "Aha!" moment. Let's see how these mechanisms play out with simulated market activity and an automated rate controller.
+🧪 Now for the "Aha!" moment. Let's see how these mechanisms play out with simulated market activity and an automated rate controller.
 
 ### 🚀 Running Simulations:
 
@@ -1048,7 +1047,6 @@ Run the `yarn verify --network your_network` command to verify your contracts on
 > 🏃 Head to your next challenge [here](https://speedrunethereum.com).
 
 > 💬 Problems, questions, comments on the stack? Post them to the [🏗 scaffold-eth developers chat](https://t.me/joinchat/F7nCRK3kI93PoCOk)
-```
 
 ## Checkpoint 14: More On Stablecoins
 
