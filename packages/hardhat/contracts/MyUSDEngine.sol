@@ -12,6 +12,7 @@ error Engine__NotLiquidatable();
 error Engine__InvalidBorrowRate();
 error Engine__NotRateController();
 error Engine__InsufficientCollateral();
+error Engine__TransferFailed();
 
 contract MyUSDEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required
@@ -37,7 +38,7 @@ contract MyUSDEngine is Ownable {
     mapping(address => uint256) public s_userDebtShares;
 
     event CollateralAdded(address indexed user, uint256 indexed amount, uint256 price);
-    event CollateralWithdrawn(address indexed from, address indexed to, uint256 indexed amount, uint256 price);
+    event CollateralWithdrawn(address indexed withdrawer, uint256 indexed amount, uint256 price);
     event BorrowRateUpdated(uint256 newRate);
     event DebtSharesMinted(address indexed user, uint256 amount, uint256 shares);
     event DebtSharesBurned(address indexed user, uint256 amount, uint256 shares);
@@ -84,7 +85,7 @@ contract MyUSDEngine is Ownable {
     }
 
     // Checkpoint 3: Interest Calculation System
-    function _getUpdatedExchangeRate() internal view returns (uint256) {
+    function _getCurrentExchangeRate() internal view returns (uint256) {
         if (totalDebtShares == 0) return debtExchangeRate;
         
         uint256 timeElapsed = block.timestamp - lastUpdateTime;
@@ -102,20 +103,20 @@ contract MyUSDEngine is Ownable {
             return;
         }
         
-        debtExchangeRate = _getUpdatedExchangeRate();
+        debtExchangeRate = _getCurrentExchangeRate();
         lastUpdateTime = block.timestamp;
     }
 
     function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
-        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
-        return (amount * PRECISION) / updatedExchangeRate;
+        uint256 currentExchangeRate = _getCurrentExchangeRate();
+        return (amount * PRECISION) / currentExchangeRate;
     }
 
     // Checkpoint 4: Minting MyUSD & Position Health
     function getCurrentDebtValue(address user) public view returns (uint256) {
         if (s_userDebtShares[user] == 0) return 0;
-        uint256 updatedExchangeRate = _getUpdatedExchangeRate();
-        return ((s_userDebtShares[user] * updatedExchangeRate) / PRECISION);
+        uint256 currentExchangeRate = _getCurrentExchangeRate();
+        return ((s_userDebtShares[user] * currentExchangeRate) / PRECISION);
     }
 
     function calculatePositionRatio(address user) public view returns (uint256) {
@@ -203,7 +204,7 @@ contract MyUSDEngine is Ownable {
         // Transfer the collateral to the user
         payable(msg.sender).transfer(amount);
 
-        emit CollateralWithdrawn(msg.sender, msg.sender, amount, i_oracle.getETHMyUSDPrice()); // Emit event for collateral withdrawal
+        emit CollateralWithdrawn(msg.sender, amount, i_oracle.getETHMyUSDPrice()); // Emit event for collateral withdrawal
     }
 
     // Checkpoint 7: Liquidation - Enforcing System Stability
@@ -249,7 +250,7 @@ contract MyUSDEngine is Ownable {
 
         // transfer 110% of the debt to the liquidator
         (bool sent, ) = payable(msg.sender).call{ value: amountForLiquidator }("");
-        require(sent, "Failed to send Ether");
+        if (!sent) revert Engine__TransferFailed();
 
         emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHMyUSDPrice());
     }
