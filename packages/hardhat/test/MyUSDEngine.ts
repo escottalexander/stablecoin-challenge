@@ -130,6 +130,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should allow withdrawing collateral when no debt", async function () {
       await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
+      expect(await myUSDEngine.s_userCollateral(user1.address)).to.be.gt(0n);
       await myUSDEngine.connect(user1).withdrawCollateral(collateralAmount);
       expect(await myUSDEngine.s_userCollateral(user1.address)).to.equal(0);
     });
@@ -177,6 +178,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     });
 
     it("Should allow repaying borrowed amount", async function () {
+      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.be.gt(0n);
       await myUSDToken.connect(user1).approve(myUSDEngine.target, borrowAmount);
       await myUSDEngine.connect(user1).repayUpTo(borrowAmount);
       expect(await myUSDEngine.s_userDebtShares(user1.address)).to.equal(0);
@@ -189,6 +191,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     });
 
     it("Should allow repaying more than borrowed", async function () {
+      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.be.gt(0n);
       await myUSDToken.connect(user1).approve(myUSDEngine.target, borrowAmount * 2n);
       await dex.connect(user1).swap(ethers.parseEther("10"), { value: ethers.parseEther("10") });
       await myUSDEngine.connect(user1).repayUpTo(borrowAmount * 2n);
@@ -243,10 +246,6 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
   });
 
   describe("Borrow Rate Management", function () {
-    it("Should initialize with zero borrow rate", async function () {
-      expect(await myUSDEngine.borrowRate()).to.equal(0);
-    });
-
     it("Should allow rate controller to set borrow rate", async function () {
       const newRate = 500; // 5%
       await rateController.setBorrowRate(newRate);
@@ -260,6 +259,11 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should prevent non-rate controller from setting borrow rate", async function () {
       const newRate = 500;
+      // First verify rate controller can set it (will fail with empty function)
+      await rateController.setBorrowRate(newRate);
+      expect(await myUSDEngine.borrowRate()).to.equal(newRate);
+
+      // Then verify non-rate controller cannot
       await expect(myUSDEngine.connect(user1).setBorrowRate(newRate)).to.be.revertedWithCustomError(
         myUSDEngine,
         "Engine__NotRateController",
@@ -302,6 +306,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should not accrue interest with zero borrow rate", async function () {
       const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward time by 1 year
       await ethers.provider.send("evm_increaseTime", [365 * 24 * 60 * 60]);
@@ -316,6 +321,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setBorrowRate(borrowRate);
 
       const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward time by 1 year
       await ethers.provider.send("evm_increaseTime", [365 * 24 * 60 * 60]);
@@ -332,6 +338,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setBorrowRate(borrowRate);
 
       const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward time by 6 months
       await ethers.provider.send("evm_increaseTime", [182 * 24 * 60 * 60]); // ~6 months
@@ -348,6 +355,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setBorrowRate(borrowRate);
 
       const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward 3 months
       await ethers.provider.send("evm_increaseTime", [91 * 24 * 60 * 60]);
@@ -376,10 +384,6 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setBorrowRate(400);
     });
 
-    it("Should initialize with zero savings rate", async function () {
-      expect(await staking.savingsRate()).to.equal(0);
-    });
-
     it("Should allow rate controller to set savings rate", async function () {
       const newRate = 300; // 3%
       await rateController.setSavingsRate(newRate);
@@ -393,6 +397,11 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should prevent non-rate controller from setting savings rate", async function () {
       const newRate = 300;
+      // First verify rate controller can set it (will fail with empty function)
+      await rateController.setSavingsRate(newRate);
+      expect(await staking.savingsRate()).to.equal(newRate);
+
+      // Then verify non-rate controller cannot
       await expect(staking.connect(user1).setSavingsRate(newRate)).to.be.revertedWithCustomError(
         staking,
         "Staking__NotRateController",
@@ -553,6 +562,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should not accrue interest with zero savings rate", async function () {
       const initialBalance = await staking.getBalance(user1.address);
+      expect(initialBalance).to.be.gt(0); // Verify tokens were actually staked
 
       // Fast forward time by 1 year
       await ethers.provider.send("evm_increaseTime", [365 * 24 * 60 * 60]);
@@ -569,6 +579,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setSavingsRate(savingsRate);
 
       const initialBalance = await staking.getBalance(user1.address);
+      expect(initialBalance).to.be.gt(0); // Verify tokens were actually staked
 
       // Fast forward time by 1 year
       await ethers.provider.send("evm_increaseTime", [365 * 24 * 60 * 60]);
@@ -587,6 +598,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setSavingsRate(savingsRate);
 
       const initialBalance = await staking.getBalance(user1.address);
+      expect(initialBalance).to.be.gt(0); // Verify tokens were actually staked
 
       // Fast forward time by 6 months
       await ethers.provider.send("evm_increaseTime", [182 * 24 * 60 * 60]); // ~6 months
@@ -603,6 +615,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setSavingsRate(400); // 4% annual
 
       const initialBalance = await staking.getBalance(user1.address);
+      expect(initialBalance).to.be.gt(0); // Verify tokens were actually staked
 
       // Fast forward 3 months
       await ethers.provider.send("evm_increaseTime", [91 * 24 * 60 * 60]);
