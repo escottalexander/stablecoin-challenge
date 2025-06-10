@@ -139,7 +139,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
       await expect(myUSDEngine.connect(user1).withdrawCollateral(collateralAmount * 2n)).to.be.revertedWithCustomError(
         myUSDEngine,
-        "Engine__InvalidAmount",
+        "Engine__InsufficientCollateral",
       );
     });
   });
