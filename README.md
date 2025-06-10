@@ -19,9 +19,11 @@ Stablecoins are cryptocurrencies designed to maintain a stable value relative to
 
 </details>
 
+---
+
 🔍 First we should mention there are lots of different types of stablecoins on the market. Some are backed 1-1 with actual USD denominated assets in a bank (USDC, USDT). Others are backed by crypto and use special mechanisms to maintain their peg (Dai, RAI, LUSD/BOLD).
 
-📚 This challenge is modeled after one of the first crypto-backed stablecoins called Dai - back when the only thing backing it was ETH. Later Dai would allow multiple types of collateral and change it's design somewhat so the version we are building is commonly referred to as "single collateral Dai".
+📚 This challenge is modeled after one of the first crypto-backed stablecoins called Dai - back when the only thing backing it was ETH. Later Dai would allow multiple types of collateral and change its design somewhat so the version we are building is commonly referred to as "single collateral Dai".
 
 ⚠️ You are highly encouraged to have completed the [Over-collateralized Lending challenge](https://speedrunethereum.com/challenge/over-collateralized-lending) prior to attempting this one since we will be building on that same basic system but won't be discussing it in detail.
 
@@ -38,7 +40,7 @@ Stablecoins are cryptocurrencies designed to maintain a stable value relative to
 📥 Then download the challenge to your computer and install dependencies by running:
 
 ```sh
-npx create-eth@latest -e challenge-stablecoin challenge-stablecoin 
+npx create-eth@latest -e scaffold-eth/se-2-challenges:challenge-stablecoin challenge-stablecoin 
 cd challenge-stablecoin
 ```
 
@@ -76,11 +78,16 @@ These are located in `packages/hardhat/contracts`. Go check them out and referen
 
 ### Core Components
 
-1. 💰 **MyUSD Token (`MyUSD.sol`)**
+1. 💱 **DEX (`DEX.sol`)**
+   - Simple decentralized exchange for the ETH/MyUSD pair
+   - Provides liquidity for users to swap between ETH and MyUSD
+   - We naively use this to determine the market price of MyUSD
+
+2. 💰 **MyUSD Token (`MyUSD.sol`)**
    - The actual stablecoin token (ERC20)
    - Can be minted and burned only by the engine
 
-2. ⚙️ **Engine (`MyUSDEngine.sol`)**
+3. ⚙️ **Engine (`MyUSDEngine.sol`)**
    - This is what *you* will be editing
    - Core contract managing the stablecoin system
    - Handles collateral deposits (ETH)
@@ -88,18 +95,18 @@ These are located in `packages/hardhat/contracts`. Go check them out and referen
    - Manages interest rates and liquidations
    - Enforces collateralization requirements
 
-3. 📊 **Oracle (`Oracle.sol`)**
-   - Provides ETH/MyUSD and ETH/USD price feeds
-   - ETH/USD price is **fixed** at time you deploy the contracts
-
-> ⚠️ The real world ETH price being fixed is just a shortcut on our parts to simplify the overall process of understanding the mechanics at play. It would be substantially harder to track the impact of the peg manipulation devices if we also had to account for a changing ETH price.
-
 4. 🏦 **Staking (`MyUSDStaking.sol`)**
    - Allows users to stake MyUSD
    - Earns yield from borrow rates
    - Creates buy pressure for MyUSD
 
-5. 📈 **Rate Controller**
+5. 📊 **Oracle (`Oracle.sol`)**
+   - Provides ETH/MyUSD and ETH/USD price feeds
+   - ETH/USD price is **fixed** at time you deploy the contracts
+
+> ⚠️ The real world ETH price being fixed is just a shortcut on our parts to simplify the overall process of understanding the mechanics at play. It would be substantially harder to track the impact of the peg manipulation devices if we also had to account for a changing ETH price.
+
+6. 📈 **Rate Controller (`RateController.sol`)**
    - Manages borrow and savings rates
    - Key tool for maintaining the $1 peg
 
@@ -149,6 +156,8 @@ First, users need a way to deposit collateral (ETH) into the system. We also nee
     </details>
     </details>
 
+---
+
 2.  **Implement `calculateCollateralValue(address user)`**
     *   This function should return the total USD value of the ETH collateral held by a `user`.
     *   Use `i_oracle.getETHMyUSDPrice()` to get the current price of ETH in MyUSD (it returns price with 1e18 precision).
@@ -157,6 +166,7 @@ First, users need a way to deposit collateral (ETH) into the system. We also nee
 
     <details markdown='1'>
     <summary>💡 Hint: Calculating Collateral Value</summary>
+
     This function converts ETH to USD value:
     - Get the user's ETH amount from the mapping
     - Get the current ETH price from the oracle
@@ -169,14 +179,18 @@ First, users need a way to deposit collateral (ETH) into the system. We also nee
     
     <details markdown='1'>
     <summary>🎯 Solution</summary>
+
     ```solidity
     function calculateCollateralValue(address user) public view returns (uint256) {
         uint256 collateralAmount = s_userCollateral[user];
         return (collateralAmount * i_oracle.getETHMyUSDPrice()) / PRECISION;
     }
     ```
+
     </details>
     </details>
+
+---
 
 🚀 Go ahead and re-deploy your contracts with `yarn deploy --reset` and test your front-end to see if you can add collateral. 
 
@@ -189,7 +203,7 @@ On the right side of the screen you will see a three icon menu. Hover the top ic
 - [ ] Users can send ETH to contract using the `addCollateral` function.
 - [ ] `s_userCollateral` correctly tracks the amount of ETH deposited by each user.
 - [ ] `calculateCollateralValue` returns the correct USD value of a user's collateral.
-- [ ] The frontend should update to show your address has performed an action.
+- [ ] In the frontend, you should be able to see your address in the left table.
 
 ---
 
@@ -219,8 +233,12 @@ The exchange rate only updates when the borrow rate changes, and we calculate an
 
 <details markdown='1'>
 <summary>💡 Hint: Understanding Shares and Exchange Rate</summary>
+
 Think of shares like a "debt token" that represents a portion of the total debt pool. The exchange rate tells us how much MyUSD each share is worth. As interest accrues, the exchange rate increases, making each share worth more MyUSD. This way, we don't need to update every user's balance - we just update the exchange rate.
+
 </details>
+
+---
 
 Keep in mind, in the absence of decimals we will assume that a borrow rate of 125 is equivalent to a 1.25% annual rate. This will mean we need to multiply by 10000
 
@@ -234,6 +252,7 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
 
     <details markdown='1'>
     <summary>💡 Hint: Calculating Current Exchange Rate</summary>
+
     You need to calculate how much interest has accrued since the last update. Think about:
     - How much time has passed since `lastUpdateTime`
     - What the total debt value is currently (`totalDebtShares` x `debtExchangeRate`)
@@ -259,12 +278,15 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
+---
+
 2.  **Implement `_accrueInterest()`**
     *   Update `debtExchangeRate` using `_getCurrentExchangeRate()`.
     *   Update `lastUpdateTime` to current timestamp.
 
     <details markdown='1'>
     <summary>💡 Hint: Accruing Interest</summary>
+
     This function updates the exchange rate to include accrued interest:
     - Get the new exchange rate
     - Update the stored rate
@@ -293,12 +315,15 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
+---
+
 3.  **Implement `_getMyUSDToShares(uint256 amount)`**
     *   Convert a MyUSD `amount` into the equivalent number of `debtShares`.
     *   Use `_getCurrentExchangeRate()` to get the current rate.
 
     <details markdown='1'>
     <summary>💡 Hint: Converting MyUSD to Shares</summary>
+
     Think about this like a currency conversion:
     - If 1 share = 1.1 MyUSD (exchange rate)
     - Then 100 MyUSD = 100/1.1 shares
@@ -320,6 +345,8 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
+---
+
 🔍 Nothing material to test on the frontend but you may need to return to these helper methods you just created if something isn't working as expected later.
 
 ### 🥅 Goals:
@@ -328,7 +355,6 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
 - [ ] Exchange rate updates properly when interest accrues
 - [ ] Shares are calculated correctly based on current exchange rate
 - [ ] The system handles edge cases (no shares, zero interest, etc.)
-
 
 ---
 
@@ -347,6 +373,7 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
 
     <details markdown='1'>
     <summary>💡 Hint: Calculating Current Debt Value</summary>
+
     This is the inverse of `_getMyUSDToShares`:
     - If we know how many shares a user has
     - And we know the current exchange rate
@@ -368,6 +395,8 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
+---
+
 2.  **Implement `calculatePositionRatio(address user)`**
     *   This function calculates a user's collateralization ratio.
     *   Get the user's current debt value using `getCurrentDebtValue(user)`.
@@ -378,6 +407,7 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
 
     <details markdown='1'>
     <summary>💡 Hint: Calculating Position Ratio</summary>
+
     The position ratio is like a health score for a user's position:
     - Higher ratio = safer position
     - Lower ratio = riskier position
@@ -403,6 +433,8 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
+---
+
 3.  **Implement `_validatePosition(address user)`**
     *   This internal view function uses the last function and it reverts if the position is unsafe
     *   Get the position ratio using `calculatePositionRatio(user)`.
@@ -411,6 +443,7 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
 
     <details markdown='1'>
     <summary>💡 Hint: Validating Position Safety</summary>
+
     This is a simple check that uses the position ratio:
     - Get the ratio
     - Compare it to the required ratio (150%)
@@ -433,6 +466,8 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
+---
+
 4.  **Implement `mintMyUSD(uint256 mintAmount)`**
     *   Finally get to mint some stablecoin tokens against your collateral!
     *   Revert with `Engine__InvalidAmount()` if `mintAmount` is 0.
@@ -445,6 +480,7 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
 
     <details markdown='1'>
     <summary>💡 Hint: Minting MyUSD</summary>
+
     This function ties everything together:
     - Convert the mint amount to shares
     - Update the user's and total shares
@@ -478,6 +514,8 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
     </details>
     </details>
 
+---
+
 🧪 Go test the minting functionality on the front end. After depositing collateral, hover the mint icon and input the amount of MyUSD you would like to mint.
 
 [TODO: ADD Mint OPS Image]
@@ -494,7 +532,7 @@ Keep in mind, in the absence of decimals we will assume that a borrow rate of 12
 
 ## Checkpoint 5: 📈 Accruing Interest & Managing Borrow Rates
 
-🛠️ Now lets set up the ability for the rate controller to change the borrow rate.
+🛠️ Now let's set up the ability for the rate controller to change the borrow rate.
 
 Whenever the rate is changed we need to "lock-in" all the interest accrued since the last rate change using the `_accrueInterest` method we created in checkpoint 2.
 
@@ -507,6 +545,7 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     <details markdown='1'>
     <summary>💡 Hint: Setting Borrow Rate</summary>
+
     This function lets the rate controller adjust the borrow rate:
     - Check if caller is the rate controller (handled by modifier)
     - Run `_accrueInterest()`
@@ -530,6 +569,8 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     </details>
     </details>
+
+---
 
 🤡 The funny thing about checking that only the rate controller can change the rate is that *anyone* can use the methods in the `RateController.sol` contract! We did this so that you can easily change rates from the frontend without having to authorize a specific account.
 
@@ -565,6 +606,7 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     <details markdown='1'>
     <summary>💡 Hint: Repaying Debt</summary>
+
     This function needs to handle several cases:
     - User wants to repay exactly what they owe
     - User wants to repay more than they owe (we cap at their actual debt)
@@ -613,6 +655,8 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
     </details>
     </details>
 
+---
+
 2.  **Implement `withdrawCollateral(uint256 amount)`**
     *   Revert with `Engine__InvalidAmount()` if `amount` is 0.
     *   Revert with `Engine__InsufficientCollateral()` if `s_userCollateral[msg.sender] < amount`.
@@ -623,6 +667,7 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     <details markdown='1'>
     <summary>💡 Hint: Withdrawing Collateral</summary>
+
     This function needs to be careful about maintaining the user's position safety:
     - Check if they have enough collateral
     - Reduce their collateral but immediately `_validatePosition` to check if they'd still be safe
@@ -660,6 +705,8 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
     </details>
     </details>
 
+---
+
 🧪 Go try it out on the frontend! Re-deploy with `yarn deploy --reset` and go try to do the full deposit, mint/borrow, repay, and withdraw workflow.
 
 ### 🥅 Goals:
@@ -689,7 +736,8 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     <details markdown='1'>
     <summary>💡 Hint: Checking Liquidation Status</summary>
-    - This function is very similar logic to `_validatePosition` except it only returns a bool instead of reverting.
+
+    This function is very similar logic to `_validatePosition` except it only returns a bool instead of reverting.
     
     Think about:
     - How the position ratio relates to the collateral ratio
@@ -707,6 +755,8 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     </details>
     </details>
+
+---
 
 2.  **Implement `liquidate(address user)`**
     *   This function allows anyone to liquidate an unsafe position by:
@@ -732,6 +782,7 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     <details markdown='1'>
     <summary>💡 Hint: Liquidating Positions</summary>
+
     This is the core function that maintains system health:
     - It allows anyone to step in and resolve unsafe positions
     - It ensures the liquidator is compensated for their service
@@ -788,6 +839,8 @@ Whenever the rate is changed we need to "lock-in" all the interest accrued since
 
     </details>
     </details>
+
+---
 
 🏆 The `LIQUIDATOR_REWARD` (10%) incentivizes *anyone* to monitor the system and liquidate unsafe positions. This creates a market for liquidators who:
 - Monitor positions for safety
@@ -869,7 +922,7 @@ yarn simulate
 
 ## Checkpoint 9: ⚖️ The Other Side: Savings Rate & Market Dynamics
 
-🪙 So far, we've focused on users borrowing MyUSD (which can create sell pressure if they swap MyUSD for ETH). But we saw how that made the stablecoin lose it's peg pretty quickly.
+🪙 So far, we've focused on users borrowing MyUSD (which can create sell pressure if they swap MyUSD for ETH). But we saw how that made the stablecoin lose its peg pretty quickly.
 
 🧲 To maintain the $1 peg, we also need mechanisms to create *buy pressure* for MyUSD. What if we could create an incentive for the market to buy MyUSD instead of just selling it? This is where a **Savings Rate** comes in, managed by the `MyUSDStaking.sol` contract.
 
@@ -877,7 +930,9 @@ yarn simulate
 
 <details markdown='1'>
 <summary>Where does the yield come from?</summary>
+
 No MyUSD can exist that is not paying for the borrow rate so <b>as long as the savings rate is less than or equal to the borrow rate this is sustainable</b>. Maybe you are thinking, "What about all the DEX liquidity?". Even this DEX liquidity is just a large borrower who deposited ETH collateral and has a lot of MyUSD borrowed and then supplied it all to the DEX. Take a look at the <code>packages/hardhat/deploy/00_deploy_contract.ts</code> deploy file to see where the DEX is supplied with liquidity. Technically all of the MyUSD that is accrued from the borrow rate that is not being allocated to stakers should exist <i>somewhere</i> in the system but we decided against adding that to an already complex system. As a result, if everyone (including the DEX liquidity provider) decided to attempt repaying all their debt, they would not be able to do so.
+
 </details>
 
 ---
@@ -886,6 +941,7 @@ No MyUSD can exist that is not paying for the borrow rate so <b>as long as the s
 
 <details markdown='1'>
 <summary>💡 Hint: Setting Borrow Rate</summary>
+
 The borrow rate must always be high enough to cover the savings rate:
 - Get the current savings rate from the staking contract using `i_staking.savingsRate()`
 - Compare it with the new borrow rate
