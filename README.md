@@ -1,8 +1,8 @@
-# 💵 MyUSD Stablecoin
+# 💰 MyUSD Stablecoin
 
-![hero-stablecoin](public/hero-stablecoin.png)
+[TODO: ADD HERO IMAGE]
 
-> 💰 Build your own decentralized stablecoin! In this challenge, you'll build the core engine for **MyUSD**, a crypto-backed stablecoin designed to maintain a peg to $1 USD. You'll get to wear the hat of a DeFi protocol that wants to maintain price stability while also increasing adoption of your stablecoin product, diving deep into concepts like collateralization, minting, burning, interest rates, and liquidations – all crucial components of a robust stablecoin system.
+> 🪙 Build your own decentralized stablecoin! In this challenge, you'll build the core engine for **MyUSD**, a crypto-backed stablecoin designed to maintain a peg to $1 USD. You'll get to wear the hat of a DeFi protocol that wants to maintain price stability while also increasing adoption of your stablecoin product, diving deep into concepts like collateralization, minting, burning, interest rates, and liquidations – all crucial components of a robust stablecoin system.
 
 <details markdown='1'><summary>❓ Wondering what a stablecoin is? Read the overview here.</summary>
 
@@ -21,11 +21,16 @@ Stablecoins are cryptocurrencies designed to maintain a stable value relative to
 
 ---
 
+🌟 The final deliverable is an app that allows users to mint and manage a decentralized stablecoin (MyUSD) backed by ETH collateral, with features for depositing collateral, minting/burning tokens, managing positions, and participating in liquidations.
+Deploy your contracts to a testnet then build and upload your app to a public web server. Submit the url on [SpeedRunEthereum.com](https://speedrunethereum.com)!
+
 🔍 First we should mention there are lots of different types of stablecoins on the market. Some are backed 1-1 with actual USD denominated assets in a bank (USDC, USDT). Others are backed by crypto and use special mechanisms to maintain their peg (Dai, RAI, LUSD/BOLD).
 
-📚 This challenge is modeled after one of the first crypto-backed stablecoins called Dai - back when the only thing backing it was ETH. Later Dai would allow multiple types of collateral and change its design somewhat so the version we are building is commonly referred to as "single collateral Dai".
+📚 This challenge is modeled after one of the first crypto-backed stablecoins called Dai - back when the only thing backing it was ETH. Later Dai would allow multiple types of collateral and change its design somewhat. The version we are building is commonly referred to as "single collateral Dai".
 
 ⚠️ You are highly encouraged to have completed the [Over-collateralized Lending challenge](https://speedrunethereum.com/challenge/over-collateralized-lending) prior to attempting this one since we will be building on that same basic system but won't be discussing it in detail.
+
+💬 Meet other builders working on this challenge and get help in the [Stablecoin Challenge Telegram](https://t.me/+y93US5WbP5dkNDFh)
 
 ---
 
