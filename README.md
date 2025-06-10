@@ -983,7 +983,7 @@ function setBorrowRate(uint256 newRate) external onlyRateController {
 
 ### 📖 Understanding:
 
-*   In the frontend should see options to set both the **Borrow Rate** (for `MyUSDEngine`) and the **Savings Rate** (for `MyUSDStaking`).
+*   In the frontend you can see options to set both the **Borrow Rate** (for `MyUSDEngine`) and the **Savings Rate** (for `MyUSDStaking`).
 *   The `DEX.sol` contract provides a simple market where ETH can be swapped for MyUSD. The price on this DEX will reflect the supply and demand for MyUSD.
 *   Think about how changing the borrow and savings rates would influence users:
     *   If savings rate is high, people might buy MyUSD on the DEX to stake it, pushing the price up.
@@ -1017,7 +1017,7 @@ function setBorrowRate(uint256 newRate) external onlyRateController {
         *   If MyUSD < $1: Try to increase savings rate (make holding MyUSD more attractive) or increase borrow rate (make minting MyUSD less attractive).
         *   If MyUSD > $1: Try to decrease savings rate or decrease borrow rate.
     *   Run this script: `yarn interest-rate-controller`.
-    *   Observe its actions in the Hardhat console and how the MyUSD price on the DEX responds. Does it manage to stabilize the price near $1?
+    *   Observe its actions in the console and how the MyUSD price on the DEX responds. Does it manage to stabilize the price near $1?
     *   It starts in **TEMPERED** mode which just raises the borrow rate until the peg is stabilized. Once this has happened it switches to **GROWTH** mode where it lowers the borrow rate and starts raising the savings rate to make it attractive for users.
     *   Click the **Show Rates** button on the price graph to see how the rates changing affects the price historically.
     *   The price should find equilibrium where it oscillates near the peg
